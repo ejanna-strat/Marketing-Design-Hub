@@ -1,9 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
+import { getAppUrl } from "@/lib/app-url";
 import { requireUser } from "@/lib/auth";
 import { todayInManila } from "@/lib/dates";
+import { notifyNewRequest } from "@/lib/email/notifications";
 import { buildRequestSchema, QUESTION_COLUMNS, toFormQuestion, toSubmitPayload } from "@/lib/requests/schema";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,6 +40,8 @@ export async function submitRequest(values: unknown): Promise<{ error: string }>
     return { error: error.code === "P0001" ? error.message : "We couldn't submit your request. Please try again." };
   }
 
-  const { request_code } = data as { id: string; request_code: string };
+  const { id, request_code } = data as { id: string; request_code: string };
+  const appUrl = await getAppUrl();
+  after(() => notifyNewRequest(id, appUrl));
   redirect(`/requests/submitted?code=${encodeURIComponent(request_code)}`);
 }

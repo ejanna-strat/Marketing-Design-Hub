@@ -14,6 +14,9 @@ export type TeamMember = {
   roles: Role[];
   // The name shown in the Designer dropdown. Required for designers.
   designerName?: string;
+  // Also gets the Marketing-team emails that go to "all designers + Riann"
+  // (e.g. N1 New Design Request). Designers get them anyway.
+  getsTeamEmails?: boolean;
 };
 
 export const team: TeamMember[] = [
@@ -39,6 +42,7 @@ export const team: TeamMember[] = [
     email: "riann@stratpoint.com", // placeholder
     fullName: "Riann",
     roles: ["admin"],
+    getsTeamEmails: true,
   },
   {
     // The project owner's account, so admin screens can be tested.
