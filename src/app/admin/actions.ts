@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
+import { getAppUrl } from "@/lib/app-url";
 import { getCurrentUser } from "@/lib/auth";
+import { notifyFinalOutput } from "@/lib/email/notifications";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -60,6 +63,12 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     return { ok: false, error: error.code === "42501" ? error.message : "We couldn't save the change. Please try again." };
   }
   if (!data) return { ok: false, error: "You can't change this request." };
+
+  // N8 goes out once, the first time a request becomes Completed.
+  if (data.status === "completed" && before.status !== "completed") {
+    const appUrl = await getAppUrl();
+    after(() => notifyFinalOutput(data.id, appUrl));
+  }
 
   revalidatePath("/admin/pipeline");
   revalidatePath(`/admin/requests/${data.request_code}`);
