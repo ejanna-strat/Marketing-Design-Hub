@@ -498,7 +498,11 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **`requests.output_needed`** is a stored copy of the ★ answer (or "Others"), written once at submit so the pipeline can search/sort/filter it quickly. It is the one exception to "compute, don't store".
 - **General Information** questions (§6.1) are built into the form and saved as columns on `requests`; only per-type specification questions live in `form_questions`.
 - **Roles** are assigned from the `team_members` roster (seeded from `config/team.ts`) the first time a person signs in.
-- **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`).
+- **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`). After a migration, regenerate `src/lib/supabase/database.types.ts`.
+- **"Riann" in email recipients** = anyone in `config/team.ts` with `getsTeamEmails: true`. N1 goes to all active designers plus those people.
+- **Sign-in link format:** the Supabase email template links to `{{ .RedirectTo }}?token_hash=…&type=email` (see `docs/supabase-auth-setup.md`), so the link works in any browser. `/auth/confirm` also accepts the default `?code=` link.
+- **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
+- **Shared database:** staging and production use the same Supabase project. Remove any test data after testing.
 
 ---
 

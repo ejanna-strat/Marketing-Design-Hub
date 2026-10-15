@@ -1,0 +1,73 @@
+import { LinkifiedText } from "@/components/LinkifiedText";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate, formatDateTime } from "@/lib/dates";
+import { answerText, type RequestDetail } from "@/lib/requests/detail";
+
+// General Information and Request Specifications of one request (read-only).
+// Used by both the requester and the admin details pages.
+export function RequestInfo({ request }: { request: RequestDetail }) {
+  const approverIsRequester = request.final_approver_email.toLowerCase() === request.requester_email.toLowerCase();
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>General Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <Item label="Request ID" value={<span className="font-mono">{request.request_code}</span>} />
+            <Item label="Request Date" value={<span title={formatDateTime(request.created_at)}>{formatDate(request.created_at)}</span>} />
+            <Item label="Name" value={request.requester_name} />
+            <Item label="Email" value={request.requester_email} />
+            <Item label="Business Unit" value={request.team?.name} />
+            <Item label="Date Needed" value={formatDate(request.date_needed)} />
+            <Item label="Request Title" value={request.title} wide />
+            <Item
+              label="Final Approver of the Design"
+              wide
+              value={
+                approverIsRequester
+                  ? `${request.final_approver_name} (same as the requester)`
+                  : `${request.final_approver_name} · ${request.final_approver_email}`
+              }
+            />
+            <Item label="Type of Design Request" value={request.request_type?.name} />
+            <Item label="Output Needed" value={request.output_needed} />
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Request Specifications</CardTitle>
+          <CardDescription>{request.request_type?.name}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {request.answers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No specifications were given.</p>
+          ) : (
+            <dl className="space-y-4">
+              {request.answers.map((a) => (
+                <Item
+                  key={a.id}
+                  label={a.question_label_snapshot}
+                  value={<LinkifiedText text={answerText(a.value)} />}
+                  wide
+                />
+              ))}
+            </dl>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+export function Item({ label, value, wide }: { label: string; value: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd className="mt-1 text-sm">{value || <span className="text-muted-foreground">—</span>}</dd>
+    </div>
+  );
+}
