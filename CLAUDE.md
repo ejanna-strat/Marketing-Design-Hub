@@ -499,3 +499,35 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **General Information** questions (§6.1) are built into the form and saved as columns on `requests`; only per-type specification questions live in `form_questions`.
 - **Roles** are assigned from the `team_members` roster (seeded from `config/team.ts`) the first time a person signs in.
 - **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`).
+
+---
+
+## 14. Branch flow
+
+Every change follows the same path:
+
+```
+dev ──► feature/<short-name> ──► dev ──► staging (testing) ──► main (live)
+```
+
+1. **Start** every change on a new `feature/<short-name>` branch created from the latest `dev`.
+2. **Merge** the finished feature branch into `dev`.
+3. **Merge** `dev` into `staging` to test it.
+4. **Merge** `staging` into `main` to go live.
+
+**Never commit directly to `dev`, `staging`, or `main`.** Changes reach them only by merging.
+
+---
+
+## 15. Best practices
+
+- **Atomic commits.** One logical change per commit.
+- **Conventional Commit messages.** Start each message with a type: `feat:` (new feature), `fix:` (bug fix), `docs:` (documentation), `refactor:` (code change with no behavior change), `chore:` (setup, dependencies, housekeeping). Example: `fix: show correct status on request detail page`.
+- **Semantic versioning (`x.y.z`) for every release.** Bump the version in `package.json`:
+  - `fix:` → patch (`1.2.3` → `1.2.4`)
+  - `feat:` → minor (`1.2.3` → `1.3.0`)
+  - breaking change → major (`1.2.3` → `2.0.0`)
+- **Check before every merge.** Run `npm run lint` and `npm run build`; both must pass.
+- **No secrets in code.** Keep them in `.env.local` and Vercel environment variables.
+- **Reuse before you build.** Use existing components first. **Ask me before adding any new package.**
+- **Row Level Security stays on for every table**, including new ones.
