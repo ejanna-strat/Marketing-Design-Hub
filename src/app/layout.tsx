@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { theme } from "@/config/theme";
@@ -8,6 +8,13 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+// The "Marketing Design Hub" name is set in Inter bold (class `font-brand`).
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["700"],
 });
 
 const geistMono = Geist_Mono({
@@ -27,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable}`}>
       <body className="antialiased">
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster richColors position="top-right" />

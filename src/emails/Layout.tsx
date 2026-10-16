@@ -2,7 +2,8 @@ import { Body, Button, Container, Head, Hr, Html, Preview, Section, Text } from 
 import { theme } from "@/config/theme";
 
 // Shared layout for every notification (CLAUDE.md §8.2): app name header,
-// purple uppercase label, message, details block, purple button, footer.
+// uppercase label in the brand colour, message, details block, brand-colour
+// button, footer.
 
 export const FOOTERS = {
   team: "You're receiving this because you're on the Marketing Brand team.",

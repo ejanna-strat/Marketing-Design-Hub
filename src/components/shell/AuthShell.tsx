@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { theme } from "@/config/theme";
 
 // The centred card used by sign in, sign up and password pages.
@@ -6,8 +7,9 @@ export function AuthShell({ subtitle, children }: { subtitle: string; children: 
     <main className="flex min-h-screen items-center justify-center bg-brand-soft/40 p-4">
       <div className="w-full max-w-sm space-y-6 rounded-xl border bg-background p-6 shadow-sm">
         <div className="space-y-1 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand">Stratpoint Marketing</p>
-          <h1 className="text-2xl font-bold">{theme.appName}</h1>
+          <Image src="/brand/logo.png" alt="" width={56} height={56} priority className="mx-auto mb-2" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Stratpoint Marketing</p>
+          <h1 className="font-brand text-2xl font-bold text-brand">{theme.appName}</h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
         {children}
