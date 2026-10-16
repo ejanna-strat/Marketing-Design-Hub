@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 16, 2026 · version 0.7.0_
+_Last updated: Oct 16, 2026 · version 0.8.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -21,6 +21,7 @@ _Last updated: Oct 16, 2026 · version 0.7.0_
 - v0.5.0: new New Design Request intro text; "SLAs" on the form links to the SLA page (owner request, Oct 16).
 - v0.6.0: Settings → Members (pulled forward from Phase 5, owner decision Oct 16). New Lead Designer tag (Jerome, Steve); Admins and Lead Designers manage members; N1 goes to Lead Designers + "Gets team emails". Owner's account is an Admin.
 - v0.7.0: requesters can edit a request until it is accepted; note about this at the bottom of the form; Mandatory graphics, Design pegs/graphics and Other important information are now required; **Track My Request** in bold (owner requests, Oct 16).
+- v0.8.0: sign up / sign in with email + password (email confirmed once at sign-up), Forgot password. Replaces the email link/code (owner decision, Oct 16). **Owner:** update Supabase settings and the two email templates (steps 2 and 4 of `docs/supabase-auth-setup.md`), then set your own password with Forgot password.
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
