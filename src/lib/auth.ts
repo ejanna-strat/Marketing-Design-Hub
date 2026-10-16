@@ -23,26 +23,29 @@ export type CurrentUser = {
 };
 
 // The signed-in person with their profile and roles. Cached per request.
+// The session is checked locally (getClaims), then one query loads the
+// profile, roles and designer link together.
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: auth } = await supabase.auth.getClaims();
+  const claims = auth?.claims;
+  if (!claims?.sub) return null;
+  const userId = claims.sub;
 
-  const [{ data: profile }, { data: roleRows }, { data: designer }] = await Promise.all([
-    supabase.from("profiles").select("full_name, email, team_id").eq("id", user.id).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", user.id),
-    supabase.from("designers").select("id").eq("user_id", user.id).maybeSingle(),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email, team_id, user_roles(role), designers(id)")
+    .eq("id", userId)
+    .maybeSingle();
 
-  const roles = (roleRows ?? []).map((r) => r.role);
+  const roles = (profile?.user_roles ?? []).map((r) => r.role);
+  const designer = Array.isArray(profile?.designers) ? profile.designers[0] : profile?.designers;
   const isAdmin = roles.includes("admin");
   const isLeadDesigner = roles.includes("lead_designer");
   const isDesigner = isLeadDesigner || roles.includes("designer");
   return {
-    id: user.id,
-    email: profile?.email ?? user.email ?? "",
+    id: userId,
+    email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
     fullName: profile?.full_name ?? "",
     teamId: profile?.team_id ?? null,
     roles,
