@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SpamNotice } from "@/components/SpamNotice";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { theme } from "@/config/theme";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +15,7 @@ export default async function SignUpPage() {
   return (
     <AuthShell subtitle="Create your account with your @stratpoint.com email.">
       <SignUpForm />
+      <SpamNotice />
     </AuthShell>
   );
 }
