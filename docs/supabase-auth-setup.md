@@ -38,7 +38,7 @@ Subject: `Confirm your Marketing Design Hub account`
 <h2>Welcome to Marketing Design Hub</h2>
 <p>Click the button to confirm your email and activate your account:</p>
 <p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup"
-      style="display:inline-block;background:#6d28d9;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Confirm my email</a></p>
+      style="display:inline-block;background:#0046bf;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Confirm my email</a></p>
 <p style="color:#666;font-size:12px">If you didn't create an account, you can ignore this email.</p>
 ```
 
@@ -50,7 +50,7 @@ Subject: `Set your Marketing Design Hub password`
 <h2>Set a new password</h2>
 <p>Click the button to choose a new password for Marketing Design Hub:</p>
 <p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery"
-      style="display:inline-block;background:#6d28d9;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Set my password</a></p>
+      style="display:inline-block;background:#0046bf;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Set my password</a></p>
 <p style="color:#666;font-size:12px">The link works once. If you didn't ask for this, you can ignore this email.</p>
 ```
 

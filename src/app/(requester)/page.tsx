@@ -44,7 +44,7 @@ export default async function HomePage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-brand">
           {firstName ? `Hi, ${firstName}` : "Stratpoint Marketing"}
         </p>
-        <h1 className="text-3xl font-bold sm:text-4xl">{theme.appName}</h1>
+        <h1 className="font-brand text-3xl font-bold text-brand sm:text-4xl">{theme.appName}</h1>
         <p className="mx-auto max-w-xl text-muted-foreground">
           One place to submit design requests, track progress, and understand our design service timelines.
         </p>

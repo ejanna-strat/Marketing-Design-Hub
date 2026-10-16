@@ -1,10 +1,12 @@
 # App icon
 
-A light bulb with a fountain pen (ideas + design), chosen by the owner on Oct 16.
+The owner's light bulb + fountain pen icon on a blue tile (provided Oct 17).
 
 | File | Used for |
 |---|---|
-| `icon.svg` | Master drawing, no background. Exported to `src/app/icon.png` (64×64, transparent) for the browser tab. |
-| `icon-ios.svg` | Same drawing on a blue background. Exported to `src/app/apple-icon.png` (180×180, square; iPhones round the corners). |
+| `icon-master.png` | 512×512 master, transparent corners. Make every other size from this. |
+| `src/app/icon.png` | 64×64 browser-tab icon. |
+| `src/app/apple-icon.png` | 180×180 iPhone home-screen icon, square on solid blue (iPhones round the corners). |
+| `public/brand/logo.png` | 128×128 logo in the top bar and on the sign-in pages. |
 
-To change the icon, edit these drawings and export new PNGs at the sizes above.
+Brand colour: `#0046bf` (set in `src/config/theme.ts` and `--brand` in `src/app/globals.css`). App name font: Inter, bold.
