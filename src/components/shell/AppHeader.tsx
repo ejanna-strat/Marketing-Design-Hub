@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { theme } from "@/config/theme";
 import type { CurrentUser } from "@/lib/auth";
@@ -22,12 +23,10 @@ function roleLabel(user: CurrentUser) {
 export function AppHeader({ user }: { user: CurrentUser }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
-            MD
-          </span>
-          <span className="hidden sm:inline">{theme.appName}</span>
+      <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
+          <span className="hidden font-brand font-bold text-brand sm:inline">{theme.appName}</span>
         </Link>
         <nav className="flex flex-1 items-center gap-1">
           <NavLink href="/" exact className={linkClass} activeClassName={activeClass}>

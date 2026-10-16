@@ -6,7 +6,7 @@ export default async function RequesterLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-muted/30">
       <AppHeader user={user} />
-      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+      <main className="px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

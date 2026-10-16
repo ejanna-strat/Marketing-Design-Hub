@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-muted/30">
       <AppHeader user={user} />
-      <div className="mx-auto flex max-w-[1600px] gap-6 px-4 py-6">
+      <div className="flex gap-6 px-4 py-6 sm:px-6">
         <aside className="hidden w-52 shrink-0 md:block">
           <nav className="sticky top-20 space-y-1">
             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -9,7 +9,17 @@ import { type RequestPatch, updateRequest } from "@/app/admin/actions";
 import { OutputLink } from "@/components/LinkifiedText";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/dates";
@@ -207,5 +217,118 @@ export function DateNeededEditor({ requestId, value }: { requestId: string; valu
         />
       </PopoverContent>
     </Popover>
+  );
+}
+
+export type GeneralInfo = {
+  title: string;
+  requesterName: string;
+  teamId: string;
+  approverName: string;
+  approverEmail: string;
+};
+
+// Edit the request's title and General Information (any Marketing team
+// member). Date Needed has its own editor next to it.
+export function GeneralInfoEditor({
+  requestId,
+  value,
+  teams,
+}: {
+  requestId: string;
+  value: GeneralInfo;
+  teams: { id: string; name: string }[];
+}) {
+  const { save, pending } = useSave(requestId);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(value);
+  const changed =
+    form.title.trim() !== value.title ||
+    form.requesterName.trim() !== value.requesterName ||
+    form.teamId !== value.teamId ||
+    form.approverName.trim() !== value.approverName ||
+    form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const patch: RequestPatch = {};
+    if (form.title.trim() !== value.title) patch.title = form.title;
+    if (form.requesterName.trim() !== value.requesterName) patch.requester_name = form.requesterName;
+    if (form.teamId !== value.teamId) patch.team_id = form.teamId;
+    if (form.approverName.trim() !== value.approverName) patch.final_approver_name = form.approverName;
+    if (form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase()) {
+      patch.final_approver_email = form.approverEmail;
+    }
+    save(patch, "Request details updated");
+    setOpen(false);
+  }
+
+  const set = (key: keyof GeneralInfo) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm({ ...form, [key]: e.target.value });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setForm(value);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <PencilIcon />
+          Edit details
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={submit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>Edit request details</DialogTitle>
+            <DialogDescription>Changes are saved to the activity log. The type of request can&apos;t change.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="gi-title">Request Title</Label>
+            <Input id="gi-title" value={form.title} onChange={set("title")} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gi-name">Requester&apos;s Name</Label>
+            <Input id="gi-name" value={form.requesterName} onChange={set("requesterName")} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gi-team">Business Unit</Label>
+            <Select value={form.teamId} onValueChange={(teamId) => setForm({ ...form, teamId })}>
+              <SelectTrigger id="gi-team" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {teams.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="gi-approver">Final Approver</Label>
+              <Input id="gi-approver" value={form.approverName} onChange={set("approverName")} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gi-approver-email">Approver Email</Label>
+              <Input id="gi-approver-email" type="email" value={form.approverEmail} onChange={set("approverEmail")} required />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending || !changed}>
+              Save changes
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

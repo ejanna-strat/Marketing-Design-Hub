@@ -3,7 +3,7 @@
 export const theme = {
   appName: "Marketing Design Hub",
   company: "Stratpoint Technologies",
-  brand: "#6d28d9",
-  brandSoft: "#f3effd",
+  brand: "#0046bf",
+  brandSoft: "#e8f0fc",
   timeZone: "Asia/Manila",
 } as const;

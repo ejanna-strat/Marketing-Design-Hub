@@ -4,10 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
 import { CalendarIcon, InfoIcon, LightbulbIcon } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { DynamicQuestion } from "@/components/form/DynamicQuestion";
+import { UnsavedChangesGuard } from "@/components/form/UnsavedChangesGuard";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +72,7 @@ export function NewRequestForm({
     handleSubmit,
     watch,
     clearErrors,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<RequestFormValues>({
     resolver,
     defaultValues: edit?.values ?? {
@@ -87,6 +88,7 @@ export function NewRequestForm({
     },
   });
 
+  const formRef = useRef<HTMLFormElement>(null);
   const typeId = watch("request_type_id");
   const approver = watch("final_approver");
   const typeQuestions = questionsByType.get(typeId) ?? [];
@@ -107,7 +109,8 @@ export function NewRequestForm({
   );
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl space-y-6">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl space-y-6">
+      {edit && <UnsavedChangesGuard active={isDirty && !isSubmitting} onSave={() => formRef.current?.requestSubmit()} />}
       {edit ? (
         <div className="space-y-3">
           <div className="space-y-1">
@@ -339,20 +342,6 @@ export function NewRequestForm({
         </Card>
       )}
 
-      <div className="flex items-center justify-end gap-3">
-        <p className="text-sm text-muted-foreground">
-          <span className="text-destructive">*</span> Required
-        </p>
-        {edit && (
-          <Button asChild variant="outline" size="lg">
-            <Link href={`/my-requests/${edit.code}`}>Cancel</Link>
-          </Button>
-        )}
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {edit ? (isSubmitting ? "Saving…" : "Save changes") : isSubmitting ? "Submitting…" : "Submit Request"}
-        </Button>
-      </div>
-
       {!edit && (
         <div className="flex gap-3 rounded-xl border bg-background p-4 text-sm leading-relaxed">
           <LightbulbIcon className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
@@ -366,6 +355,26 @@ export function NewRequestForm({
           </p>
         </div>
       )}
+
+      <div className="flex items-center justify-end gap-3">
+        <p className="text-sm text-muted-foreground">
+          <span className="text-destructive">*</span> Required
+        </p>
+        {edit && (
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/my-requests/${edit.code}`}>Cancel</Link>
+          </Button>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting || (!!edit && !isDirty)}
+          title={edit && !isDirty ? "No changes to save yet" : undefined}
+        >
+          {edit ? (isSubmitting ? "Saving…" : "Save changes") : isSubmitting ? "Submitting…" : "Submit Request"}
+        </Button>
+      </div>
+
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import { ArrowRightIcon, ClockIcon, ExternalLinkIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
 import Link from "next/link";
+import { SpamNotice } from "@/components/SpamNotice";
 import { Badge } from "@/components/ui/badge";
 import { links } from "@/config/links";
 import { theme } from "@/config/theme";
@@ -43,7 +44,7 @@ export default async function HomePage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-brand">
           {firstName ? `Hi, ${firstName}` : "Stratpoint Marketing"}
         </p>
-        <h1 className="text-3xl font-bold sm:text-4xl">{theme.appName}</h1>
+        <h1 className="font-brand text-3xl font-bold text-brand sm:text-4xl">{theme.appName}</h1>
         <p className="mx-auto max-w-xl text-muted-foreground">
           One place to submit design requests, track progress, and understand our design service timelines.
         </p>
@@ -91,6 +92,8 @@ export default async function HomePage() {
           );
         })}
       </div>
+
+      <SpamNotice className="mx-auto max-w-2xl" />
 
       {user.isStaff && (
         <p className="text-center text-sm text-muted-foreground">
