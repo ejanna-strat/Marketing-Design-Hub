@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 16, 2026 · version 0.4.0_
+_Last updated: Oct 16, 2026 · version 0.5.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -18,6 +18,7 @@ _Last updated: Oct 16, 2026 · version 0.4.0_
 - Tested locally against the real database: login, roles, all 10 request types (MDR-26-0001…0010), requester isolation (UI and database), pipeline editing, designer limits, activity log, N1/N8 logging and no double N8. Test data was removed afterwards; numbering restarts at MDR-26-0001.
 - Steps 3–9 merged into `dev` and `staging`.
 - v0.4.0: See Design SLAs on the home page links to the Marketing Hub SLA page (owner request, Oct 16).
+- v0.5.0: new New Design Request intro text; "SLAs" on the form links to the SLA page (owner request, Oct 16).
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
