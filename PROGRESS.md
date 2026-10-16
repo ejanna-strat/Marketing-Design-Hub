@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 16, 2026 · version 0.6.0_
+_Last updated: Oct 16, 2026 · version 0.7.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -20,6 +20,7 @@ _Last updated: Oct 16, 2026 · version 0.6.0_
 - v0.4.0: See Design SLAs on the home page links to the Marketing Hub SLA page (owner request, Oct 16).
 - v0.5.0: new New Design Request intro text; "SLAs" on the form links to the SLA page (owner request, Oct 16).
 - v0.6.0: Settings → Members (pulled forward from Phase 5, owner decision Oct 16). New Lead Designer tag (Jerome, Steve); Admins and Lead Designers manage members; N1 goes to Lead Designers + "Gets team emails". Owner's account is an Admin.
+- v0.7.0: requesters can edit a request until it is accepted; note about this at the bottom of the form; Mandatory graphics, Design pegs/graphics and Other important information are now required; **Track My Request** in bold (owner requests, Oct 16).
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
