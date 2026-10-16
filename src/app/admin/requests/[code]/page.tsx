@@ -21,17 +21,18 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   const { code } = await params;
   const user = await requireStaff();
   const supabase = await createClient();
-  const request = await getRequestByCode(supabase, code);
-  if (!request) notFound();
-
-  const [{ data: designers }, { data: log }] = await Promise.all([
+  // All three load at once: the activity log is matched by request code, so
+  // it doesn't have to wait for the request itself.
+  const [request, { data: designers }, { data: log }] = await Promise.all([
+    getRequestByCode(supabase, code),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase
       .from("activity_log")
-      .select("id, action, from_value, to_value, note, created_at, actor:profiles(full_name)")
-      .eq("request_id", request.id)
+      .select("id, action, from_value, to_value, note, created_at, actor:profiles(full_name), request:requests!inner(request_code)")
+      .eq("request.request_code", code.toUpperCase())
       .order("created_at", { ascending: false }),
   ]);
+  if (!request) notFound();
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
   return (

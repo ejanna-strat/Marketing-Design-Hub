@@ -8,10 +8,8 @@ export const metadata = { title: `Create an account · ${theme.appName}` };
 
 export default async function SignUpPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) redirect("/");
+  const { data } = await supabase.auth.getClaims();
+  if (data?.claims?.sub) redirect("/");
 
   return (
     <AuthShell subtitle="Create your account with your @stratpoint.com email.">

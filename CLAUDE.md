@@ -509,7 +509,11 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Settings → Members was pulled forward from Phase 5** at the owner's request (Oct 16). The rest of Phase 5 (form builder, SLA page, merging accounts) stays in Phase 5.
 - **Email link format:** the Confirm signup and Reset Password templates link to `{{ .RedirectTo }}?token_hash=…&type=signup|recovery` (see `docs/supabase-auth-setup.md`), so links work in any browser. `/auth/confirm` sends `recovery` links to `/reset-password` and also accepts the default `?code=` link.
 - **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
-- **Shared database:** staging and production use the same Supabase project. Remove any test data after testing.
+- **Two Supabase projects (Oct 16), both in Singapore:**
+  - **Production** `ejkmuekrulshkmccjtxb`: Vercel *Production* environment (`main`). Claude MCP server `supabase`.
+  - **Staging** `usnjrpnwhqascimtbzqk`: Vercel *Preview* environment (`staging` and feature branches) and local `.env.local`. Claude MCP server `supabase-staging`. Production's local values are in `.env.prod.backup` (gitignored).
+  - Every migration is applied to **staging first**, tested there, then to production when `staging` is merged into `main`. Staging's sign-in settings (hook, templates, SMTP, redirect URLs) were set through the Supabase Management API.
+- **Speed (Oct 16):** the app's server runs in Vercel's Singapore region (`vercel.json`, `sin1`) next to the database. Sessions are checked locally with `auth.getClaims()` (ES256 keys), the signed-in person's profile and roles load in one query, and `loading.tsx` skeletons show instantly. Keep new pages to one round of parallel queries where possible.
 - **Requester edits (Oct 16):** a requester can edit their own request while it is a *New request* with no designer assigned (`update_request()`; the type can't change). Edits show in the activity log. The bottom of the New Design Request form tells requesters this.
 - **"Track My Request"** is written in **bold** wherever it appears in text, so people recognise it as a page.
 

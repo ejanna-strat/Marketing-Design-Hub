@@ -29,11 +29,12 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not add code between createServerClient and getUser(): it refreshes
-  // the session cookie.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not add code between createServerClient and getClaims(): it refreshes
+  // the session cookie. getClaims() checks the session's signature locally
+  // (the project signs sessions with public ES256 keys), so most requests
+  // don't wait on Supabase at all.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub;
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
