@@ -55,7 +55,9 @@ export const FINAL_APPROVER = {
 
 const MAX_TEXT = 5000;
 
-export function buildRequestSchema(questions: FormQuestion[], today: string) {
+// keepDate: a Date Needed that is allowed even if it's now in the past (the
+// request's current date, when the requester edits it).
+export function buildRequestSchema(questions: FormQuestion[], today: string, keepDate?: string) {
   return z
     .object({
       requester_name: z.string().trim().min(1, "Please enter your name.").max(200),
@@ -65,7 +67,7 @@ export function buildRequestSchema(questions: FormQuestion[], today: string) {
       date_needed: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose the date needed.")
-        .refine((d) => d >= today, "The date needed cannot be in the past."),
+        .refine((d) => d >= today || d === keepDate, "The date needed cannot be in the past."),
       final_approver: z.enum(["myself", "other"], { error: "Please choose the final approver of the design." }),
       approver_name: z.string().trim().max(200),
       approver_email: z.string().trim().max(200),
