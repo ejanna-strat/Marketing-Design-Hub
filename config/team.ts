@@ -50,4 +50,9 @@ export const team: TeamMember[] = [
     fullName: "Stratpoint Marketing",
     roles: ["admin"],
   },
+  {
+    email: "erylljanna.ong@stratpoint.com",
+    fullName: "Erylljanna Ong",
+    roles: ["admin"],
+  },
 ];
