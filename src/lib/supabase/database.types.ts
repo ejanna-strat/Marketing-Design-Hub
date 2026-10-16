@@ -495,6 +495,7 @@ export type Database = {
         Returns: undefined
       }
       submit_request: { Args: { payload: Json }; Returns: Json }
+      update_request: { Args: { p_request_id: string; payload: Json }; Returns: Json }
       sync_team_roster: { Args: never; Returns: undefined }
       sync_user_roles: { Args: { uid: string }; Returns: undefined }
     }

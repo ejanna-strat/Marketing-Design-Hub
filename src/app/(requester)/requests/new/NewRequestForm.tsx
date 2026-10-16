@@ -2,7 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, InfoIcon } from "lucide-react";
+import { CalendarIcon, InfoIcon, LightbulbIcon } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,20 +23,25 @@ import {
   type FormQuestion,
   type RequestFormValues,
 } from "@/lib/requests/schema";
+import { updateMyRequest } from "../../my-requests/[code]/edit/actions";
 import { submitRequest } from "./actions";
 
 type Option = { id: string; name: string };
 
+// The New Design Request form. With `edit`, the same form edits one of the
+// requester's own requests (before it is accepted); the type is fixed.
 export function NewRequestForm({
   user,
   teams,
   requestTypes,
   questions,
+  edit,
 }: {
   user: { name: string; email: string; teamId: string | null };
   teams: Option[];
   requestTypes: Option[];
   questions: FormQuestion[];
+  edit?: { requestId: string; code: string; values: RequestFormValues };
 }) {
   const today = useMemo(() => todayInManila(), []);
   const [dateOpen, setDateOpen] = useState(false);
@@ -49,12 +55,14 @@ export function NewRequestForm({
   // The rules depend on the chosen type, so build the schema at check time.
   const resolver = useCallback<Resolver<RequestFormValues>>(
     (values, context, options) =>
-      zodResolver(buildRequestSchema(questionsByType.get(values.request_type_id) ?? [], today))(
+      zodResolver(
+        buildRequestSchema(questionsByType.get(values.request_type_id) ?? [], today, edit?.values.date_needed),
+      )(
         values,
         context,
         options,
       ) as ReturnType<Resolver<RequestFormValues>>,
-    [questionsByType, today],
+    [questionsByType, today, edit?.values.date_needed],
   );
 
   const {
@@ -66,7 +74,7 @@ export function NewRequestForm({
     formState: { errors, isSubmitting },
   } = useForm<RequestFormValues>({
     resolver,
-    defaultValues: {
+    defaultValues: edit?.values ?? {
       requester_name: user.name,
       title: "",
       team_id: teams.some((t) => t.id === user.teamId) ? user.teamId! : "",
@@ -87,7 +95,7 @@ export function NewRequestForm({
 
   const onSubmit = handleSubmit(
     async (values) => {
-      const result = await submitRequest(values);
+      const result = edit ? await updateMyRequest(edit.requestId, values) : await submitRequest(values);
       if (result?.error) toast.error(result.error);
     },
     () => {
@@ -100,11 +108,25 @@ export function NewRequestForm({
 
   return (
     <form onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">New Design Request</h1>
-        <p className="text-muted-foreground">Marketing Design Request Form</p>
-      </div>
+      {edit ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-sm text-muted-foreground">{edit.code}</p>
+            <h1 className="text-2xl font-bold">Edit Request</h1>
+          </div>
+          <p className="rounded-xl border border-brand/20 bg-brand-soft/60 p-4 text-sm leading-relaxed">
+            You can edit your request until it is accepted by the reviewer. The type of design request can&apos;t be
+            changed. If you need a different type, please submit a new request.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">New Design Request</h1>
+          <p className="text-muted-foreground">Marketing Design Request Form</p>
+        </div>
+      )}
 
+      {!edit && (
       <div className="space-y-3 rounded-xl border border-brand/20 bg-brand-soft/60 p-5 text-sm leading-relaxed">
         <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
         <p>
@@ -134,6 +156,7 @@ export function NewRequestForm({
           </p>
         </div>
       </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -267,6 +290,7 @@ export function NewRequestForm({
               render={({ field }) => (
                 <Select
                   value={field.value}
+                  disabled={!!edit}
                   onValueChange={(v) => {
                     field.onChange(v);
                     clearErrors("answers");
@@ -319,10 +343,29 @@ export function NewRequestForm({
         <p className="text-sm text-muted-foreground">
           <span className="text-destructive">*</span> Required
         </p>
+        {edit && (
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/my-requests/${edit.code}`}>Cancel</Link>
+          </Button>
+        )}
         <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting ? "Submitting…" : "Submit Request"}
+          {edit ? (isSubmitting ? "Saving…" : "Save changes") : isSubmitting ? "Submitting…" : "Submit Request"}
         </Button>
       </div>
+
+      {!edit && (
+        <div className="flex gap-3 rounded-xl border bg-background p-4 text-sm leading-relaxed">
+          <LightbulbIcon className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+          <p>
+            <span className="font-medium">Need to make changes after submitting?</span> You can edit your request
+            details anytime before the request is accepted by the reviewer. Just go to{" "}
+            <Link href="/my-requests" className="font-bold text-brand hover:underline">
+              Track My Request
+            </Link>
+            .
+          </p>
+        </div>
+      )}
     </form>
   );
 }

@@ -263,7 +263,7 @@ Final Approver storage: if "Myself", save the requester's name and email into `f
 - Other important information — long text — help: "If irrelevant, put N/A."
 - (No ★ question; "Output Needed" shows "Others".)
 
-★ = `is_output_needed = true` (its answer shows in the pipeline's **Output Needed** column). Required: all ★ questions, every "Project Overview and Objective", and every "Copy" / "Copy/Content" / "Detailed information" question; everything else optional (owner can change this later).
+★ = `is_output_needed = true` (its answer shows in the pipeline's **Output Needed** column). Required: all ★ questions, every "Project Overview and Objective", every "Copy" / "Copy/Content" / "Detailed information" question, and (since Oct 16) every "Mandatory graphics", "Design pegs/graphics" and "Other important information" question, where requesters can type N/A. Everything else is optional.
 
 **Changes vs. the Oct 1 list** (apply to the database if the form is already built; old requests keep their answers via label snapshots):
 1. Type #8 renamed: "Other Marketing Materials (Print & Digital Publications)" → **"Marketing Print and Digital Publications"**.
@@ -510,6 +510,8 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Sign-in link format:** the Supabase email template links to `{{ .RedirectTo }}?token_hash=…&type=email` (see `docs/supabase-auth-setup.md`), so the link works in any browser. `/auth/confirm` also accepts the default `?code=` link.
 - **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
 - **Shared database:** staging and production use the same Supabase project. Remove any test data after testing.
+- **Requester edits (Oct 16):** a requester can edit their own request while it is a *New request* with no designer assigned (`update_request()`; the type can't change). Edits show in the activity log. The bottom of the New Design Request form tells requesters this.
+- **"Track My Request"** is written in **bold** wherever it appears in text, so people recognise it as a page.
 
 ---
 
