@@ -153,14 +153,16 @@ Use these tables (names can be adjusted, but keep the concepts):
 
 Source: *"Marketing Design Request Form — Simplified Questions List as of Oct 14"* (final). Unless a question says **(select all that apply)** it is single-choice. "+ Other" means show an "Other: ___" short text option. Seed these into `form_questions`. Help text ("Description") is shown in grey under the label. Text fields that ask for links stay **open text** (people may paste several links or a note), not strict URL fields.
 
-**Form intro** (show at the top of the New Design Request form):
-> Good day! This is the Design Request Form of the Marketing Team. Please allow us within the working day to confirm receipt of your request. If we do not respond, please send Jerome Casupanan Ko a follow-up via Google Chat or e-mail at jerome.casupanan@stratpoint.com.
+**Form intro** (show at the top of the New Design Request form; updated Oct 16):
+> Welcome to the Marketing Team’s Design Request Form!
 >
-> Please be informed that your design requests are still subject to approval after submission.
+> Please allow us one working day to acknowledge receipt of your request. If you do not receive a response within this time, please follow up with Jerome Casupanan via Google Chat or email at jerome.casupanan@stratpoint.com.
 >
-> Kindly note that the request has not been started unless you get a confirmation from one of our designers. Thank you!
+> Please note: All requests are subject to review and approval. Submission does not mean work has started. Your request will only be considered in progress once you receive confirmation from one of our designers.
+>
+> Thank you!
 
-Also show: *"Please submit a separate request for each design type."* and *"Reminder: Please review our SLAs to set expectations for request turnaround times."* (SLA link from Phase 5).
+Also show: *"Please submit a separate request for each design type."* and *"Reminder: Please review our SLAs to set expectations for request turnaround times."* Every "SLAs" in the app links to the Marketing Hub SLA page (`src/config/links.ts`, added Oct 16).
 
 ### 6.1 General Information (all requests, first part of the form, in this order)
 | # | Question | Type | Required | Help text |

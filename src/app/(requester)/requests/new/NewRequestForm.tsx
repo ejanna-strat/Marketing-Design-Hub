@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { links } from "@/config/links";
 import { formatDate, todayInManila } from "@/lib/dates";
 import {
   buildRequestSchema,
@@ -105,20 +106,21 @@ export function NewRequestForm({
       </div>
 
       <div className="space-y-3 rounded-xl border border-brand/20 bg-brand-soft/60 p-5 text-sm leading-relaxed">
+        <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
         <p>
-          Good day! This is the Design Request Form of the Marketing Team. Please allow us within the working day to
-          confirm receipt of your request. If we do not respond, please send Jerome Casupanan Ko a follow-up via Google
-          Chat or e-mail at{" "}
+          Please allow us one working day to acknowledge receipt of your request. If you do not receive a response
+          within this time, please follow up with Jerome Casupanan via Google Chat or email at{" "}
           <a className="font-medium text-brand underline" href="mailto:jerome.casupanan@stratpoint.com">
             jerome.casupanan@stratpoint.com
           </a>
           .
         </p>
-        <p>Please be informed that your design requests are still subject to approval after submission.</p>
         <p>
-          Kindly note that the request has not been started unless you get a confirmation from one of our designers.
-          Thank you!
+          <span className="font-medium">Please note:</span> All requests are subject to review and approval. Submission
+          does not mean work has started. Your request will only be considered in progress once you receive
+          confirmation from one of our designers.
         </p>
+        <p>Thank you!</p>
         <div className="space-y-1 border-t border-brand/20 pt-3">
           <p className="flex gap-2 font-medium">
             <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
@@ -126,7 +128,9 @@ export function NewRequestForm({
           </p>
           <p className="flex gap-2 font-medium">
             <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
-            Reminder: Please review our SLAs to set expectations for request turnaround times.
+            <span>
+              Reminder: Please review our <SlaLink /> to set expectations for request turnaround times.
+            </span>
           </p>
         </div>
       </div>
@@ -180,7 +184,12 @@ export function NewRequestForm({
             label="Date Needed"
             htmlFor="date_needed"
             required
-            help="Select the date when you need the final design output delivered. For guidance on turnaround times, please refer to our SLAs."
+            help={
+              <>
+                Select the date when you need the final design output delivered. For guidance on turnaround times,
+                please refer to our <SlaLink />.
+              </>
+            }
             error={errors.date_needed?.message}
           >
             <Controller
@@ -329,7 +338,7 @@ function Field({
   label: string;
   htmlFor: string;
   required?: boolean;
-  help?: string;
+  help?: React.ReactNode;
   error?: string;
   children: React.ReactNode;
 }) {
@@ -343,5 +352,14 @@ function Field({
       {children}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
+  );
+}
+
+// "SLAs", linked to the Marketing Hub service-level agreement page.
+function SlaLink() {
+  return (
+    <a href={links.designSlas} target="_blank" rel="noreferrer" className="font-medium text-brand underline underline-offset-2">
+      SLAs
+    </a>
   );
 }
