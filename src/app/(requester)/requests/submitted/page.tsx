@@ -1,5 +1,6 @@
 import { CheckCircle2Icon } from "lucide-react";
 import Link from "next/link";
+import { SpamNotice } from "@/components/SpamNotice";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Request Submitted" };
@@ -28,6 +29,7 @@ export default async function SubmittedPage({ searchParams }: { searchParams: Pr
           You can track the status of your request anytime through <span className="font-bold">Track My Request</span>.
         </p>
       </div>
+      <SpamNotice />
       <div className="flex flex-col justify-center gap-3 sm:flex-row">
         <Button asChild size="lg">
           <Link href="/my-requests">Track My Request</Link>

@@ -1,5 +1,6 @@
 import { ArrowRightIcon, ClockIcon, ExternalLinkIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
 import Link from "next/link";
+import { SpamNotice } from "@/components/SpamNotice";
 import { Badge } from "@/components/ui/badge";
 import { links } from "@/config/links";
 import { theme } from "@/config/theme";
@@ -91,6 +92,8 @@ export default async function HomePage() {
           );
         })}
       </div>
+
+      <SpamNotice className="mx-auto max-w-2xl" />
 
       {user.isStaff && (
         <p className="text-center text-sm text-muted-foreground">

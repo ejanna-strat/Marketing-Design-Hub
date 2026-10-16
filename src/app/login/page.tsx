@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SpamNotice } from "@/components/SpamNotice";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { theme } from "@/config/theme";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ export default async function LoginPage({
         next={next}
         initialError={error === "link" ? "That link is invalid or has expired. Please try again." : undefined}
       />
+      <SpamNotice />
     </AuthShell>
   );
 }

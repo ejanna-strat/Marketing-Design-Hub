@@ -33,7 +33,7 @@ export default async function MyRequestDetailPage({
   const editable = canRequesterEdit(request);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <Link href="/my-requests" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeftIcon className="size-4" />
         My Design Requests
