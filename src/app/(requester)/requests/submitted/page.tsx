@@ -24,7 +24,9 @@ export default async function SubmittedPage({ searchParams }: { searchParams: Pr
           to review and approval by the Design Team.
         </p>
         <p>You will receive a separate notification once the assigned designer started working on your request.</p>
-        <p>You can track the status of your request anytime through Track My Requests.</p>
+        <p>
+          You can track the status of your request anytime through <span className="font-bold">Track My Request</span>.
+        </p>
       </div>
       <div className="flex flex-col justify-center gap-3 sm:flex-row">
         <Button asChild size="lg">

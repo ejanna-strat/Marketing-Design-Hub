@@ -9,7 +9,7 @@ const DETAIL_COLUMNS = `
   request_type:request_types(name),
   team:teams(name),
   designer:designers(display_name),
-  answers:request_answers(id, question_label_snapshot, value, question:form_questions(sort_order))
+  answers:request_answers(id, question_id, question_label_snapshot, value, question:form_questions(sort_order))
 `;
 
 // One request with its answers (in form order). Row Level Security decides
@@ -25,6 +25,12 @@ export async function getRequestByCode(supabase: Supabase, code: string, options
 }
 
 export type RequestDetail = NonNullable<Awaited<ReturnType<typeof getRequestByCode>>>;
+
+// Requesters can edit their request until it is accepted: still a New request
+// with no designer assigned. The database checks the same rule.
+export function canRequesterEdit(request: { status: string; assigned_designer_id: string | null }) {
+  return request.status === "new_request" && request.assigned_designer_id === null;
+}
 
 // An answer as display text (select-all answers joined with commas).
 export function answerText(value: Json): string {

@@ -104,6 +104,7 @@ type LogEntry = Pick<Tables<"activity_log">, "id" | "action" | "from_value" | "t
 };
 
 const FIELD_NAMES: Record<string, string> = {
+  title: "Request Title",
   status: "Status",
   designer: "Assigned Designer",
   link_to_output: "Link to Output",
@@ -128,20 +129,22 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
             <span className="font-medium">{e.actor?.full_name ?? "System"}</span>{" "}
             {e.action === "created" ? (
               "submitted the request"
+            ) : e.action === "edited" ? (
+              "edited the request details"
             ) : (
               <>
                 changed <span className="font-medium">{FIELD_NAMES[e.action] ?? e.action}</span>
               </>
             )}
           </p>
-          {e.action !== "created" && (
+          {e.action !== "created" && e.action !== "edited" && (
             <p className="mt-1 break-words text-muted-foreground">
               <span className="line-through decoration-muted-foreground/50">{showValue(e.action, e.from_value)}</span>
               {" → "}
               <span className="text-foreground">{showValue(e.action, e.to_value)}</span>
             </p>
           )}
-          {e.note && <p className="mt-1 text-muted-foreground">{e.note}</p>}
+          {e.note && e.action !== "edited" && <p className="mt-1 text-muted-foreground">{e.note}</p>}
           <time className="mt-1 block text-xs text-muted-foreground" dateTime={e.created_at}>
             {formatDateTime(e.created_at)}
           </time>
