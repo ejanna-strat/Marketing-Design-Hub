@@ -47,4 +47,5 @@ Supabase's built-in email only delivers to **members of the Supabase project tea
 Before real users sign in, set Resend as the sender:
 **Authentication → Emails → SMTP Settings → Enable custom SMTP**
 - Host `smtp.resend.com`, port `465`, username `resend`, password = your Resend API key
-- Sender email: the verified Stratpoint address (see `docs/it-dns-request.md`)
+- Sender email: `designhub@ejoo.site`, sender name `Marketing Design Hub`. `ejoo.site` is verified in Resend for now; switch to a Stratpoint address once IT adds the DNS records (`docs/it-dns-request.md`)
+- Then **Authentication → Rate Limits**: raise "Rate limit for sending emails" to about 30 per hour
