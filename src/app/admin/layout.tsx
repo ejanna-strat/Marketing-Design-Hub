@@ -10,15 +10,18 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { NavLink } from "@/components/shell/NavLink";
 import { requireStaff } from "@/lib/auth";
 
-// Later phases show as disabled "Coming soon" items.
-const menu = [
-  { title: "Dashboard", icon: LayoutDashboardIcon },
-  { title: "Design Pipeline", icon: ClipboardListIcon, href: "/admin/pipeline" },
-  { title: "Pendings", icon: HourglassIcon },
-  { title: "Feedback", icon: MessageSquareHeartIcon },
-  { title: "Analytics", icon: BarChart3Icon },
-  { title: "Settings", icon: SettingsIcon },
-];
+// Later phases show as disabled "Coming soon" items. Settings (Members) is
+// for Admins and Lead Designers only.
+function menuFor(isManager: boolean) {
+  return [
+    { title: "Dashboard", icon: LayoutDashboardIcon },
+    { title: "Design Pipeline", icon: ClipboardListIcon, href: "/admin/pipeline" },
+    { title: "Pendings", icon: HourglassIcon },
+    { title: "Feedback", icon: MessageSquareHeartIcon },
+    { title: "Analytics", icon: BarChart3Icon },
+    ...(isManager ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
+  ];
+}
 
 const itemClass = "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm";
 
@@ -35,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Marketing team
             </p>
-            {menu.map(({ title, icon: Icon, href }) =>
+            {menuFor(user.isManager).map(({ title, icon: Icon, href }) =>
               href ? (
                 <NavLink
                   key={title}

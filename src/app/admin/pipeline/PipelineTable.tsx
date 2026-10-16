@@ -23,7 +23,7 @@ export function PipelineTable({
   page: number;
   pageSize: number;
   designers: DesignerOption[];
-  // Only admins can assign designers; designers see the name.
+  // Admins and Lead Designers can assign designers; Designers see the name.
   canAssign: boolean;
 }) {
   const columns = useMemo(

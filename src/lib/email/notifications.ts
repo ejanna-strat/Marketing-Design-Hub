@@ -1,5 +1,4 @@
 import "server-only";
-import { team } from "../../../config/team";
 import { N1NewRequest, n1Subject } from "@/emails/N1NewRequest";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { formatDate } from "@/lib/dates";
@@ -19,12 +18,16 @@ async function loadRequest(requestId: string) {
   return data;
 }
 
-// N1 — all active designers + roster members flagged getsTeamEmails (Riann).
+// N1 — Lead Designers + members ticked "Gets team emails" (e.g. Riann).
 export async function notifyNewRequest(requestId: string, appUrl: string) {
   try {
     const request = await loadRequest(requestId);
-    const { data: designers } = await createAdminClient().from("designers").select("email").eq("active", true);
-    const to = [...(designers ?? []).map((d) => d.email), ...team.filter((m) => m.getsTeamEmails).map((m) => m.email)];
+    const { data: members, error } = await createAdminClient()
+      .from("team_members")
+      .select("email")
+      .or("roles.cs.{lead_designer},gets_team_emails.eq.true");
+    if (error) throw new Error(`Could not load the team: ${error.message}`);
+    const to = (members ?? []).map((m) => m.email);
 
     await sendEmail({
       key: "N1_NEW_REQUEST",

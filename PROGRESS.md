@@ -1,12 +1,12 @@
 # Progress
 
-_Last updated: Oct 16, 2026 · version 0.5.0_
+_Last updated: Oct 16, 2026 · version 0.6.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
 - Phase 0: `.env.local` has the Supabase URL, anon key and service role key. Supabase MCP connected.
 - Phase 1 Step 1: database schema, triggers and Row Level Security (`0001_schema.sql`, `0002_advisor_fixes.sql`).
-- Phase 1 Step 2: seed data (`0003_seed.sql`) and team roster (`config/team.ts`, `npm run seed:team`).
+- Phase 1 Step 2: seed data (`0003_seed.sql`) and the first team roster.
 - Phase 1 Step 3: sign-in with a magic link or 6-digit code (`/login`, `/auth/confirm`). Signed-out visitors are sent to `/login`; non-@stratpoint.com emails are refused.
 - Phase 1 Step 4: app shell. Home page with the four actions (Share Feedback and See Design SLAs show "Coming soon"), top bar with sign out, staff-only area at `/admin` with the left menu.
 - Phase 1 Step 5: New Design Request form (`/requests/new`) for all 10 types, checked in the browser and again on the server; Request Submitted page.
@@ -19,6 +19,7 @@ _Last updated: Oct 16, 2026 · version 0.5.0_
 - Steps 3–9 merged into `dev` and `staging`.
 - v0.4.0: See Design SLAs on the home page links to the Marketing Hub SLA page (owner request, Oct 16).
 - v0.5.0: new New Design Request intro text; "SLAs" on the form links to the SLA page (owner request, Oct 16).
+- v0.6.0: Settings → Members (pulled forward from Phase 5, owner decision Oct 16). New Lead Designer tag (Jerome, Steve); Admins and Lead Designers manage members; N1 goes to Lead Designers + "Gets team emails". Owner's account is an Admin.
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
@@ -43,7 +44,7 @@ Vercel → project **marketing-design-hub** → Settings:
 
 ## Open questions for the owner
 1. **Dates:** the plan's Phase 1 test date (Wed Oct 7) has passed. Please pick new target dates for Phase 1 and later phases.
-2. Real email addresses for Steve, Sofia and Riann (placeholders in `config/team.ts`; Jerome's is taken from the form intro). Should `marketing-ai@stratpoint.com` stay an admin?
+2. Real email addresses for Steve, Sofia and Riann: they are placeholders. Fix them in Settings → Members (remove the placeholder, add the real email). Should `marketing-ai@stratpoint.com` stay an admin?
 3. Sender address for emails (e.g. `designhub@<subdomain>.stratpoint.com`); needs IT's DNS record.
 4. Which specification questions are required (current default is in CLAUDE.md §6).
 5. **Before go-live:** rotate the Supabase service role key and the personal access token (both were pasted in chat).

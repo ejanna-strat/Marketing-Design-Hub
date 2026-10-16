@@ -9,10 +9,12 @@ const linkClass =
 const activeClass = "bg-brand-soft font-medium text-brand hover:bg-brand-soft hover:text-brand";
 
 function roleLabel(user: CurrentUser) {
-  if (user.isAdmin && user.isDesigner) return "Admin · Designer";
-  if (user.isAdmin) return "Admin";
-  if (user.isDesigner) return "Designer";
-  return "Requester";
+  const tags = [
+    user.isAdmin && "Admin",
+    user.isLeadDesigner && "Lead Designer",
+    user.roles.includes("designer") && "Designer",
+  ].filter(Boolean);
+  return tags.length ? tags.join(" · ") : "Requester";
 }
 
 // Top bar on every signed-in page. Requesters see only Home and My Requests;

@@ -1,13 +1,12 @@
 {
   "name": "marketing-design-hub",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "seed:team": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-team.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
