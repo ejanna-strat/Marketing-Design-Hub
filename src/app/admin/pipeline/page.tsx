@@ -52,7 +52,7 @@ export default async function PipelinePage({
         page={params.page}
         pageSize={PAGE_SIZE}
         designers={designerOptions}
-        canAssign={user.isAdmin}
+        canAssign={user.isManager}
       />
     </div>
   );

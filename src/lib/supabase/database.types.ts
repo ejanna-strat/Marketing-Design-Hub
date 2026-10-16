@@ -398,21 +398,27 @@ export type Database = {
       }
       team_members: {
         Row: {
+          added_at: string
           designer_display_name: string | null
           email: string
           full_name: string
+          gets_team_emails: boolean
           roles: Database["public"]["Enums"]["app_role"][]
         }
         Insert: {
+          added_at?: string
           designer_display_name?: string | null
           email: string
           full_name: string
+          gets_team_emails?: boolean
           roles?: Database["public"]["Enums"]["app_role"][]
         }
         Update: {
+          added_at?: string
           designer_display_name?: string | null
           email?: string
           full_name?: string
+          gets_team_emails?: boolean
           roles?: Database["public"]["Enums"]["app_role"][]
         }
         Relationships: []
@@ -475,13 +481,25 @@ export type Database = {
       }
       hook_restrict_signup_domain: { Args: { event: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      remove_team_member: { Args: { p_email: string }; Returns: undefined }
+      save_team_member: {
+        Args: {
+          p_designer_name: string
+          p_email: string
+          p_full_name: string
+          p_gets_team_emails: boolean
+          p_roles: Database["public"]["Enums"]["app_role"][]
+        }
+        Returns: undefined
+      }
       submit_request: { Args: { payload: Json }; Returns: Json }
       sync_team_roster: { Args: never; Returns: undefined }
       sync_user_roles: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "designer" | "requester"
+      app_role: "admin" | "lead_designer" | "designer" | "requester"
       field_type:
         | "short_text"
         | "long_text"
@@ -516,7 +534,7 @@ export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"]
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "designer", "requester"],
+      app_role: ["admin", "lead_designer", "designer", "requester"],
       field_type: [
         "short_text",
         "long_text",

@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return { title: (await params).code };
 }
 
-// Request Details window for the Marketing team. Admins can edit Date
-// Needed, Status, Designer and Link; designers can edit Status and Link.
+// Request Details window for the Marketing team. Admins and Lead Designers
+// can edit Date Needed, Status, Designer and Link; Designers Status and Link.
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await requireStaff();
@@ -60,7 +60,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 <Item
                   label="Assigned Designer"
                   value={
-                    user.isAdmin ? (
+                    user.isManager ? (
                       <DesignerSelect requestId={request.id} value={request.assigned_designer_id} designers={designerOptions} />
                     ) : (
                       request.designer?.display_name
@@ -71,7 +71,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 <Item
                   label="Date Needed"
                   value={
-                    user.isAdmin ? (
+                    user.isManager ? (
                       <DateNeededEditor requestId={request.id} value={request.date_needed} />
                     ) : (
                       formatDate(request.date_needed)

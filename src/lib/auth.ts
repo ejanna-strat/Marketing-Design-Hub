@@ -11,7 +11,12 @@ export type CurrentUser = {
   teamId: string | null;
   roles: Enums<"app_role">[];
   isAdmin: boolean;
+  isLeadDesigner: boolean;
+  // Designer or Lead Designer: can be assigned requests.
   isDesigner: boolean;
+  // Admin or Lead Designer: can change every pipeline field and manage members.
+  isManager: boolean;
+  // Admin, Lead Designer or Designer: can open the pipeline.
   isStaff: boolean;
   // The designers row linked to this person, if they are a designer.
   designerId: string | null;
@@ -33,7 +38,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const roles = (roleRows ?? []).map((r) => r.role);
   const isAdmin = roles.includes("admin");
-  const isDesigner = roles.includes("designer");
+  const isLeadDesigner = roles.includes("lead_designer");
+  const isDesigner = isLeadDesigner || roles.includes("designer");
   return {
     id: user.id,
     email: profile?.email ?? user.email ?? "",
@@ -41,7 +47,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     teamId: profile?.team_id ?? null,
     roles,
     isAdmin,
+    isLeadDesigner,
     isDesigner,
+    isManager: isAdmin || isLeadDesigner,
     isStaff: isAdmin || isDesigner,
     designerId: designer?.id ?? null,
   };
@@ -53,9 +61,16 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
-// Admins and designers only. Everyone else goes back to the home page.
+// Marketing team only. Everyone else goes back to the home page.
 export async function requireStaff(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!user.isStaff) redirect("/");
+  return user;
+}
+
+// Admins and Lead Designers only. Designers go back to the pipeline.
+export async function requireManager(): Promise<CurrentUser> {
+  const user = await requireStaff();
+  if (!user.isManager) redirect("/admin/pipeline");
   return user;
 }

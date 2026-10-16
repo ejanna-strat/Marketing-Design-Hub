@@ -45,15 +45,19 @@
 
 Everyone signs in with an **email magic link** sent to their **@stratpoint.com** address. Requests are tied to the signed-in email. Tell users to always use their main email (not an alias). Phase 5 adds an admin tool to merge duplicate accounts.
 
-| Role | People (initial seed) | Can do |
+Roles updated Oct 16 (owner's role table). Every role can also file its own requests and share feedback.
+
+| Role | People (initial) | Can do |
 |---|---|---|
-| **Admin** | Jerome, Steve, Riann | Everything: see/edit all requests, review (accept/return), assign/reassign, change any field, manage settings, see dashboard & analytics |
-| **Designer** | Jerome, Steve, Sofia | See the pipeline, edit Status and Link to Output on requests, accept/reassign tasks assigned to them |
+| **Lead Designer** | Jerome, Steve | Reviews new requests, approves or returns them, assigns/reassigns designers, manages members, gets new-request and declined-assignment emails, can do everything a Designer does, and appears in the Designer list |
+| **Designer** | Sofia, interns | Appears in the Designer list, handles assigned requests, updates status, adds the output link, marks requests completed |
+| **Admin** | Riann, the owner | Everything: all request fields, members, and (later) dashboards, reports and system settings. Not in the Designer list unless also tagged Designer |
 | **Requester** | Any other @stratpoint.com user (default role) | Submit requests, see **only their own** requests, view details, share feedback |
 
-- A person can hold more than one role (Jerome and Steve are Admin + Designer).
-- Seed the real emails from a config file `config/team.ts` (I will provide the emails; use placeholders like `jerome@stratpoint.com` until then and remind me).
-- **"Reviewers"** (who accept/return new requests) = Jerome and Steve. Riann is an admin who receives admin notifications and can edit everything.
+- A person can hold more than one tag (e.g. Admin + Designer).
+- **Settings → Members** (`/admin/settings/members`) is the team list. Admins and Lead Designers add, edit or remove members there; only Admins can give or remove the Admin tag, and nobody can remove themselves. Removing a member makes them a Requester again.
+- "Gets team emails" on a member = also receives N1 (e.g. Riann).
+- **"Reviewers"** (who accept/return new requests) = Lead Designers.
 - **Marketing team exclusion:** feedback from requesters whose team is "Marketing" is excluded from feedback averages (Phase 3+).
 - **One link for everyone.** After sign-in, the UI shows each user only the screens their role allows.
 
@@ -311,7 +315,7 @@ Left menu bar: Dashboard (Phase 4) · Design Pipeline · Pendings (Phase 4) · F
 ## 8. Workflow & notifications
 
 ### 8.1 Process (full version, Phase 2)
-1. Requester submits → status **New request** → **N1** to all designers + Riann.
+1. Requester submits → status **New request** → **N1** to Lead Designers + "Gets team emails" members (e.g. Riann).
 2. Reviewer (Jerome/Steve) reviews:
    - **Accept** → pick designer (Jerome / Steve / Sofia) → **N3** to the assigned designer + Riann.
    - **Return** → reason (required) → status **Rejected** (requester sees "Returned") → **N2** to requester.
@@ -337,7 +341,7 @@ Every email uses one shared layout: a header with "Marketing Design Hub", a purp
 
 | Key | Phase | Trigger | To | Frequency |
 |---|---|---|---|---|
-| N1 | **1** (immediate) / 3 (daily repeat) | Request submitted | All designers + Riann | On submit; from Phase 3, daily 8AM until a designer is assigned. If the assigned designer asks to reassign and nobody is reassigned by end of business day, restart the daily 8AM repeat the next morning |
+| N1 | **1** (immediate) / 3 (daily repeat) | Request submitted | Lead Designers + "Gets team emails" members | On submit; from Phase 3, daily 8AM until a designer is assigned. If the assigned designer asks to reassign and nobody is reassigned by end of business day, restart the daily 8AM repeat the next morning |
 | N2 | 2 | Request returned | Requester | Once |
 | N3 | 2 / 3 (repeat) | Reviewer accepted + assigned | Assigned designer + Riann | On assign; from Phase 3, daily until the designer accepts/reassigns |
 | N4 | 2 | Designer accepted | Requester + Riann | Once |
@@ -499,9 +503,10 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Feedback scope (confirmed Oct 15).** Only the §9 star-rating form after Completed (Phase 3). No in-app revision comments; revisions are coordinated outside the app.
 - **`requests.output_needed`** is a stored copy of the ★ answer (or "Others"), written once at submit so the pipeline can search/sort/filter it quickly. It is the one exception to "compute, don't store".
 - **General Information** questions (§6.1) are built into the form and saved as columns on `requests`; only per-type specification questions live in `form_questions`.
-- **Roles** are assigned from the `team_members` roster (seeded from `config/team.ts`) the first time a person signs in.
+- **Roles** come from the `team_members` roster, managed in Settings → Members (`save_team_member` / `remove_team_member` database functions). They apply on the person's next page load. `config/team.ts` and `npm run seed:team` were retired on Oct 16.
 - **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`). After a migration, regenerate `src/lib/supabase/database.types.ts`.
-- **"Riann" in email recipients** = anyone in `config/team.ts` with `getsTeamEmails: true`. N1 goes to all active designers plus those people.
+- **N1 recipients** = Lead Designers + members with "Gets team emails" ticked (owner decision, Oct 16).
+- **Settings → Members was pulled forward from Phase 5** at the owner's request (Oct 16). The rest of Phase 5 (form builder, SLA page, merging accounts) stays in Phase 5.
 - **Sign-in link format:** the Supabase email template links to `{{ .RedirectTo }}?token_hash=…&type=email` (see `docs/supabase-auth-setup.md`), so the link works in any browser. `/auth/confirm` also accepts the default `?code=` link.
 - **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
 - **Shared database:** staging and production use the same Supabase project. Remove any test data after testing.
