@@ -30,8 +30,9 @@ export type RequestPatch = z.input<typeof patchSchema>;
 
 const DESIGNER_FIELDS = new Set(["status", "link_to_output"]);
 
-// Changes pipeline fields on one request. Admins can change Status, Designer,
-// Link to Output and Date Needed; designers only Status and Link to Output.
+// Changes pipeline fields on one request. Admins and Lead Designers can change
+// Status, Designer, Link to Output and Date Needed; Designers only Status and
+// Link to Output.
 // The database enforces the same rules (RLS + column guard) and writes the
 // activity log.
 export async function updateRequest(requestId: string, patch: RequestPatch): Promise<Result> {
@@ -44,7 +45,7 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   const changes = parsed.data;
   const fields = Object.keys(changes);
   if (fields.length === 0) return { ok: true };
-  if (!user.isAdmin && fields.some((f) => !DESIGNER_FIELDS.has(f))) {
+  if (!user.isManager && fields.some((f) => !DESIGNER_FIELDS.has(f))) {
     return { ok: false, error: "Designers can only change Status and Link to Output." };
   }
 
