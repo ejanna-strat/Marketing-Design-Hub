@@ -1,112 +1,104 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
+import { FormError, FormNotice } from "@/components/shell/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendLoginEmail, verifyLoginCode } from "./actions";
+import { resendConfirmation, signIn } from "./actions";
 
-export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
-  const [step, setStep] = useState<"email" | "code">("email");
+export function LoginForm({
+  next,
+  initialError,
+}: {
+  next?: string;
+  initialError?: string;
+}) {
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(initialError);
   const [notice, setNotice] = useState<string>();
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function sendEmail(e?: React.FormEvent) {
-    e?.preventDefault();
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
     setError(undefined);
     setNotice(undefined);
     startTransition(async () => {
-      const result = await sendLoginEmail(email);
-      if (!result.ok) {
+      // On success the action redirects, so a result means it failed.
+      const result = await signIn(email, password, next);
+      if (result && !result.ok) {
         setError(result.error);
-        return;
+        setUnconfirmed(!!result.unconfirmed);
       }
-      setStep("code");
-      setNotice(`We sent a sign-in email to ${email.trim().toLowerCase()}.`);
     });
   }
 
-  function verifyCode(e: React.FormEvent) {
-    e.preventDefault();
+  function resend() {
     setError(undefined);
     startTransition(async () => {
-      // On success the action redirects, so a result means it failed.
-      const result = await verifyLoginCode(email, code, next);
-      if (result && !result.ok) setError(result.error);
+      const result = await resendConfirmation(email);
+      if (result.ok) {
+        setNotice(result.message);
+        setUnconfirmed(false);
+      } else setError(result.error);
     });
-  }
-
-  if (step === "email") {
-    return (
-      <form onSubmit={sendEmail} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Work email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="name@stratpoint.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoFocus
-          />
-          <p className="text-xs text-muted-foreground">Use your main email address, not an alias.</p>
-        </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" size="lg" disabled={pending}>
-          {pending ? "Sending…" : "Send sign-in email"}
-        </Button>
-      </form>
-    );
   }
 
   return (
-    <form onSubmit={verifyCode} className="space-y-4">
-      {notice && <p className="rounded-lg bg-brand-soft p-3 text-sm">{notice} Click the link in it, or type the code below.</p>}
+    <form onSubmit={submit} className="space-y-4">
+      <FormNotice>{notice}</FormNotice>
       <div className="space-y-2">
-        <Label htmlFor="code">Code from the email</Label>
+        <Label htmlFor="email">Work email</Label>
         <Input
-          id="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          placeholder="123456"
-          maxLength={8}
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-          className="text-center text-lg tracking-[0.4em]"
+          id="email"
+          type="email"
+          autoComplete="email"
+          placeholder="name@stratpoint.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
           autoFocus
         />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link href="/forgot-password" className="text-xs text-brand underline-offset-4 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <FormError>{error}</FormError>
+      {unconfirmed && (
+        <button
+          type="button"
+          onClick={resend}
+          disabled={pending}
+          className="text-sm text-brand underline-offset-4 hover:underline disabled:opacity-50"
+        >
+          Send the confirmation email again
+        </button>
+      )}
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
-      <div className="flex justify-between text-sm">
-        <button
-          type="button"
-          className="text-muted-foreground underline-offset-4 hover:underline"
-          onClick={() => {
-            setStep("email");
-            setCode("");
-            setError(undefined);
-          }}
-        >
-          Use a different email
-        </button>
-        <button
-          type="button"
-          className="text-brand underline-offset-4 hover:underline disabled:opacity-50"
-          onClick={() => sendEmail()}
-          disabled={pending}
-        >
-          Send a new email
-        </button>
-      </div>
+      <p className="text-center text-sm text-muted-foreground">
+        First time here?{" "}
+        <Link href="/signup" className="font-medium text-brand underline-offset-4 hover:underline">
+          Create an account
+        </Link>
+      </p>
     </form>
   );
 }

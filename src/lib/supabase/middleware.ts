@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
 // Pages anyone can open without signing in.
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
 
 // Refreshes the login session on every request and sends signed-out
 // visitors to /login.
