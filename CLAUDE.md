@@ -43,7 +43,7 @@
 
 ## 2. Users & roles
 
-Everyone signs in with an **email magic link** sent to their **@stratpoint.com** address. Requests are tied to the signed-in email. Tell users to always use their main email (not an alias). Phase 5 adds an admin tool to merge duplicate accounts.
+Everyone signs up and signs in with their **@stratpoint.com** email and a **password** (changed from email links on Oct 16). New accounts confirm their email once before they can sign in. Requests are tied to the signed-in email. Tell users to always use their main email (not an alias). Phase 5 adds an admin tool to merge duplicate accounts.
 
 Roles updated Oct 16 (owner's role table). Every role can also file its own requests and share feedback.
 
@@ -70,7 +70,7 @@ Roles updated Oct 16 (owner's role table). Every role can also file its own requ
 | Framework | **Next.js (App Router) + TypeScript** | One codebase for screens + server logic |
 | UI | **Tailwind CSS + shadcn/ui**, TanStack Table for data tables | Clean admin UI fast; good filtering/sorting tables |
 | Database + Auth | **Supabase** (Postgres, Auth, Row Level Security) | Free tier, Google sign-in built in, secure per-row access |
-| Login | **Supabase email magic link + 6-digit one-time code in the same email**, restricted to `@stratpoint.com` (check the domain server-side). Sessions last ~30 days | Needs no IT approval. Google OAuth may be added later (optional, Phase 5) without data changes |
+| Login | **Supabase email + password** (8+ characters), email confirmed once at sign-up, "Forgot password?" by email; restricted to `@stratpoint.com` (checked server-side). Sessions last ~30 days. Changed from magic link + code on Oct 16 (owner decision) | Needs no IT approval. Google OAuth may be added later (optional, Phase 5) without data changes |
 | Email | **Resend** + **React Email** templates; also set Resend as Supabase Auth's custom SMTP so login emails aren't rate-limited | Simple API, branded HTML emails. Needs one DNS record from IT; fallback: Stratpoint Workspace SMTP |
 | Scheduled jobs (Phase 3) | **Vercel Cron** hitting protected API routes (or Supabase `pg_cron`) | Daily 8AM (Asia/Manila) reminders |
 | Hosting | **Vercel** | Auto-deploy from GitHub, preview links per change |
@@ -444,7 +444,7 @@ Feedback Date is recorded automatically on submit.
 
 ### Phase 1 — MVP (Oct 2–7) ← **test date: Wed Oct 7**
 Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #1–4 and 7.2 #1–2, emails **N1** (immediate only) and **N8** (without the feedback button). Accept/Return/Reassign is handled by admins changing the Status/Designer dropdowns.
-- ✅ A @stratpoint.com user can sign in with the magic link or the 6-digit code; a non-Stratpoint email cannot.
+- ✅ A @stratpoint.com user can sign in (now: sign up, confirm email, sign in with password); a non-Stratpoint email cannot.
 - ✅ Requester submits each of the 10 request types, sees the right questions, gets an MDR-26-#### ID and the confirmation page.
 - ✅ Requester sees only their own requests in My Design Requests; search and filters work.
 - ✅ Admin/Designer sees all requests in the Pipeline; can change Status, Designer and Link to Output inline and in the details window; Date Started auto-fills; changes appear in the activity log.
@@ -489,7 +489,7 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 
 ## 12. Open items (ask me when you reach them)
 1. Real email addresses for Jerome, Steve, Sofia and Riann.
-2. Whether to add Google sign-in later (decided: magic link for now).
+2. Whether to add Google sign-in later (decided: email + password for now, Oct 16).
 3. Sender address for emails (e.g. `designhub@<subdomain>.stratpoint.com`).
 4. ~~Final Approver fields~~ — confirmed Oct 14: kept, as a Myself / Other dropdown (see §6.1).
 5. Which spec questions are required (see the note under §6).
@@ -507,7 +507,7 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`). After a migration, regenerate `src/lib/supabase/database.types.ts`.
 - **N1 recipients** = Lead Designers + members with "Gets team emails" ticked (owner decision, Oct 16).
 - **Settings → Members was pulled forward from Phase 5** at the owner's request (Oct 16). The rest of Phase 5 (form builder, SLA page, merging accounts) stays in Phase 5.
-- **Sign-in link format:** the Supabase email template links to `{{ .RedirectTo }}?token_hash=…&type=email` (see `docs/supabase-auth-setup.md`), so the link works in any browser. `/auth/confirm` also accepts the default `?code=` link.
+- **Email link format:** the Confirm signup and Reset Password templates link to `{{ .RedirectTo }}?token_hash=…&type=signup|recovery` (see `docs/supabase-auth-setup.md`), so links work in any browser. `/auth/confirm` sends `recovery` links to `/reset-password` and also accepts the default `?code=` link.
 - **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
 - **Shared database:** staging and production use the same Supabase project. Remove any test data after testing.
 - **Requester edits (Oct 16):** a requester can edit their own request while it is a *New request* with no designer assigned (`update_request()`; the type can't change). Edits show in the activity log. The bottom of the New Design Request form tells requesters this.
