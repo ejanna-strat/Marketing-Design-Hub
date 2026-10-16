@@ -133,3 +133,8 @@
     @apply font-sans;
   }
 }
+/* Hide Microsoft Edge's own password eye; the app has its own (PasswordInput). */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
