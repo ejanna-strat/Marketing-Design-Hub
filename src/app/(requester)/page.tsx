@@ -1,11 +1,12 @@
-import { ClockIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
+import { ClockIcon, ExternalLinkIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { links } from "@/config/links";
 import { theme } from "@/config/theme";
 import { requireUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-const actions = [
+const actions: { href?: string; external?: boolean; title: string; description: string; icon: typeof ClockIcon }[] = [
   {
     href: "/requests/new",
     title: "New Design Request",
@@ -24,6 +25,8 @@ const actions = [
     icon: MessageSquareHeartIcon,
   },
   {
+    href: links.designSlas,
+    external: true,
     title: "See Design SLAs",
     description: "How long each type of design takes.",
     icon: ClockIcon,
@@ -47,7 +50,7 @@ export default async function HomePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {actions.map(({ href, title, description, icon: Icon }) => {
+        {actions.map(({ href, external, title, description, icon: Icon }) => {
           const body = (
             <>
               <span
@@ -61,6 +64,7 @@ export default async function HomePage() {
               <span className="space-y-1">
                 <span className="flex items-center gap-2 font-semibold">
                   {title}
+                  {external && <ExternalLinkIcon className="size-4 text-muted-foreground" aria-label="(opens in a new tab)" />}
                   {!href && <Badge variant="secondary">Coming soon</Badge>}
                 </span>
                 <span className="block text-sm text-muted-foreground">{description}</span>
@@ -68,12 +72,16 @@ export default async function HomePage() {
             </>
           );
           const base = "flex items-start gap-4 rounded-xl border bg-background p-5 text-left";
+          const active = cn(base, "transition-colors hover:border-brand hover:bg-brand-soft/40 focus-visible:ring-3 focus-visible:ring-ring/50 outline-none");
+          if (href && external) {
+            return (
+              <a key={title} href={href} target="_blank" rel="noreferrer" className={active}>
+                {body}
+              </a>
+            );
+          }
           return href ? (
-            <Link
-              key={title}
-              href={href}
-              className={cn(base, "transition-colors hover:border-brand hover:bg-brand-soft/40 focus-visible:ring-3 focus-visible:ring-ring/50 outline-none")}
-            >
+            <Link key={title} href={href} className={active}>
               {body}
             </Link>
           ) : (
