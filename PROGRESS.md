@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 16, 2026 · version 0.10.0_
+_Last updated: Oct 17, 2026 · version 0.11.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -25,6 +25,8 @@ _Last updated: Oct 16, 2026 · version 0.10.0_
 - v0.8.1: faster pages: server moved to Singapore (next to the database), sessions checked without a round trip, fewer queries per page, loading skeletons, smaller pages (home 193 → 108 KB). Separate **staging** Supabase project (`usnjrpnwhqascimtbzqk`) with all migrations, seed data, the team list and sign-in settings; staging/previews and local development use it, production keeps `ejkmuekrulshkmccjtxb`.
 - v0.9.0: show/hide eye on password fields; Marketing Design Hub favicon (owner requests, Oct 16). Request numbers checked: one continuous series per year for everyone (MDR-26-0001, 0002, … then MDR-27-0001 in 2027); staging and production each keep their own series.
 - v0.10.0: light bulb + pen app icon (no background in the tab, blue tile on iPhone); masters in `docs/brand/` (owner choice, Oct 16).
+- v0.11.0 (owner list, Oct 17): spam heads-up on sign in/sign up/home/Request Submitted; all Marketing team members can edit the title and General Information (incl. Date Needed); automatic status when a designer is assigned/removed; "Rejected" shown as "Returned", Cancelled in the same red; every specification question required; tip above Submit; Save faded until changes + unsaved-changes prompt; removable filter tags; full-width tables/details; owner's icon; blue #0046bf brand; Inter bold app name; Change my name.
+- **Pending on production:** migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
