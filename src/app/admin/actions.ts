@@ -22,17 +22,21 @@ const patchSchema = z
       .transform((v) => v || null)
       .nullable(),
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
+    title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
+    requester_name: z.string().trim().min(1, "Please enter the requester's name.").max(200),
+    team_id: z.uuid("Please choose a business unit."),
+    final_approver_name: z.string().trim().min(1, "Please enter the approver's name.").max(200),
+    final_approver_email: z.email("Please enter a valid approver email.").trim().toLowerCase(),
   })
   .partial()
   .strict();
 
 export type RequestPatch = z.input<typeof patchSchema>;
 
-const DESIGNER_FIELDS = new Set(["status", "link_to_output"]);
-
-// Changes pipeline fields on one request. Admins and Lead Designers can change
-// Status, Designer, Link to Output and Date Needed; Designers only Status and
-// Link to Output.
+// Changes pipeline fields and General Information on one request. Every
+// Marketing team member can; only Admins and Lead Designers can assign the
+// designer. Picking or removing a designer also updates the status
+// automatically (in the database).
 // The database enforces the same rules (RLS + column guard) and writes the
 // activity log.
 export async function updateRequest(requestId: string, patch: RequestPatch): Promise<Result> {
@@ -45,8 +49,8 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   const changes = parsed.data;
   const fields = Object.keys(changes);
   if (fields.length === 0) return { ok: true };
-  if (!user.isManager && fields.some((f) => !DESIGNER_FIELDS.has(f))) {
-    return { ok: false, error: "Designers can only change Status and Link to Output." };
+  if (!user.isManager && "assigned_designer_id" in changes) {
+    return { ok: false, error: "Only Admins and Lead Designers can assign designers." };
   }
 
   const supabase = await createClient();

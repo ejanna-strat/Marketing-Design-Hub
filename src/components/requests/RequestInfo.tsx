@@ -1,17 +1,19 @@
 import { LinkifiedText } from "@/components/LinkifiedText";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { answerText, type RequestDetail } from "@/lib/requests/detail";
 
 // General Information and Request Specifications of one request (read-only).
 // Used by both the requester and the admin details pages.
-export function RequestInfo({ request }: { request: RequestDetail }) {
+// generalActions: e.g. the staff "Edit details" button.
+export function RequestInfo({ request, generalActions }: { request: RequestDetail; generalActions?: React.ReactNode }) {
   const approverIsRequester = request.final_approver_email.toLowerCase() === request.requester_email.toLowerCase();
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle>General Information</CardTitle>
+          {generalActions && <CardAction>{generalActions}</CardAction>}
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">

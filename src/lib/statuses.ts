@@ -12,8 +12,9 @@ export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: s
   { value: "for_review", label: "For requester's review", badge: "bg-violet-100 text-violet-800" },
   { value: "for_revision", label: "For revision", badge: "bg-orange-100 text-orange-900" },
   { value: "completed", label: "Completed", badge: "bg-emerald-100 text-emerald-800" },
-  { value: "rejected", label: "Rejected", requesterLabel: "Returned", badge: "bg-red-100 text-red-800" },
-  { value: "cancelled", label: "Cancelled", badge: "bg-zinc-200 text-zinc-700" },
+  // Stored as "rejected" in the database; shown as "Returned" to everyone (Oct 17).
+  { value: "rejected", label: "Returned", badge: "bg-red-100 text-red-800" },
+  { value: "cancelled", label: "Cancelled", badge: "bg-red-100 text-red-800" },
   { value: "on_hold", label: "On hold", badge: "bg-slate-200 text-slate-700" },
 ];
 

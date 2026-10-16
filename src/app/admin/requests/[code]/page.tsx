@@ -1,7 +1,13 @@
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DateNeededEditor, DesignerSelect, LinkEditor, StatusSelect } from "@/components/requests/editors";
+import {
+  DateNeededEditor,
+  DesignerSelect,
+  GeneralInfoEditor,
+  LinkEditor,
+  StatusSelect,
+} from "@/components/requests/editors";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireStaff } from "@/lib/auth";
@@ -15,15 +21,16 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return { title: (await params).code };
 }
 
-// Request Details window for the Marketing team. Admins and Lead Designers
-// can edit Date Needed, Status, Designer and Link; Designers Status and Link.
+// Request Details window for the Marketing team. Everyone on the team can edit
+// Status, Link, Date Needed and General Information; Admins and Lead Designers
+// also assign the designer.
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await requireStaff();
   const supabase = await createClient();
   // All three load at once: the activity log is matched by request code, so
   // it doesn't have to wait for the request itself.
-  const [request, { data: designers }, { data: log }] = await Promise.all([
+  const [request, { data: designers }, { data: log }, { data: teams }] = await Promise.all([
     getRequestByCode(supabase, code),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase
@@ -31,6 +38,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
       .select("id, action, from_value, to_value, note, created_at, actor:profiles(full_name), request:requests!inner(request_code)")
       .eq("request.request_code", code.toUpperCase())
       .order("created_at", { ascending: false }),
+    supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
   ]);
   if (!request) notFound();
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
@@ -69,22 +77,28 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                   }
                 />
                 <Item label="Link to Output" value={<LinkEditor requestId={request.id} value={request.link_to_output} />} />
-                <Item
-                  label="Date Needed"
-                  value={
-                    user.isManager ? (
-                      <DateNeededEditor requestId={request.id} value={request.date_needed} />
-                    ) : (
-                      formatDate(request.date_needed)
-                    )
-                  }
-                />
+                <Item label="Date Needed" value={<DateNeededEditor requestId={request.id} value={request.date_needed} />} />
                 <Item label="Date Started" value={formatDate(request.date_started)} />
                 <Item label="Date Completed" value={formatDate(request.date_completed)} />
               </dl>
             </CardContent>
           </Card>
-          <RequestInfo request={request} />
+          <RequestInfo
+            request={request}
+            generalActions={
+              <GeneralInfoEditor
+                requestId={request.id}
+                teams={teams ?? []}
+                value={{
+                  title: request.title,
+                  requesterName: request.requester_name,
+                  teamId: request.team_id,
+                  approverName: request.final_approver_name,
+                  approverEmail: request.final_approver_email,
+                }}
+              />
+            }
+          />
         </div>
 
         <Card className="xl:sticky xl:top-20">
@@ -106,6 +120,9 @@ type LogEntry = Pick<Tables<"activity_log">, "id" | "action" | "from_value" | "t
 
 const FIELD_NAMES: Record<string, string> = {
   title: "Request Title",
+  requester_name: "Requester's Name",
+  team: "Business Unit",
+  final_approver: "Final Approver",
   status: "Status",
   designer: "Assigned Designer",
   link_to_output: "Link to Output",
