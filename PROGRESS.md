@@ -25,7 +25,7 @@ _Last updated: Oct 16, 2026 · version 0.7.0_
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
 2. **Supabase dashboard:** follow `docs/supabase-auth-setup.md` (sign-up hook, redirect URLs, email template, session length).
-3. **Resend (done Oct 16):** sending from `designhub@ejoo.site` (owner's domain, verified in Resend). The key is in `.env.local` and Vercel (Sensitive), and test mode still sends every app email to `EMAIL_TEST_RECIPIENT`. **Owner:** set Resend as Supabase's custom SMTP (step 5 of `docs/supabase-auth-setup.md`) so colleagues can receive sign-in emails.
+3. **Resend (done Oct 16):** sending from `marketingdesignhub@ejoo.site` (owner's domain, verified in Resend). The key is in `.env.local` and Vercel (Sensitive), and test mode still sends every app email to `EMAIL_TEST_RECIPIENT`. **Owner:** set Resend as Supabase's custom SMTP (step 5 of `docs/supabase-auth-setup.md`) so colleagues can receive sign-in emails.
 4. Click through staging and OK Phase 1 Steps 3–9 (checklist below).
 5. Then Phase 1 Step 10: production (real team emails, production env vars, smoke test).
 
@@ -46,7 +46,7 @@ Vercel → project **marketing-design-hub** → Settings:
 ## Open questions for the owner
 1. **Dates:** the plan's Phase 1 test date (Wed Oct 7) has passed. Please pick new target dates for Phase 1 and later phases.
 2. Real email addresses for Steve, Sofia and Riann: they are placeholders. Fix them in Settings → Members (remove the placeholder, add the real email). Should `marketing-ai@stratpoint.com` stay an admin?
-3. Sender address for emails: `designhub@ejoo.site` for now. Move to a Stratpoint address before go-live (needs IT's DNS records).
+3. Sender address for emails: `marketingdesignhub@ejoo.site` for now. Move to a Stratpoint address before go-live (needs IT's DNS records).
 4. Which specification questions are required (current default is in CLAUDE.md §6).
 5. **Before go-live:** rotate the Supabase service role key and the personal access token (both were pasted in chat).
 6. Supabase's built-in email only delivers to members of the Supabase project team, a few per hour. Other colleagues can sign in only after Resend is set as the custom SMTP (step 5 of `docs/supabase-auth-setup.md`).
