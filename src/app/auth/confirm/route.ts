@@ -3,15 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
 
-// The sign-in link in the email lands here. Supports both link formats:
-//   ?token_hash=…&type=email   (recommended email template; works in any browser)
-//   ?code=…                    (Supabase's default {{ .ConfirmationURL }})
+// Every email link lands here (see docs/supabase-auth-setup.md):
+//   ?token_hash=…&type=signup     confirm a new account → sign in page
+//   ?token_hash=…&type=recovery   reset password        → set a new password
+//   ?token_hash=…&type=email|magiclink                  → home
+//   ?code=…                       Supabase's default {{ .ConfirmationURL }}
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = safeNextPath(searchParams.get("next"));
 
   const supabase = await createClient();
   let ok = false;
@@ -23,11 +24,16 @@ export async function GET(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.search = "";
-  if (ok) {
-    url.pathname = next;
-  } else {
+  if (!ok) {
     url.pathname = "/login";
     url.searchParams.set("error", "link");
+  } else if (type === "recovery") {
+    url.pathname = "/reset-password";
+  } else if (type === "signup") {
+    // Confirming the email also signs them in, so go straight in.
+    url.pathname = "/";
+  } else {
+    url.pathname = safeNextPath(searchParams.get("next"));
   }
   return NextResponse.redirect(url);
 }
