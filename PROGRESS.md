@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 18, 2026 · version 0.12.0_
+_Last updated: Oct 18, 2026 · version 0.12.1_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
