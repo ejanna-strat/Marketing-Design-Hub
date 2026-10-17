@@ -10,6 +10,7 @@ import {
   StatusSelect,
 } from "@/components/requests/editors";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
+import { WorkflowPanel } from "@/components/requests/WorkflowPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireStaff } from "@/lib/auth";
@@ -44,6 +45,9 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
   ]);
   if (!request) notFound();
+  const { data: returnedBy } = request.returned_by
+    ? await supabase.from("profiles").select("full_name").eq("id", request.returned_by).maybeSingle()
+    : { data: null };
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
   return (
@@ -52,12 +56,31 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
         <ArrowLeftIcon className="size-4" />
         Marketing Design Pipeline
       </Link>
-      <div className="space-y-1">
-        <p className="font-mono text-sm text-muted-foreground">{request.request_code}</p>
-        <h1 className="text-2xl font-bold">{request.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {request.request_type?.name} · Requested by {request.requester_name} ({request.team?.name})
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="font-mono text-sm text-muted-foreground">{request.request_code}</p>
+          <h1 className="text-2xl font-bold">{request.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {request.request_type?.name} · Requested by {request.requester_name} ({request.team?.name})
+          </p>
+        </div>
+        <WorkflowPanel
+          isManager={user.isManager}
+          isAssignedDesigner={!!user.designerId && user.designerId === request.assigned_designer_id}
+          designers={designerOptions.filter((d) => d.active).map((d) => ({ id: d.id, name: d.name }))}
+          state={{
+            requestId: request.id,
+            status: request.status,
+            designer: request.assigned_designer_id
+              ? { id: request.assigned_designer_id, name: request.designer?.display_name ?? "the designer" }
+              : null,
+            designerResponse: request.designer_response,
+            respondedAt: request.designer_responded_at,
+            returnReason: request.return_reason,
+            returnedByName: returnedBy?.full_name ?? null,
+            reassignReason: request.reassign_reason,
+          }}
+        />
       </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -68,12 +91,22 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardHeader>
             <CardContent>
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                <Item label="Status" value={<StatusSelect requestId={request.id} value={request.status} hasDesigner={!!request.assigned_designer_id} />} />
+                <Item label="Status" value={<StatusSelect
+                      requestId={request.id}
+                      value={request.status}
+                      hasDesigner={!!request.assigned_designer_id}
+                      hasLink={!!request.link_to_output}
+                    />} />
                 <Item
                   label="Assigned Designer"
                   value={
                     user.isManager ? (
-                      <DesignerSelect requestId={request.id} value={request.assigned_designer_id} designers={designerOptions} />
+                      <DesignerSelect
+                        requestId={request.id}
+                        value={request.assigned_designer_id}
+                        designers={designerOptions}
+                        locked={request.status === "completed"}
+                      />
                     ) : (
                       request.designer?.display_name
                     )
@@ -148,6 +181,9 @@ const SENTENCES: Record<string, string> = {
   created: "submitted the request",
   edited: "edited the request details",
   specs: "edited the request specifications",
+  designer_accepted: "accepted the request",
+  reassign_requested: "asked to reassign the request",
+  returned: "returned the request",
 };
 
 function showValue(action: string, value: string | null) {
@@ -185,7 +221,7 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
               <span className="text-foreground">{showValue(e.action, e.to_value)}</span>
             </p>
           )}
-          {e.note && !SENTENCES[e.action] && <p className="mt-1 text-muted-foreground">{e.note}</p>}
+          {e.note && (!SENTENCES[e.action] || e.action === "returned" || e.action === "reassign_requested") && <p className="mt-1 text-muted-foreground">{e.note}</p>}
           <time className="mt-1 block text-xs text-muted-foreground" dateTime={e.created_at}>
             {formatDateTime(e.created_at)}
           </time>

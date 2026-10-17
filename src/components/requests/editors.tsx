@@ -50,18 +50,22 @@ function useSave(requestId: string) {
   return { save, pending };
 }
 
-// Work statuses (In progress, For review, For revision, Completed) are greyed
-// out until a designer is assigned.
+// Statuses that can't be picked right now are greyed out with the reason:
+// "Designer assigned" comes from the designer's Accept, "Returned" from the
+// Return button, work statuses need a designer, and For requester's review /
+// Completed need a Link to Output. The database enforces the same rules.
 export function StatusSelect({
   requestId,
   value,
   label,
   hasDesigner = true,
+  hasLink = true,
 }: {
   requestId: string;
   value: string;
   label?: string;
   hasDesigner?: boolean;
+  hasLink?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -90,11 +94,11 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent position="popper">
         {STATUSES.map((s) => {
-          const locked = !hasDesigner && NEEDS_DESIGNER.has(s.value) && s.value !== current;
+          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink);
           return (
-            <SelectItem key={s.value} value={s.value} disabled={locked}>
+            <SelectItem key={s.value} value={s.value} disabled={!!reason}>
               {s.label}
-              {locked && <span className="text-xs text-muted-foreground">· assign a designer first</span>}
+              {reason && <span className="text-xs text-muted-foreground">· {reason}</span>}
             </SelectItem>
           );
         })}
@@ -103,16 +107,27 @@ export function StatusSelect({
   );
 }
 
+function lockReason(status: string, hasDesigner: boolean, hasLink: boolean): string | null {
+  if (status === "designer_assigned") return "set when the designer accepts";
+  if (status === "rejected") return "use the Return button";
+  if (!hasDesigner && NEEDS_DESIGNER.has(status as never)) return "assign a designer first";
+  if (!hasLink && (status === "for_review" || status === "completed")) return "add a Link to Output first";
+  return null;
+}
+
 const UNASSIGNED = "__none__";
 
+// Locked once the request is Completed.
 export function DesignerSelect({
   requestId,
   value,
   designers,
+  locked = false,
 }: {
   requestId: string;
   value: string | null;
   designers: DesignerOption[];
+  locked?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value ?? UNASSIGNED);
@@ -127,7 +142,7 @@ export function DesignerSelect({
   return (
     <Select
       value={current}
-      disabled={pending}
+      disabled={pending || locked}
       onValueChange={(next) => {
         const previous = current;
         setCurrent(next);
@@ -138,7 +153,8 @@ export function DesignerSelect({
         );
       }}
     >
-      <SelectTrigger size="sm" aria-label="Assigned Designer" className="h-7 min-w-32 bg-background text-xs">
+      <SelectTrigger size="sm" aria-label="Assigned Designer"
+        title={locked ? "Completed requests keep their designer" : undefined} className="h-7 min-w-32 bg-background text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
