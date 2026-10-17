@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,31 +10,55 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Feedback" };
 
+const STARS = ["1", "2", "3", "4", "5"].map((v) => ({ value: v, label: `${v} ★` }));
+const HALF_STARS = ["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"].map((v) => ({ value: v, label: `${v} ★` }));
+
 // §7.2 #3: feedback received this year. Averages leave out requesters whose
 // team is Marketing (CLAUDE.md §2); their feedback is still listed.
-export default async function FeedbackPage() {
+// Filters (owner, Oct 18): team, designer, and exact Process / Output /
+// Overall stars; the averages and response rate follow the filters.
+export default async function FeedbackPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireStaff();
+  const sp = await searchParams;
+  const f1 = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? "";
+  const filter = { team: f1("team"), designer: f1("designer"), process: f1("process"), output: f1("output"), overall: f1("overall") };
   const supabase = await createClient();
   const year = todayInManila().slice(0, 4);
   const yearStart = manilaDayStart(`${year}-01-01`);
 
-  const [{ data: rows, error }, { data: completed }] = await Promise.all([
+  const [{ data: rows, error }, { data: completed }, { data: teams }, { data: designers }] = await Promise.all([
     supabase
       .from("feedback")
       .select(
-        "id, process_rating, output_rating, comments, submitted_at, request:requests(request_code, title, requester_name, team:teams(name, is_marketing), designer:designers(display_name))",
+        "id, process_rating, output_rating, comments, submitted_at, request:requests(request_code, title, requester_name, team_id, assigned_designer_id, team:teams(name, is_marketing), designer:designers(display_name))",
       )
       .gte("submitted_at", yearStart)
       .order("submitted_at", { ascending: false }),
     supabase
       .from("requests")
-      .select("id, team:teams(is_marketing), feedback(id)")
+      .select("id, team_id, assigned_designer_id, team:teams(is_marketing), feedback(id)")
       .eq("status", "completed")
       .gte("date_completed", yearStart),
+    supabase.from("teams").select("id, name").order("sort_order"),
+    supabase.from("designers").select("id, display_name").order("display_name"),
   ]);
   if (error) throw new Error(error.message);
 
-  const all = (rows ?? []).map((f) => ({ ...f, request: one(f.request) }));
+  const byTeamDesigner = (r: { team_id: string; assigned_designer_id: string | null } | null) =>
+    (!filter.team || r?.team_id === filter.team) && (!filter.designer || r?.assigned_designer_id === filter.designer);
+  const all = (rows ?? [])
+    .map((f) => ({ ...f, request: one(f.request) }))
+    .filter(
+      (f) =>
+        byTeamDesigner(f.request) &&
+        (!filter.process || f.process_rating === Number(filter.process)) &&
+        (!filter.output || f.output_rating === Number(filter.output)) &&
+        (!filter.overall || overallRating(f) === Number(filter.overall)),
+    );
   const counted = all.filter((f) => !f.request?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
     counted.length ? counted.reduce((sum, f) => sum + pick(f), 0) / counted.length : 0;
@@ -41,7 +66,7 @@ export default async function FeedbackPage() {
   const outputAvg = avg((f) => f.output_rating);
   const overall = (processAvg + outputAvg) / 2;
 
-  const completedCounted = (completed ?? []).filter((r) => !r.team?.is_marketing);
+  const completedCounted = (completed ?? []).filter((r) => !r.team?.is_marketing && byTeamDesigner(r));
   const withFeedback = completedCounted.filter((r) => one(r.feedback)).length;
   const responseRate = completedCounted.length ? Math.round((withFeedback / completedCounted.length) * 100) : 0;
 
@@ -53,6 +78,18 @@ export default async function FeedbackPage() {
           {all.length} total feedback received ({year} year to date)
         </p>
       </div>
+
+      <DataTableToolbar
+        showSearch={false}
+        showDates={false}
+        filters={[
+          { key: "team", label: "Team", options: (teams ?? []).map((t) => ({ value: t.id, label: t.name })) },
+          { key: "designer", label: "Designer", options: (designers ?? []).map((d) => ({ value: d.id, label: d.display_name })) },
+          { key: "process", label: "Process", options: STARS },
+          { key: "output", label: "Output", options: STARS },
+          { key: "overall", label: "Overall", options: HALF_STARS },
+        ]}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat title="Process Average" value={counted.length ? <StarsDisplay value={processAvg} size="md" /> : "—"} />
@@ -86,7 +123,7 @@ export default async function FeedbackPage() {
             {all.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                  No feedback yet this year.
+                  No feedback matches these filters.
                 </TableCell>
               </TableRow>
             ) : (
