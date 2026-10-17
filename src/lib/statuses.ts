@@ -24,6 +24,23 @@ const byValue = new Map(STATUSES.map((s) => [s.value, s]));
 // database enforces this too).
 export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", "for_review", "for_revision", "completed"]);
 
+// The same colours as hex, for emails (email programs ignore the app's CSS).
+const EMAIL_COLORS: Record<RequestStatus, { bg: string; text: string }> = {
+  new_request: { bg: "#e0f2fe", text: "#075985" },
+  designer_assigned: { bg: "#e0e7ff", text: "#3730a3" },
+  in_progress: { bg: "#fef3c7", text: "#78350f" },
+  for_review: { bg: "#ede9fe", text: "#5b21b6" },
+  for_revision: { bg: "#ffedd5", text: "#7c2d12" },
+  completed: { bg: "#d1fae5", text: "#065f46" },
+  rejected: { bg: "#fee2e2", text: "#991b1b" },
+  cancelled: { bg: "#fee2e2", text: "#991b1b" },
+  on_hold: { bg: "#e2e8f0", text: "#334155" },
+};
+
+export function statusEmailColors(status: string) {
+  return EMAIL_COLORS[status as RequestStatus] ?? { bg: "#e2e8f0", text: "#334155" };
+}
+
 export function isStatus(value: string): value is RequestStatus {
   return byValue.has(value as RequestStatus);
 }
