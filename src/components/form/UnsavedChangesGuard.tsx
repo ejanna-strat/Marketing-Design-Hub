@@ -13,9 +13,26 @@ import {
 } from "@/components/ui/dialog";
 
 // While `active` (there are unsaved changes), leaving the page asks first:
-// links inside the app show a "Save your changes?" pop-up; closing or
-// reloading the tab shows the browser's own warning.
-export function UnsavedChangesGuard({ active, onSave }: { active: boolean; onSave: () => void }) {
+// links inside the app show a pop-up; closing or reloading the tab shows the
+// browser's own warning.
+export function UnsavedChangesGuard({
+  active,
+  onSave,
+  title = "Save your changes?",
+  description = "You've made changes to this request that aren't saved yet.",
+  saveLabel = "Save changes",
+  leaveLabel = "Leave without saving",
+  stayLabel = "Keep editing",
+}: {
+  active: boolean;
+  // Omit to offer only "stay" or "leave" (e.g. a form that isn't complete yet).
+  onSave?: () => void;
+  title?: string;
+  description?: string;
+  saveLabel?: string;
+  leaveLabel?: string;
+  stayLabel?: string;
+}) {
   const router = useRouter();
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
   const activeRef = useRef(active);
@@ -47,37 +64,70 @@ export function UnsavedChangesGuard({ active, onSave }: { active: boolean; onSav
   }, []);
 
   return (
-    <Dialog open={leaveTo !== null} onOpenChange={(open) => !open && setLeaveTo(null)}>
-      <DialogContent>
+    <ConfirmLeaveDialog
+      open={leaveTo !== null}
+      title={title}
+      description={description}
+      stayLabel={stayLabel}
+      leaveLabel={leaveLabel}
+      saveLabel={onSave ? saveLabel : undefined}
+      onStay={() => setLeaveTo(null)}
+      onLeave={() => {
+        const to = leaveTo!;
+        activeRef.current = false;
+        setLeaveTo(null);
+        router.push(to);
+      }}
+      onSave={() => {
+        setLeaveTo(null);
+        onSave?.();
+      }}
+    />
+  );
+}
+
+// The pop-up itself; also used by dialogs with unsaved changes. Buttons stack
+// full-width so they always fit inside the window.
+export function ConfirmLeaveDialog({
+  open,
+  title,
+  description,
+  stayLabel,
+  leaveLabel,
+  saveLabel,
+  onStay,
+  onLeave,
+  onSave,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  stayLabel: string;
+  leaveLabel: string;
+  saveLabel?: string;
+  onStay: () => void;
+  onLeave: () => void;
+  onSave?: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onStay()}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Save your changes?</DialogTitle>
-          <DialogDescription>You&apos;ve made changes to this request that aren&apos;t saved yet.</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-2 sm:justify-between">
-          <Button variant="ghost" onClick={() => setLeaveTo(null)}>
-            Keep editing
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
+          {saveLabel && onSave && (
+            <Button className="w-full" onClick={onSave}>
+              {saveLabel}
+            </Button>
+          )}
+          <Button variant="outline" className="w-full" onClick={onStay}>
+            {stayLabel}
           </Button>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const to = leaveTo!;
-                activeRef.current = false;
-                setLeaveTo(null);
-                router.push(to);
-              }}
-            >
-              Leave without saving
-            </Button>
-            <Button
-              onClick={() => {
-                setLeaveTo(null);
-                onSave();
-              }}
-            >
-              Save changes
-            </Button>
-          </div>
+          <Button variant="ghost" className="w-full text-destructive hover:text-destructive" onClick={onLeave}>
+            {leaveLabel}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

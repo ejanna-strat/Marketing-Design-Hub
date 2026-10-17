@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyFinalOutput } from "@/lib/email/notifications";
+import { buildAnswersSchema, QUESTION_COLUMNS, toAnswersPayload, toFormQuestion } from "@/lib/requests/schema";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -77,5 +78,46 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
 
   revalidatePath("/admin/pipeline");
   revalidatePath(`/admin/requests/${data.request_code}`);
+  return { ok: true };
+}
+
+// Saves a request's specification answers (any Marketing team member). The
+// database re-checks them like a new submission and updates Output Needed.
+export async function updateSpecifications(requestId: string, answers: unknown): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isStaff) return { ok: false, error: "Only the Marketing team can change requests." };
+  if (!z.uuid().safeParse(requestId).success) return { ok: false, error: "Request not found." };
+
+  const supabase = await createClient();
+  const { data: request } = await supabase
+    .from("requests")
+    .select("id, request_code, request_type_id")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!request) return { ok: false, error: "Request not found." };
+
+  const { data: rows } = await supabase
+    .from("form_questions")
+    .select(QUESTION_COLUMNS)
+    .eq("request_type_id", request.request_type_id)
+    .eq("active", true)
+    .order("sort_order");
+  const questions = (rows ?? []).map(toFormQuestion);
+  const parsed = buildAnswersSchema(questions).safeParse({ answers });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the answers." };
+
+  const { error } = await supabase.rpc("update_request_specs", {
+    p_request_id: request.id,
+    p_answers: toAnswersPayload(parsed.data.answers, questions),
+  });
+  if (error) {
+    console.error("update_request_specs failed", error);
+    return {
+      ok: false,
+      error: error.code === "P0001" || error.code === "42501" ? error.message : "We couldn't save the changes. Please try again.",
+    };
+  }
+  revalidatePath("/admin/pipeline");
+  revalidatePath(`/admin/requests/${request.request_code}`);
   return { ok: true };
 }

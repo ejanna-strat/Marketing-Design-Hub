@@ -110,7 +110,17 @@ export function NewRequestForm({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl space-y-6">
-      {edit && <UnsavedChangesGuard active={isDirty && !isSubmitting} onSave={() => formRef.current?.requestSubmit()} />}
+      {edit ? (
+        <UnsavedChangesGuard active={isDirty && !isSubmitting} onSave={() => formRef.current?.requestSubmit()} />
+      ) : (
+        <UnsavedChangesGuard
+          active={isDirty && !isSubmitting}
+          title="Leave this request?"
+          description="You haven't submitted your request yet. If you leave now, what you've filled in will be lost."
+          stayLabel="Continue filling out my request"
+          leaveLabel="Leave without submitting"
+        />
+      )}
       {edit ? (
         <div className="space-y-3">
           <div className="space-y-1">
@@ -134,7 +144,7 @@ export function NewRequestForm({
         <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
         <p>
           Please allow us one working day to acknowledge receipt of your request. If you do not receive a response
-          within this time, please follow up with Jerome Casupanan via Google Chat or email at{" "}
+          within this time, please follow up with <span className="font-bold">Jerome Casupanan</span> via Google Chat or email at{" "}
           <a className="font-medium text-brand underline" href="mailto:jerome.casupanan@stratpoint.com">
             jerome.casupanan@stratpoint.com
           </a>
