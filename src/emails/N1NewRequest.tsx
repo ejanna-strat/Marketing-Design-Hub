@@ -12,6 +12,7 @@ export function N1NewRequest({
   team,
   dateNeeded,
   url,
+  status = "new_request",
 }: {
   title: string;
   code: string;
@@ -19,11 +20,13 @@ export function N1NewRequest({
   team: string;
   dateNeeded: string;
   url: string;
+  status?: string;
 }) {
   return (
     <EmailLayout
       preview={`${requesterName} submitted ${code}: ${title}`}
       label="New Design Request"
+      status={status}
       details={[
         { label: "Request", value: title },
         { label: "Request ID", value: code },
