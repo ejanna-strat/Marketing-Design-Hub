@@ -517,6 +517,7 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Requester edits (Oct 16):** a requester can edit their own request while it is a *New request* with no designer assigned (`update_request()`; the type can't change). Edits show in the activity log. The bottom of the New Design Request form tells requesters this.
 - **"Track My Request"** is written in **bold** wherever it appears in text, so people recognise it as a page.
 - **Oct 17 rules (owner):** "Rejected" is shown as **Returned** everywhere (database value stays `rejected`). Every Marketing team member (Admin, Lead Designer, Designer) can edit a request's title and General Information, including Date Needed; only Admins and Lead Designers assign designers. **Automatic status:** assigning a designer to a *New request* → *Designer assigned (not yet started)*; removing the designer → *New request*; swapping designers mid-work keeps the status. Every Request Specifications question is required (N/A allowed). People can change their display name; filed requests keep theirs.
+- **Test emails (Oct 18):** while `EMAIL_TEST_MODE=true`, every app email goes to the app's creator, `erylljanna.ong@stratpoint.com` (`EMAIL_TEST_RECIPIENT` locally and in Vercel Preview + Production).
 - **Brand (Oct 17):** colour `#0046bf`, app name in Inter bold, owner's light bulb + pen icon (`docs/brand/`). Emails come from `marketingdesignhub@ejoo.site`, so the app shows a "check your spam folder" note until email moves to a Stratpoint domain (`src/components/SpamNotice.tsx`).
 
 ---

@@ -38,7 +38,7 @@ _Last updated: Oct 17, 2026 · version 0.11.0_
 ## Owner setup: Vercel
 Vercel → project **marketing-design-hub** → Settings:
 - **Git:** connect `ejanna-strat/Marketing-Design-Hub`. Production branch = `main`. Pushes to `staging` then get their own preview link.
-- **Environment Variables** (tick Preview and Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TEST_MODE=true`, `EMAIL_TEST_RECIPIENT=marketing-ai@stratpoint.com`, `NEXT_PUBLIC_APP_URL` (the production address). Copy the values from `.env.local`.
+- **Environment Variables** (tick Preview and Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TEST_MODE=true`, `EMAIL_TEST_RECIPIENT=erylljanna.ong@stratpoint.com`, `NEXT_PUBLIC_APP_URL` (the production address). Copy the values from `.env.local`.
 - After saving the variables, redeploy the `staging` branch (Deployments → … → Redeploy).
 
 ## Staging checklist (Phase 1 ✅ list)
