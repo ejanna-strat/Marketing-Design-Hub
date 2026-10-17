@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return { title: (await params).code };
 }
 
-// One of the signed-in person's own requests, laid out like the New Design
-// Request form (owner, Oct 18). They can edit it until it is accepted.
+// One of the signed-in person's own requests, in the same compact two-column
+// layout as the staff page (owner, Oct 18). They can edit it until accepted.
 export default async function MyRequestDetailPage({
   params,
   searchParams,
@@ -35,7 +35,7 @@ export default async function MyRequestDetailPage({
   const editable = canRequesterEdit(request);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <Link href="/my-requests" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeftIcon className="size-4" />
         My Design Requests
@@ -86,7 +86,7 @@ export default async function MyRequestDetailPage({
 
       <FeedbackCard feedback={one(request.feedback)} status={request.status} code={request.request_code} audience="requester" />
 
-      <RequestInfo request={request} layout="form" />
+      <RequestInfo request={request} />
     </div>
   );
 }
