@@ -11,7 +11,7 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, requester_name, requester_email, date_needed, link_to_output, team:teams(name), designer:designers(display_name)")
+    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, team:teams(name), designer:designers(display_name)")
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
@@ -41,6 +41,7 @@ export async function notifyNewRequest(requestId: string, appUrl: string) {
         team: request.team?.name ?? "—",
         dateNeeded: formatDate(request.date_needed),
         url: `${appUrl}/admin/requests/${request.request_code}`,
+        status: request.status,
       }),
     });
   } catch (e) {
@@ -65,6 +66,7 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
         designerName: request.designer?.display_name ?? "the Marketing Design team",
         outputUrl: link,
         buttonUrl: link ?? `${appUrl}/my-requests/${request.request_code}`,
+        feedbackUrl: `${appUrl}/feedback/${request.request_code}`,
       }),
     });
   } catch (e) {

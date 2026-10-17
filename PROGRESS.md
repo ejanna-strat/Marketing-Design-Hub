@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 17, 2026 · version 0.11.0_
+_Last updated: Oct 18, 2026 · version 0.12.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -26,7 +26,9 @@ _Last updated: Oct 17, 2026 · version 0.11.0_
 - v0.9.0: show/hide eye on password fields; Marketing Design Hub favicon (owner requests, Oct 16). Request numbers checked: one continuous series per year for everyone (MDR-26-0001, 0002, … then MDR-27-0001 in 2027); staging and production each keep their own series.
 - v0.10.0: light bulb + pen app icon (no background in the tab, blue tile on iPhone); masters in `docs/brand/` (owner choice, Oct 16).
 - v0.11.0 (owner list, Oct 17): spam heads-up on sign in/sign up/home/Request Submitted; all Marketing team members can edit the title and General Information (incl. Date Needed); automatic status when a designer is assigned/removed; "Rejected" shown as "Returned", Cancelled in the same red; every specification question required; tip above Submit; Save faded until changes + unsaved-changes prompt; removable filter tags; full-width tables/details; owner's icon; blue #0046bf brand; Inter bold app name; Change my name.
-- **Pending on production:** migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
+- v0.12.0 (owner list, Oct 18): staff can edit specifications (Output Needed follows the starred answer); leave prompts on the New Design Request form, spec editor and Edit details (pop-up layout fixed); Clear filters on the filter-tag row; work statuses need a designer first; refreshed email design (logo title, status tag, centred) with feedback in N8; branded sign-up/reset emails; **Feedback** pulled forward from Phase 3 (form, Share Feedback from home / request page / N8, Overall Feedback columns, team Feedback page); requester request page in the form-like layout; copy button for the approver's email; designer tabs in the pipeline; Jerome Casupanan in bold.
+- **Pending on production:** migrations `0007_staff_edits_auto_status.sql` and `0008_specs_status_feedback.sql` are applied to staging only. At release also: create a public `brand` storage bucket with `logo.png` in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates.
+- (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.

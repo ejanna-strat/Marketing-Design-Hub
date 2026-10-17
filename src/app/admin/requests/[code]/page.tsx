@@ -1,4 +1,5 @@
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { FeedbackCard } from "@/components/feedback/FeedbackCard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -9,9 +10,11 @@ import {
   StatusSelect,
 } from "@/components/requests/editors";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
 import { statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
@@ -65,7 +68,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardHeader>
             <CardContent>
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                <Item label="Status" value={<StatusSelect requestId={request.id} value={request.status} />} />
+                <Item label="Status" value={<StatusSelect requestId={request.id} value={request.status} hasDesigner={!!request.assigned_designer_id} />} />
                 <Item
                   label="Assigned Designer"
                   value={
@@ -83,8 +86,18 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
               </dl>
             </CardContent>
           </Card>
+          <FeedbackCard feedback={one(request.feedback)} status={request.status} code={request.request_code} audience="staff" />
           <RequestInfo
             request={request}
+            copyApprover
+            specsActions={
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/admin/requests/${request.request_code}/specifications`}>
+                  <PencilIcon />
+                  Edit specifications
+                </Link>
+              </Button>
+            }
             generalActions={
               <GeneralInfoEditor
                 requestId={request.id}
@@ -127,6 +140,14 @@ const FIELD_NAMES: Record<string, string> = {
   designer: "Assigned Designer",
   link_to_output: "Link to Output",
   date_needed: "Date Needed",
+  output_needed: "Output Needed",
+};
+
+// Log entries that are a sentence on their own (no old → new values).
+const SENTENCES: Record<string, string> = {
+  created: "submitted the request",
+  edited: "edited the request details",
+  specs: "edited the request specifications",
 };
 
 function showValue(action: string, value: string | null) {
@@ -145,24 +166,26 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
           <span className="absolute top-1.5 -left-[25px] size-2.5 rounded-full border-2 border-background bg-brand" />
           <p>
             <span className="font-medium">{e.actor?.full_name ?? "System"}</span>{" "}
-            {e.action === "created" ? (
-              "submitted the request"
-            ) : e.action === "edited" ? (
-              "edited the request details"
+            {SENTENCES[e.action] ? (
+              SENTENCES[e.action]
+            ) : e.action === "feedback" ? (
+              <>
+                shared feedback: <span className="font-medium">{Number(e.to_value).toFixed(1)} ⭐</span>
+              </>
             ) : (
               <>
                 changed <span className="font-medium">{FIELD_NAMES[e.action] ?? e.action}</span>
               </>
             )}
           </p>
-          {e.action !== "created" && e.action !== "edited" && (
+          {!SENTENCES[e.action] && e.action !== "feedback" && (
             <p className="mt-1 break-words text-muted-foreground">
               <span className="line-through decoration-muted-foreground/50">{showValue(e.action, e.from_value)}</span>
               {" → "}
               <span className="text-foreground">{showValue(e.action, e.to_value)}</span>
             </p>
           )}
-          {e.note && e.action !== "edited" && <p className="mt-1 text-muted-foreground">{e.note}</p>}
+          {e.note && !SENTENCES[e.action] && <p className="mt-1 text-muted-foreground">{e.note}</p>}
           <time className="mt-1 block text-xs text-muted-foreground" dateTime={e.created_at}>
             {formatDateTime(e.created_at)}
           </time>

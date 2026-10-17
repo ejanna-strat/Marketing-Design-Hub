@@ -71,7 +71,7 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
       final_approver: z.enum(["myself", "other"], { error: "Please choose the final approver of the design." }),
       approver_name: z.string().trim().max(200),
       approver_email: z.string().trim().max(200),
-      answers: z.record(z.string(), z.union([z.string(), z.array(z.string())]).optional()),
+      answers: answersRecord,
     })
     .superRefine((v, ctx) => {
       if (v.final_approver === "other") {
@@ -83,25 +83,39 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
         }
       }
 
-      for (const q of questions) {
-        const path = ["answers", q.id];
-        const items = answerItems(v.answers[q.id]);
-        if (items.length === 0) {
-          if (q.required) ctx.addIssue({ code: "custom", path, message: "This question is required." });
-          continue;
-        }
-        for (const item of items) {
-          if (item.length > MAX_TEXT) {
-            ctx.addIssue({ code: "custom", path, message: `Please keep this under ${MAX_TEXT} characters.` });
-          } else if (isOtherAnswer(item)) {
-            if (!q.allowOther) ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
-            else if (!otherText(item).trim()) ctx.addIssue({ code: "custom", path, message: "Please type your answer for Other." });
-          } else if ((q.fieldType === "single_select" || q.fieldType === "multi_select") && !q.options.includes(item)) {
-            ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
-          }
-        }
-      }
+      checkAnswers(v.answers, questions, ctx);
     });
+}
+
+const answersRecord = z.record(z.string(), z.union([z.string(), z.array(z.string())]).optional());
+
+// The specification answers on their own (staff editing a request's specs).
+export function buildAnswersSchema(questions: FormQuestion[]) {
+  return z.object({ answers: answersRecord }).superRefine((v, ctx) => checkAnswers(v.answers, questions, ctx));
+}
+
+export type AnswersFormValues = z.input<ReturnType<typeof buildAnswersSchema>>;
+
+// The rules every answer must pass; errors go on ["answers", questionId].
+function checkAnswers(answers: Record<string, AnswerValue | undefined>, questions: FormQuestion[], ctx: z.RefinementCtx) {
+  for (const q of questions) {
+    const path = ["answers", q.id];
+    const items = answerItems(answers[q.id]);
+    if (items.length === 0) {
+      if (q.required) ctx.addIssue({ code: "custom", path, message: "This question is required." });
+      continue;
+    }
+    for (const item of items) {
+      if (item.length > MAX_TEXT) {
+        ctx.addIssue({ code: "custom", path, message: `Please keep this under ${MAX_TEXT} characters.` });
+      } else if (isOtherAnswer(item)) {
+        if (!q.allowOther) ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
+        else if (!otherText(item).trim()) ctx.addIssue({ code: "custom", path, message: "Please type your answer for Other." });
+      } else if ((q.fieldType === "single_select" || q.fieldType === "multi_select") && !q.options.includes(item)) {
+        ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
+      }
+    }
+  }
 }
 
 export type RequestFormValues = z.input<ReturnType<typeof buildRequestSchema>>;
@@ -119,12 +133,7 @@ function cleanItem(item: string) {
 // The payload submit_request() expects. Only answers to the chosen type's
 // questions are sent, so switching types midway doesn't leave stray answers.
 export function toSubmitPayload(values: RequestFormValues, questions: FormQuestion[]): Json {
-  const answers: Record<string, string | string[]> = {};
-  for (const q of questions) {
-    const items = answerItems(values.answers[q.id]).map(cleanItem);
-    if (items.length === 0) continue;
-    answers[q.id] = q.fieldType === "multi_select" ? items : items[0]!;
-  }
+  const answers = toAnswersPayload(values.answers, questions);
   return {
     requester_name: values.requester_name.trim(),
     title: values.title.trim(),
@@ -136,4 +145,18 @@ export function toSubmitPayload(values: RequestFormValues, questions: FormQuesti
     approver_email: values.approver_email.trim(),
     answers,
   };
+}
+
+// Cleaned answers for the chosen type's questions only.
+export function toAnswersPayload(
+  values: Record<string, AnswerValue | undefined>,
+  questions: FormQuestion[],
+): Record<string, string | string[]> {
+  const answers: Record<string, string | string[]> = {};
+  for (const q of questions) {
+    const items = answerItems(values[q.id]).map(cleanItem);
+    if (items.length === 0) continue;
+    answers[q.id] = q.fieldType === "multi_select" ? items : items[0]!;
+  }
+  return answers;
 }

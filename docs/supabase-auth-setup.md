@@ -28,31 +28,14 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
   - your production address followed by `/**`
 
 ## 4. Email templates
-**Authentication → Emails → Templates.** Both links point back to the app's `/auth/confirm` page, which works in any browser.
+**Authentication → Emails → Templates.** The branded templates live in this repo (same design as the app's notifications, Oct 18):
 
-**Confirm signup**
+| Template | Subject | Body |
+|---|---|---|
+| **Confirm signup** | `Confirm your Marketing Design Hub account` | `docs/emails/confirm-signup.html` |
+| **Reset Password** | `Set your Marketing Design Hub password` | `docs/emails/reset-password.html` |
 
-Subject: `Confirm your Marketing Design Hub account`
-
-```html
-<h2>Welcome to Marketing Design Hub</h2>
-<p>Click the button to confirm your email and activate your account:</p>
-<p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup"
-      style="display:inline-block;background:#0046bf;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Confirm my email</a></p>
-<p style="color:#666;font-size:12px">If you didn't create an account, you can ignore this email.</p>
-```
-
-**Reset Password**
-
-Subject: `Set your Marketing Design Hub password`
-
-```html
-<h2>Set a new password</h2>
-<p>Click the button to choose a new password for Marketing Design Hub:</p>
-<p><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery"
-      style="display:inline-block;background:#0046bf;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Set my password</a></p>
-<p style="color:#666;font-size:12px">The link works once. If you didn't ask for this, you can ignore this email.</p>
-```
+Before pasting, replace `LOGO_URL` with `<project URL>/storage/v1/object/public/brand/logo.png` (the logo in the project's public **brand** storage folder). Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
 
 The Magic Link template is no longer used.
 

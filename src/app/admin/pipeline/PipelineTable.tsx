@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { columnHelper, DataTable } from "@/components/data-table/DataTable";
 import { type DesignerOption, DesignerSelect, LinkEditor, StatusSelect } from "@/components/requests/editors";
+import { StarsDisplay } from "@/components/feedback/Stars";
 import { formatDate } from "@/lib/dates";
+import { one, overallRating } from "@/lib/feedback";
 import type { RequestListRow } from "@/lib/requests/list";
 
 const col = columnHelper<RequestListRow>();
@@ -47,7 +49,13 @@ export function PipelineTable({
         col.accessor("output_needed", { header: "Output Needed" }),
         col.accessor("status", {
           header: "Status",
-          cell: (info) => <StatusSelect requestId={info.row.original.id} value={info.getValue()} />,
+          cell: (info) => (
+            <StatusSelect
+              requestId={info.row.original.id}
+              value={info.getValue()}
+              hasDesigner={!!info.row.original.assigned_designer_id}
+            />
+          ),
         }),
         col.accessor("assigned_designer_id", {
           id: "designer",
@@ -66,8 +74,14 @@ export function PipelineTable({
           header: "Link to Output",
           cell: (info) => <LinkEditor requestId={info.row.original.id} value={info.getValue()} />,
         }),
-        // Feedback arrives in Phase 3.
-        col.display({ id: "feedback", header: "Overall Feedback", cell: () => muted }),
+        col.display({
+          id: "feedback",
+          header: "Overall Feedback",
+          cell: (info) => {
+            const f = one(info.row.original.feedback);
+            return f ? <StarsDisplay value={overallRating(f)} /> : muted;
+          },
+        }),
       ]),
     [canAssign, designers],
   );
