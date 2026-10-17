@@ -7,7 +7,7 @@ import { answerText, type RequestDetail } from "@/lib/requests/detail";
 // General Information and Request Specifications of one request (read-only),
 // in two compact columns. Used by the requester and staff request pages.
 // generalActions / specsActions: e.g. the staff "Edit" buttons.
-// copyApprover: show a copy button next to the approver's email (staff).
+// copyApprover: copy buttons next to the requester's and approver's emails (staff).
 export function RequestInfo({
   request,
   generalActions,
@@ -41,7 +41,15 @@ export function RequestInfo({
             <Item label="Request ID" value={<span className="font-mono">{request.request_code}</span>} />
             <Item label="Request Date" value={<span title={formatDateTime(request.created_at)}>{formatDate(request.created_at)}</span>} />
             <Item label="Name" value={request.requester_name} />
-            <Item label="Email" value={request.requester_email} />
+            <Item
+              label="Email"
+              value={
+                <span className="inline-flex flex-wrap items-center gap-1">
+                  {request.requester_email}
+                  {copyApprover && <CopyButton value={request.requester_email} label="Copy requester's email" />}
+                </span>
+              }
+            />
             <Item label="Business Unit" value={request.team?.name} wide />
             <Item label="Request Title" value={request.title} wide />
             <Item label="Date Needed" value={formatDate(request.date_needed)} />

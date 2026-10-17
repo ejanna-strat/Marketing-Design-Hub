@@ -1,5 +1,10 @@
 import "server-only";
 import { N1NewRequest, n1Subject } from "@/emails/N1NewRequest";
+import { N2Returned, n2Subject } from "@/emails/N2Returned";
+import { N3Assigned, n3Subject } from "@/emails/N3Assigned";
+import { N4Accepted, n4Subject } from "@/emails/N4Accepted";
+import { N6Reassigned, n6Subject } from "@/emails/N6Reassigned";
+import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { formatDate } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -11,7 +16,7 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, team:teams(name), designer:designers(display_name)")
+    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, assigned_designer_id, return_reason, returned_by, team:teams(name), designer:designers(display_name, email)")
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
@@ -71,5 +76,130 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
     });
   } catch (e) {
     console.error("[email N8] failed", e);
+  }
+}
+
+// Members ticked "Gets team emails" (e.g. Riann).
+async function teamEmailRecipients() {
+  const { data } = await createAdminClient().from("team_members").select("email").eq("gets_team_emails", true);
+  return (data ?? []).map((m) => m.email);
+}
+
+const outputLink = (value: string | null) => (value && /^https?:\/\/\S+$/.test(value) ? value : null);
+
+// N2 — the requester, once, when a reviewer returns the request.
+export async function notifyReturned(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    const { data: reviewer } = r.returned_by
+      ? await createAdminClient().from("profiles").select("full_name").eq("id", r.returned_by).maybeSingle()
+      : { data: null };
+    await sendEmail({
+      key: "N2_RETURNED",
+      requestId,
+      to: [r.requester_email],
+      subject: n2Subject(r.title),
+      email: N2Returned({
+        title: r.title,
+        code: r.request_code,
+        reason: r.return_reason ?? "—",
+        reviewerName: reviewer?.full_name || "the Marketing Design team",
+        url: `${appUrl}/requests/new`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email N2] failed", e);
+  }
+}
+
+// N3 — the newly assigned designer (+ "Gets team emails"), once per designer.
+export async function notifyAssigned(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    if (!r.assigned_designer_id || !r.designer) return;
+    await sendEmail({
+      key: `N3_ASSIGNED:${r.assigned_designer_id}`,
+      requestId,
+      to: [r.designer.email, ...(await teamEmailRecipients())],
+      subject: n3Subject(),
+      email: N3Assigned({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        team: r.team?.name ?? "—",
+        dateNeeded: formatDate(r.date_needed),
+        status: r.status,
+        url: `${appUrl}/admin/pipeline?designer=${r.assigned_designer_id}`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email N3] failed", e);
+  }
+}
+
+// N4 — the requester (+ "Gets team emails") when the designer accepts.
+export async function notifyDesignerAccepted(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    if (!r.assigned_designer_id) return;
+    await sendEmail({
+      key: `N4_ACCEPTED:${r.assigned_designer_id}`,
+      requestId,
+      to: [r.requester_email, ...(await teamEmailRecipients())],
+      subject: n4Subject(r.title),
+      email: N4Accepted({
+        title: r.title,
+        code: r.request_code,
+        designerName: r.designer?.display_name ?? "a designer",
+        url: `${appUrl}/my-requests`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email N4] failed", e);
+  }
+}
+
+// N6 — the requester + the new designer when the designer is swapped.
+export async function notifyReassigned(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    if (!r.assigned_designer_id || !r.designer) return;
+    await sendEmail({
+      key: `N6_REASSIGNED:${r.assigned_designer_id}`,
+      requestId,
+      to: [r.requester_email, r.designer.email],
+      subject: n6Subject(r.title),
+      email: N6Reassigned({
+        title: r.title,
+        code: r.request_code,
+        designerName: r.designer.display_name,
+        status: r.status,
+        url: `${appUrl}/my-requests`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email N6] failed", e);
+  }
+}
+
+// N7 — the requester, once, when the status becomes For requester's review.
+export async function notifyForReview(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    await sendEmail({
+      key: "N7_FOR_REVIEW",
+      requestId,
+      to: [r.requester_email],
+      subject: n7Subject(r.title),
+      email: N7ForReview({
+        title: r.title,
+        code: r.request_code,
+        designerName: r.designer?.display_name ?? "the designer",
+        outputUrl: outputLink(r.link_to_output),
+        url: `${appUrl}/my-requests/${r.request_code}`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email N7] failed", e);
   }
 }
