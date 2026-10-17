@@ -347,6 +347,8 @@ export type Database = {
           date_completed: string | null
           date_needed: string
           date_started: string | null
+          designer_responded_at: string | null
+          designer_response: string | null
           final_approver_email: string
           final_approver_name: string
           id: string
@@ -359,6 +361,7 @@ export type Database = {
           requester_id: string
           requester_name: string
           return_reason: string | null
+          returned_by: string | null
           status: Database["public"]["Enums"]["request_status"]
           team_id: string
           title: string
@@ -370,6 +373,8 @@ export type Database = {
           date_completed?: string | null
           date_needed: string
           date_started?: string | null
+          designer_responded_at?: string | null
+          designer_response?: string | null
           final_approver_email: string
           final_approver_name: string
           id?: string
@@ -382,6 +387,7 @@ export type Database = {
           requester_id: string
           requester_name: string
           return_reason?: string | null
+          returned_by?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           team_id: string
           title: string
@@ -393,6 +399,8 @@ export type Database = {
           date_completed?: string | null
           date_needed?: string
           date_started?: string | null
+          designer_responded_at?: string | null
+          designer_response?: string | null
           final_approver_email?: string
           final_approver_name?: string
           id?: string
@@ -405,6 +413,7 @@ export type Database = {
           requester_id?: string
           requester_name?: string
           return_reason?: string | null
+          returned_by?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           team_id?: string
           title?: string
@@ -540,6 +549,11 @@ export type Database = {
         Returns: undefined
       }
       submit_request: { Args: { payload: Json }; Returns: Json }
+      designer_respond: {
+        Args: { p_accept: boolean; p_reason: string; p_request_id: string }
+        Returns: Json
+      }
+      return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       submit_feedback: {
         Args: { p_comments: string; p_output: number; p_process: number; p_request_code: string }
         Returns: Json
