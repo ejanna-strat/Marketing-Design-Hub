@@ -21,6 +21,7 @@ const actions: { href?: string; external?: boolean; title: string; description: 
     icon: ListChecksIcon,
   },
   {
+    href: "/feedback",
     title: "Share Feedback",
     description: "Rate a completed design request.",
     icon: MessageSquareHeartIcon,
