@@ -20,6 +20,10 @@ export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: s
 
 const byValue = new Map(STATUSES.map((s) => [s.value, s]));
 
+// Statuses that need an assigned designer first (owner, Oct 18; the
+// database enforces this too).
+export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", "for_review", "for_revision", "completed"]);
+
 export function isStatus(value: string): value is RequestStatus {
   return byValue.has(value as RequestStatus);
 }

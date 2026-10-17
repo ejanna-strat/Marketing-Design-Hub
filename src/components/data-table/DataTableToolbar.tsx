@@ -3,7 +3,6 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { formatDate } from "@/lib/dates";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUrlParams } from "./use-url-params";
@@ -27,7 +26,6 @@ export function DataTableToolbar({
   const { get, setParams } = useUrlParams();
   const [q, setQ] = useState(get("q"));
   const keys = ["q", "from", "to", ...filters.map((f) => f.key)];
-  const active = keys.some((k) => get(k));
 
   // One removable tag per active filter.
   const chips: { key: string; label: string; value: string }[] = [];
@@ -101,18 +99,6 @@ export function DataTableToolbar({
           />
         </div>
 
-        {active && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setQ("");
-              setParams(Object.fromEntries(keys.map((k) => [k, null])));
-            }}
-          >
-            <XIcon />
-            Clear filters
-          </Button>
-        )}
       </div>
       {chips.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Active filters">
@@ -136,6 +122,19 @@ export function DataTableToolbar({
               </button>
             </li>
           ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                setParams(Object.fromEntries(keys.map((k) => [k, null])));
+              }}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-brand hover:bg-brand-soft"
+            >
+              <XIcon className="size-3" />
+              Clear filters
+            </button>
+          </li>
         </ul>
       )}
     </div>

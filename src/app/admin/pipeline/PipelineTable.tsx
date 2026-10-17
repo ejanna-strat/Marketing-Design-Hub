@@ -47,7 +47,13 @@ export function PipelineTable({
         col.accessor("output_needed", { header: "Output Needed" }),
         col.accessor("status", {
           header: "Status",
-          cell: (info) => <StatusSelect requestId={info.row.original.id} value={info.getValue()} />,
+          cell: (info) => (
+            <StatusSelect
+              requestId={info.row.original.id}
+              value={info.getValue()}
+              hasDesigner={!!info.row.original.assigned_designer_id}
+            />
+          ),
         }),
         col.accessor("assigned_designer_id", {
           id: "designer",
