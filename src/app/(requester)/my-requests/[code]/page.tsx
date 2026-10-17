@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, CheckCircle2Icon, PencilIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FeedbackCard } from "@/components/feedback/FeedbackCard";
@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { canRequesterEdit, getRequestByCode } from "@/lib/requests/detail";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
@@ -33,6 +34,13 @@ export default async function MyRequestDetailPage({
   const request = await getRequestByCode(supabase, code, { requesterId: user.id });
   if (!request) notFound();
   const editable = canRequesterEdit(request);
+  // Requesters can't read staff profiles, so the reviewer's name is looked up
+  // on the server (name only).
+  const returnedByName =
+    request.status === "rejected" && request.returned_by
+      ? ((await createAdminClient().from("profiles").select("full_name").eq("id", request.returned_by).maybeSingle()).data
+          ?.full_name ?? null)
+      : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -62,7 +70,28 @@ export default async function MyRequestDetailPage({
           Your changes were saved.
         </p>
       )}
-      {editable ? (
+      {request.status === "rejected" && (
+        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-950">
+          <p className="flex items-center gap-2 text-base font-semibold">
+            <UndoIcon className="size-5" />
+            Your request was returned
+          </p>
+          <p>
+            <span className="font-medium">Reason for Return:</span> {request.return_reason ?? "—"}
+          </p>
+          <p>
+            For any questions or clarifications, you may coordinate with{" "}
+            <span className="font-medium">{returnedByName ?? "the Design team"}</span> that returned the request.
+          </p>
+          <Button asChild>
+            <Link href="/requests/new">
+              <FilePlus2Icon />
+              Submit a New Design Request
+            </Link>
+          </Button>
+        </div>
+      )}
+      {request.status === "rejected" ? null : editable ? (
         <p className="text-sm text-muted-foreground">You can edit this request until it is accepted by the reviewer.</p>
       ) : (
         <p className="text-sm text-muted-foreground">

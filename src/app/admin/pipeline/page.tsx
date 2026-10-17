@@ -39,7 +39,7 @@ export default async function PipelinePage({
       </div>
       <DesignerTabs designers={tabDesigners} current={params.designer} myDesignerId={user.designerId} />
       <DataTableToolbar
-        searchPlaceholder="Search by ID, title or requester"
+        searchPlaceholder="Search ID, title, requester, type, output or designer"
         filters={[
           { key: "status", label: "Status", options: statusOptions() },
           { key: "team", label: "Team", options: (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })) },

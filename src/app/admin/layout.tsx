@@ -14,9 +14,9 @@ import { requireStaff } from "@/lib/auth";
 // for Admins and Lead Designers only.
 function menuFor(isManager: boolean) {
   return [
-    { title: "Dashboard", icon: LayoutDashboardIcon },
+    { title: "Dashboard", icon: LayoutDashboardIcon, href: "/admin/dashboard" },
     { title: "Design Pipeline", icon: ClipboardListIcon, href: "/admin/pipeline" },
-    { title: "Pendings", icon: HourglassIcon },
+    { title: "Pendings", icon: HourglassIcon, href: "/admin/pendings" },
     { title: "Feedback", icon: MessageSquareHeartIcon, href: "/admin/feedback" },
     { title: "Analytics", icon: BarChart3Icon },
     ...(isManager ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),

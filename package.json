@@ -1,6 +1,6 @@
 {
   "name": "marketing-design-hub",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -25,6 +25,7 @@
     "react-day-picker": "^10.0.2",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.90.0",
+    "recharts": "^3.10.1",
     "resend": "^6.33.0",
     "shadcn": "^4.21.5",
     "sonner": "^2.0.8",

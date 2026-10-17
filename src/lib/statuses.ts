@@ -20,6 +20,15 @@ export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: s
 
 const byValue = new Map(STATUSES.map((s) => [s.value, s]));
 
+// The Pendings tabs (§7.2 #5), in order.
+export const PENDING_TABS: { status: RequestStatus; label: string }[] = [
+  { status: "new_request", label: "New Requests" },
+  { status: "designer_assigned", label: "Not Started" },
+  { status: "in_progress", label: "In Progress" },
+  { status: "for_review", label: "For Review" },
+  { status: "for_revision", label: "For Revision" },
+];
+
 // Statuses that need an assigned designer first (owner, Oct 18; the
 // database enforces this too).
 export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", "for_review", "for_revision", "completed"]);

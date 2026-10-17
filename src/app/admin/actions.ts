@@ -5,7 +5,14 @@ import { after } from "next/server";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url";
 import { getCurrentUser } from "@/lib/auth";
-import { notifyFinalOutput } from "@/lib/email/notifications";
+import {
+  notifyAssigned,
+  notifyDesignerAccepted,
+  notifyFinalOutput,
+  notifyForReview,
+  notifyReassigned,
+  notifyReturned,
+} from "@/lib/email/notifications";
 import { buildAnswersSchema, QUESTION_COLUMNS, toAnswersPayload, toFormQuestion } from "@/lib/requests/schema";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -55,14 +62,18 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   }
 
   const supabase = await createClient();
-  const { data: before } = await supabase.from("requests").select("status").eq("id", requestId).maybeSingle();
+  const { data: before } = await supabase
+    .from("requests")
+    .select("status, assigned_designer_id")
+    .eq("id", requestId)
+    .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
 
   const { data, error } = await supabase
     .from("requests")
     .update(changes)
     .eq("id", requestId)
-    .select("id, request_code, status")
+    .select("id, request_code, status, assigned_designer_id")
     .maybeSingle();
   if (error) {
     console.error("updateRequest failed", error);
@@ -70,11 +81,15 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   }
   if (!data) return { ok: false, error: "You can't change this request." };
 
-  // N8 goes out once, the first time a request becomes Completed.
-  if (data.status === "completed" && before.status !== "completed") {
-    const appUrl = await getAppUrl();
-    after(() => notifyFinalOutput(data.id, appUrl));
-  }
+  // Emails (each once): N3 when a designer is first assigned (the
+  // reviewer's Accept), N6 when the designer is swapped, N7 on For
+  // requester's review, N8 on Completed.
+  const appUrl = await getAppUrl();
+  const designerChanged = data.assigned_designer_id !== before.assigned_designer_id && data.assigned_designer_id;
+  if (designerChanged && !before.assigned_designer_id) after(() => notifyAssigned(data.id, appUrl));
+  if (designerChanged && before.assigned_designer_id) after(() => notifyReassigned(data.id, appUrl));
+  if (data.status === "for_review" && before.status !== "for_review") after(() => notifyForReview(data.id, appUrl));
+  if (data.status === "completed" && before.status !== "completed") after(() => notifyFinalOutput(data.id, appUrl));
 
   revalidatePath("/admin/pipeline");
   revalidatePath(`/admin/requests/${data.request_code}`);
@@ -119,5 +134,55 @@ export async function updateSpecifications(requestId: string, answers: unknown):
   }
   revalidatePath("/admin/pipeline");
   revalidatePath(`/admin/requests/${request.request_code}`);
+  return { ok: true };
+}
+
+function rpcError(error: { code?: string; message: string }, fallback: string) {
+  console.error(fallback, error);
+  return error.code === "P0001" || error.code === "42501" ? error.message : fallback;
+}
+
+// Reviewer (Admin / Lead Designer): return a new request with a reason.
+export async function returnRequest(requestId: string, reason: string): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isManager) return { ok: false, error: "Only Admins and Lead Designers can return requests." };
+  if (!reason.trim()) return { ok: false, error: "Please give the reason for returning the request." };
+  if (reason.length > 2000) return { ok: false, error: "Please keep the reason under 2,000 characters." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("return_request", { p_request_id: requestId, p_reason: reason });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't return the request. Please try again.") };
+  const appUrl = await getAppUrl();
+  after(() => notifyReturned(requestId, appUrl));
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/my-requests/${(data as { request_code: string }).request_code}`);
+  return { ok: true };
+}
+
+// Assigned designer: accept the task, or ask to reassign with a reason.
+export async function respondAsDesigner(
+  requestId: string,
+  accept: boolean,
+  reason: { category: "Full plate" | "Other concerns"; note: string } | null,
+): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isDesigner) return { ok: false, error: "Only the assigned designer can respond." };
+  let text = "";
+  if (!accept) {
+    if (!reason) return { ok: false, error: "Please choose a reason." };
+    const note = reason.note.trim();
+    if (reason.category === "Other concerns" && !note) return { ok: false, error: "Please describe your concern." };
+    if (note.length > 2000) return { ok: false, error: "Please keep the note under 2,000 characters." };
+    text = note ? `${reason.category}: ${note}` : reason.category;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("designer_respond", { p_request_id: requestId, p_accept: accept, p_reason: text });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't save your response. Please try again.") };
+  if (accept) {
+    const appUrl = await getAppUrl();
+    after(() => notifyDesignerAccepted(requestId, appUrl));
+  }
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }

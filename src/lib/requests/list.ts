@@ -65,7 +65,7 @@ export function parseListParams(sp: SearchParams): ListParams {
 
 const LIST_COLUMNS = `
   id, request_code, created_at, date_needed, title, output_needed, status, link_to_output,
-  requester_name, requester_email, assigned_designer_id,
+  requester_name, requester_email, assigned_designer_id, designer_response, reassign_reason,
   request_type:request_types(name), team:teams(name), designer:designers(display_name),
   feedback(process_rating, output_rating)
 `;
@@ -84,9 +84,21 @@ export async function listRequests(
   // Characters that would break PostgREST's or() syntax are dropped.
   const term = params.q.replace(/[,()*%\\"':]/g, " ").trim();
   if (term) {
-    const fields = ["request_code", "title"];
+    // Also matches Type of Request, Output Needed and the assigned designer
+    // (owner, Oct 18). Type and designer names live in other tables, so find
+    // their ids first.
+    const [types, designers] = await Promise.all([
+      supabase.from("request_types").select("id").ilike("name", `%${term}%`),
+      supabase.from("designers").select("id").ilike("display_name", `%${term}%`),
+    ]);
+    const fields = ["request_code", "title", "output_needed"];
     if (options.searchRequester) fields.push("requester_name", "requester_email");
-    query = query.or(fields.map((f) => `${f}.ilike.*${term}*`).join(","));
+    const conditions = fields.map((f) => `${f}.ilike.*${term}*`);
+    const typeIds = (types.data ?? []).map((t) => t.id);
+    const designerIds = (designers.data ?? []).map((d) => d.id);
+    if (typeIds.length) conditions.push(`request_type_id.in.(${typeIds.join(",")})`);
+    if (designerIds.length) conditions.push(`assigned_designer_id.in.(${designerIds.join(",")})`);
+    query = query.or(conditions.join(","));
   }
   if (params.status) query = query.eq("status", params.status as never);
   if (params.type) query = query.eq("request_type_id", params.type);

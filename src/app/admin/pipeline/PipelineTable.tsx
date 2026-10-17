@@ -49,20 +49,38 @@ export function PipelineTable({
         col.accessor("output_needed", { header: "Output Needed" }),
         col.accessor("status", {
           header: "Status",
-          cell: (info) => (
-            <StatusSelect
-              requestId={info.row.original.id}
-              value={info.getValue()}
-              hasDesigner={!!info.row.original.assigned_designer_id}
-            />
-          ),
+          cell: (info) => {
+            const r = info.row.original;
+            const note =
+              r.assigned_designer_id && r.designer_response === "pending"
+                ? `Waiting for ${r.designer?.display_name ?? "the designer"} to accept`
+                : !r.assigned_designer_id && r.status === "new_request" && r.reassign_reason
+                  ? `Reassignment requested: ${r.reassign_reason}`
+                  : null;
+            return (
+              <div className="space-y-1">
+                <StatusSelect
+                  requestId={r.id}
+                  value={info.getValue()}
+                  hasDesigner={!!r.assigned_designer_id}
+                  hasLink={!!r.link_to_output}
+                />
+                {note && <p className="max-w-56 text-xs whitespace-normal text-muted-foreground">{note}</p>}
+              </div>
+            );
+          },
         }),
         col.accessor("assigned_designer_id", {
           id: "designer",
           header: "Assigned Designer",
           cell: (info) =>
             canAssign ? (
-              <DesignerSelect requestId={info.row.original.id} value={info.getValue()} designers={designers} />
+              <DesignerSelect
+                requestId={info.row.original.id}
+                value={info.getValue()}
+                designers={designers}
+                locked={info.row.original.status === "completed"}
+              />
             ) : (
               info.row.original.designer?.display_name ?? muted
             ),
