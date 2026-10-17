@@ -97,6 +97,51 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          comments: string | null
+          id: string
+          output_rating: number
+          process_rating: number
+          request_id: string
+          requester_id: string
+          submitted_at: string
+        }
+        Insert: {
+          comments?: string | null
+          id?: string
+          output_rating: number
+          process_rating: number
+          request_id: string
+          requester_id: string
+          submitted_at?: string
+        }
+        Update: {
+          comments?: string | null
+          id?: string
+          output_rating?: number
+          process_rating?: number
+          request_id?: string
+          requester_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_questions: {
         Row: {
           active: boolean
@@ -495,6 +540,11 @@ export type Database = {
         Returns: undefined
       }
       submit_request: { Args: { payload: Json }; Returns: Json }
+      submit_feedback: {
+        Args: { p_comments: string; p_output: number; p_process: number; p_request_code: string }
+        Returns: Json
+      }
+      update_request_specs: { Args: { p_answers: Json; p_request_id: string }; Returns: Json }
       update_request: { Args: { p_request_id: string; payload: Json }; Returns: Json }
       sync_team_roster: { Args: never; Returns: undefined }
       sync_user_roles: { Args: { uid: string }; Returns: undefined }
