@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { columnHelper, DataTable } from "@/components/data-table/DataTable";
 import { OutputLink } from "@/components/LinkifiedText";
+import { StarsDisplay } from "@/components/feedback/Stars";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/dates";
+import { one, overallRating } from "@/lib/feedback";
 import type { RequestListRow } from "@/lib/requests/list";
 
 const col = columnHelper<RequestListRow>();
@@ -33,8 +35,23 @@ const columns = col.columns([
     cell: (info) => info.getValue() || <span className="text-muted-foreground">—</span>,
   }),
   col.accessor("link_to_output", { header: "Link to Output", cell: (info) => <OutputLink value={info.getValue()} /> }),
-  // Feedback arrives in Phase 3.
-  col.display({ id: "feedback", header: "Overall Feedback", cell: () => <span className="text-muted-foreground">—</span> }),
+  col.display({
+    id: "feedback",
+    header: "Overall Feedback",
+    cell: (info) => {
+      const r = info.row.original;
+      const f = one(r.feedback);
+      if (f) return <StarsDisplay value={overallRating(f)} />;
+      if (r.status === "completed") {
+        return (
+          <Link href={`/feedback/${r.request_code}`} className="font-medium text-brand hover:underline">
+            Share feedback
+          </Link>
+        );
+      }
+      return <span className="text-muted-foreground">—</span>;
+    },
+  }),
 ]);
 
 export function MyRequestsTable({

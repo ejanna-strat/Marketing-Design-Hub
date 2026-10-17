@@ -1,4 +1,5 @@
 import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { FeedbackCard } from "@/components/feedback/FeedbackCard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
 import { statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
@@ -84,6 +86,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
               </dl>
             </CardContent>
           </Card>
+          <FeedbackCard feedback={one(request.feedback)} status={request.status} code={request.request_code} audience="staff" />
           <RequestInfo
             request={request}
             copyApprover

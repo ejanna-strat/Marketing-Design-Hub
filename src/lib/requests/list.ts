@@ -66,7 +66,8 @@ export function parseListParams(sp: SearchParams): ListParams {
 const LIST_COLUMNS = `
   id, request_code, created_at, date_needed, title, output_needed, status, link_to_output,
   requester_name, requester_email, assigned_designer_id,
-  request_type:request_types(name), team:teams(name), designer:designers(display_name)
+  request_type:request_types(name), team:teams(name), designer:designers(display_name),
+  feedback(process_rating, output_rating)
 `;
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;

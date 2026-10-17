@@ -17,7 +17,7 @@ function menuFor(isManager: boolean) {
     { title: "Dashboard", icon: LayoutDashboardIcon },
     { title: "Design Pipeline", icon: ClipboardListIcon, href: "/admin/pipeline" },
     { title: "Pendings", icon: HourglassIcon },
-    { title: "Feedback", icon: MessageSquareHeartIcon },
+    { title: "Feedback", icon: MessageSquareHeartIcon, href: "/admin/feedback" },
     { title: "Analytics", icon: BarChart3Icon },
     ...(isManager ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
   ];
