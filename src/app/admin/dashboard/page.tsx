@@ -13,6 +13,7 @@ import { one } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 // Manila calendar date of a timestamp, for counting working days.
 const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTime(), theme.timeZone), "yyyy-MM-dd"));
@@ -156,19 +157,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Requests by status</CardTitle>
-            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BarList
-              data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0, href: statusPage(s.value) }))}
-              total={total}
-            />
-          </CardContent>
-        </Card>
-
+        {/* Pendings first: people read left to right (owner, Oct 21). */}
         <Card>
           <CardHeader>
             <CardTitle>Pendings</CardTitle>
@@ -180,14 +169,33 @@ export default async function DashboardPage() {
                 <li key={t.status}>
                   <Link
                     href={`/admin/pendings?status=${t.status}`}
-                    className="flex items-center justify-between rounded-lg border px-4 py-3 transition-colors hover:border-brand hover:bg-brand-soft/50"
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border px-4 py-3 transition-colors",
+                      // Categories with requests waiting stand out (owner, Oct 21).
+                      t.count > 0
+                        ? "border-amber-300 bg-amber-50 text-amber-950 hover:border-amber-400 hover:bg-amber-100"
+                        : "text-muted-foreground hover:border-brand hover:bg-brand-soft/50",
+                    )}
                   >
-                    <span className="text-sm">{t.label}</span>
+                    <span className={cn("text-sm", t.count > 0 && "font-medium")}>{t.label}</span>
                     <span className="text-lg font-semibold">{t.count}</span>
                   </Link>
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Requests by status</CardTitle>
+            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarList
+              data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0, href: statusPage(s.value) }))}
+              total={total}
+            />
           </CardContent>
         </Card>
 

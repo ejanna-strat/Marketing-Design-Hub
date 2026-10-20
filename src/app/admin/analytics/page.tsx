@@ -5,73 +5,107 @@ import { ShareDonut } from "@/components/charts/ShareDonut";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadAnalytics } from "@/lib/analytics";
+import { endOfMonth, format, parseISO, subMonths } from "date-fns";
+import { firstRequestDay, loadAnalytics } from "@/lib/analytics";
+import { formatDate, todayInManila } from "@/lib/dates";
 import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-import { ExportCsv } from "./ExportCsv";
+import { PeriodControls } from "./PeriodControls";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
 const th = "px-3 py-2 text-right font-medium whitespace-nowrap";
 const td = "px-3 py-2 text-right tabular-nums whitespace-nowrap";
 
-// Analytics / Reports (§7.2 #6, pulled forward Oct 21): every month of the
-// year so far, plus deal requests by type.
-export default async function AnalyticsPage() {
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH = /^\d{4}-\d{2}$/;
+
+// Analytics / Reports (§7.2 #6, pulled forward Oct 21). Two tabs (owner,
+// Oct 21): Monthly report (a month, or a custom range; opens on last month)
+// and Month on Month (a full year; opens on this year). Same reports on both;
+// only Month on Month has the month-by-month charts, table and columns.
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireStaff();
-  const a = await loadAnalytics(await createClient());
+  const sp = await searchParams;
+  const param = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const supabase = await createClient();
+  const today = todayInManila();
+  const first = (await firstRequestDay(supabase)) ?? today;
+  const tab = param("tab") === "mom" ? "mom" : "monthly";
+
+  // Months from the first request to this month (newest first), and years.
+  const monthOptions: { value: string; label: string }[] = [];
+  for (let m = parseISO(`${today.slice(0, 7)}-01`); format(m, "yyyy-MM") >= first.slice(0, 7); m = subMonths(m, 1)) {
+    monthOptions.push({ value: format(m, "yyyy-MM"), label: format(m, "MMMM yyyy") });
+  }
+  const years: string[] = [];
+  for (let y = Number(today.slice(0, 4)); y >= Number(first.slice(0, 4)); y--) years.push(String(y));
+
+  let from: string;
+  let to: string;
+  let month: string | null = null;
+  let year = today.slice(0, 4);
+  let periodLabel: string;
+  if (tab === "mom") {
+    if (years.includes(param("year"))) year = param("year");
+    from = `${year}-01-01`;
+    to = year === today.slice(0, 4) ? today : `${year}-12-31`;
+    periodLabel = `${year}, month by month`;
+  } else if (DAY.test(param("from")) && DAY.test(param("to")) && param("from") <= param("to")) {
+    from = param("from");
+    to = param("to");
+    periodLabel = `${formatDate(from)} – ${formatDate(to)}`;
+  } else {
+    // Default: last month.
+    month = MONTH.test(param("month")) ? param("month") : format(subMonths(parseISO(today), 1), "yyyy-MM");
+    from = `${month}-01`;
+    const last = format(endOfMonth(parseISO(from)), "yyyy-MM-dd");
+    to = last < today ? last : today;
+    periodLabel = format(parseISO(from), "MMMM yyyy");
+  }
+  if (month && !monthOptions.some((m) => m.value === month)) {
+    monthOptions.push({ value: month, label: format(parseISO(`${month}-01`), "MMMM yyyy") });
+  }
+
+  const a = await loadAnalytics(supabase, from, to, tab === "mom");
   const t = a.totals;
+  const mom = tab === "mom";
   const chartData = a.months.map((m) => ({
     label: m.label,
     short: m.label.slice(0, 3),
     requestsIn: m.requestsIn,
     accepted: m.accepted,
     completed: m.completed,
-    openAtMonthEnd: m.openAtMonthEnd,
+    openAtEnd: m.openAtEnd,
   }));
-
-  const csv: (string | number)[][] = [
-    [
-      "Month",
-      "Requests In",
-      "Accepted",
-      "Completed",
-      "Open at Month-End",
-      "Avg. Turnaround (working days)",
-      "Deal Requests",
-      "Deal Size (PHP)",
-      "Feedback Rating",
-      "Feedback Responses",
-    ],
-    ...a.months.map((m) => [
-      m.label,
-      m.requestsIn,
-      m.accepted,
-      m.completed,
-      m.openAtMonthEnd,
-      m.avgTurnaround === null ? "" : m.avgTurnaround.toFixed(1),
-      m.dealRequests,
-      m.dealSize,
-      m.feedbackRating === null ? "" : m.feedbackRating.toFixed(2),
-      m.feedbackCount,
-    ]),
-  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">Marketing Design Pipeline {a.year}, month by month.</p>
-        </div>
-        <ExportCsv filename={`marketing-design-analytics-${a.year}.csv`} rows={csv} />
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Analytics</h1>
+        <p className="text-muted-foreground">Marketing Design Pipeline · {periodLabel}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <PeriodControls
+        tab={tab}
+        months={monthOptions}
+        month={month}
+        from={from}
+        to={to}
+        years={years}
+        year={year}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
         <SummaryBox title="Requests in" value={t.requestsIn} />
         <SummaryBox title="Accepted" value={t.accepted} rate={shareOf(t.accepted, t.requestsIn)} />
         <SummaryBox title="Completed" value={t.completed} rate={shareOf(t.completed, t.requestsIn)} />
+        <SummaryBox title="Open at the end" value={t.openAtEnd} lines={["Not started + In progress"]} />
         <SummaryBox title="Average turnaround" value={days(t.avgTurnaround)} lines={["Working days, request to completed"]} />
         <SummaryBox
           title="Feedback (overall)"
@@ -82,108 +116,113 @@ export default async function AnalyticsPage() {
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Brand Team Productivity</h2>
-        <div className="grid gap-6 xl:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total requests vs total accepted</CardTitle>
-              <CardDescription>Requests filed each month, and how many of them a designer accepted</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MonthBars
-                data={chartData}
-                series={[
-                  { key: "requestsIn", label: "Requests in" },
-                  { key: "accepted", label: "Accepted" },
-                ]}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Requests in vs completed vs open at month-end</CardTitle>
-              <CardDescription>Open = Not started + In progress at the end of the month</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MonthBars
-                data={chartData}
-                series={[
-                  { key: "requestsIn", label: "Requests in" },
-                  { key: "completed", label: "Completed" },
-                  { key: "openAtMonthEnd", label: "Open at month-end" },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        </div>
+        {/* Month-by-month view: Month on Month only. */}
+        {mom && (
+          <>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Total requests vs total accepted</CardTitle>
+                <CardDescription>Requests filed each month, and how many of them a designer accepted</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MonthBars
+                  data={chartData}
+                  series={[
+                    { key: "requestsIn", label: "Requests in" },
+                    { key: "accepted", label: "Accepted" },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Requests in vs completed vs open at month-end</CardTitle>
+                <CardDescription>Open = Not started + In progress at the end of the month</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MonthBars
+                  data={chartData}
+                  series={[
+                    { key: "requestsIn", label: "Requests in" },
+                    { key: "completed", label: "Completed" },
+                    { key: "openAtEnd", label: "Open at month-end" },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Month by month</CardTitle>
-            <CardDescription>
-              Arrows compare Requests In with the month before. Turnaround counts working days (Mon–Fri) for requests
-              completed that month; feedback leaves out Marketing team requesters.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-medium">Month</th>
-                  <th className={th}>Requests In</th>
-                  <th className={th}>Accepted</th>
-                  <th className={th}>Completed</th>
-                  <th className={th}>Open at Month-End</th>
-                  <th className={th}>Avg. Turnaround</th>
-                  <th className={th}>Deal Requests</th>
-                  <th className={th}>Deal Size</th>
-                  <th className={th}>Feedback</th>
-                </tr>
-              </thead>
-              <tbody>
-                {a.months.map((m, i) => {
-                  const change = i === 0 ? 0 : m.requestsIn - a.months[i - 1].requestsIn;
-                  return (
-                    <tr key={m.month} className="border-b last:border-0">
-                      <td className="px-3 py-2">{m.label}</td>
-                      <td className={td}>
-                        <span className="inline-flex items-center gap-1">
-                          {m.requestsIn}
-                          {change !== 0 && (
-                            <span
-                              className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700" : "text-red-700"}`}
-                              title={`${change > 0 ? "+" : ""}${change} vs ${a.months[i - 1].label}`}
-                            >
-                              {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}
-                              {Math.abs(change)}
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className={td}>{m.accepted}</td>
-                      <td className={td}>{m.completed}</td>
-                      <td className={td}>{m.openAtMonthEnd}</td>
-                      <td className={td}>{days(m.avgTurnaround)}</td>
-                      <td className={td}>{m.dealRequests}</td>
-                      <td className={td}>{m.dealSize ? formatPeso(m.dealSize) : "—"}</td>
-                      <td className={td}>{m.feedbackRating === null ? "—" : `${stars(m.feedbackRating)} ★ (${m.feedbackCount})`}</td>
-                    </tr>
-                  );
-                })}
-                <tr className="border-t-2 font-semibold">
-                  <td className="px-3 py-2">{a.year} total</td>
-                  <td className={td}>{t.requestsIn}</td>
-                  <td className={td}>{t.accepted}</td>
-                  <td className={td}>{t.completed}</td>
-                  <td className={td}>—</td>
-                  <td className={td}>{days(t.avgTurnaround)}</td>
-                  <td className={td}>{t.dealRequests}</td>
-                  <td className={td}>{t.dealSize ? formatPeso(t.dealSize) : "—"}</td>
-                  <td className={td}>{t.feedbackRating === null ? "—" : `${stars(t.feedbackRating)} ★ (${t.feedbackCount})`}</td>
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Month by month</CardTitle>
+              <CardDescription>
+                Arrows compare Requests In with the month before. Turnaround counts working days (Mon–Fri) for requests
+                completed that month; feedback leaves out Marketing team requesters.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Month</th>
+                    <th className={th}>Requests In</th>
+                    <th className={th}>Accepted</th>
+                    <th className={th}>Completed</th>
+                    <th className={th}>Open at Month-End</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Deal Requests</th>
+                    <th className={th}>Deal Size</th>
+                    <th className={th}>Feedback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.months.map((m, i) => {
+                    const change = i === 0 ? 0 : m.requestsIn - a.months[i - 1].requestsIn;
+                    return (
+                      <tr key={m.month} className="border-b last:border-0">
+                        <td className="px-3 py-2">{m.label}</td>
+                        <td className={td}>
+                          <span className="inline-flex items-center gap-1">
+                            {m.requestsIn}
+                            {change !== 0 && (
+                              <span
+                                className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700" : "text-red-700"}`}
+                                title={`${change > 0 ? "+" : ""}${change} vs ${a.months[i - 1].label}`}
+                              >
+                                {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}
+                                {Math.abs(change)}
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className={td}>{m.accepted}</td>
+                        <td className={td}>{m.completed}</td>
+                        <td className={td}>{m.openAtEnd}</td>
+                        <td className={td}>{days(m.avgTurnaround)}</td>
+                        <td className={td}>{m.dealRequests}</td>
+                        <td className={td}>{m.dealSize ? formatPeso(m.dealSize) : "—"}</td>
+                        <td className={td}>{m.feedbackRating === null ? "—" : `${stars(m.feedbackRating)} ★ (${m.feedbackCount})`}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t-2 font-semibold">
+                    <td className="px-3 py-2">{year} total</td>
+                    <td className={td}>{t.requestsIn}</td>
+                    <td className={td}>{t.accepted}</td>
+                    <td className={td}>{t.completed}</td>
+                    <td className={td}>—</td>
+                    <td className={td}>{days(t.avgTurnaround)}</td>
+                    <td className={td}>{t.dealRequests}</td>
+                    <td className={td}>{t.dealSize ? formatPeso(t.dealSize) : "—"}</td>
+                    <td className={td}>{t.feedbackRating === null ? "—" : `${stars(t.feedbackRating)} ★ (${t.feedbackCount})`}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+          </>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-2">
           <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
@@ -196,8 +235,8 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardDescription>
-              Requests filed in {a.year}, by the designer currently assigned. Feedback leaves out Marketing team
-              requesters.
+              Handled: requests filed in this period, by the designer currently assigned. Completed and turnaround:
+              requests completed in this period. Feedback leaves out Marketing team requesters.
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -233,7 +272,7 @@ export default async function AnalyticsPage() {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-muted-foreground">Month columns: requests completed in that month.</p>
+            {mom && <p className="mt-2 text-xs text-muted-foreground">Month columns: requests completed in that month.</p>}
           </CardContent>
         </Card>
       </section>
@@ -251,7 +290,7 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {a.dealTypes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No deal requests yet this year.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No deal requests in this period.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
