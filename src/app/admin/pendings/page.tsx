@@ -1,6 +1,7 @@
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { requireStaff } from "@/lib/auth";
-import { listRequests, PAGE_SIZE, parseListParams } from "@/lib/requests/list";
+import { RememberList } from "@/components/data-table/ListMemory";
+import { listRequests, parseListParams } from "@/lib/requests/list";
 import { PENDING_TABS } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
@@ -17,7 +18,9 @@ export default async function PendingsPage({
 }) {
   const user = await requireStaff();
   const params = parseListParams(await searchParams);
-  if (!PENDING_TABS.some((t) => t.status === params.status)) params.status = "new_request";
+  // One tab at a time; the first tab is the default.
+  const current = PENDING_TABS.find((t) => t.status === params.status[0])?.status ?? "new_request";
+  params.status = [current];
   const supabase = await createClient();
 
   const [{ rows, total }, counts, designers] = await Promise.all([
@@ -38,13 +41,14 @@ export default async function PendingsPage({
         <h1 className="text-2xl font-bold">Pendings</h1>
         <p className="text-muted-foreground">{totalPending} total pending</p>
       </div>
-      <PendingTabs tabs={tabs} current={params.status} />
+      <RememberList label="Pendings" />
+      <PendingTabs tabs={tabs} current={current} />
       <DataTableToolbar searchPlaceholder="Search ID, title, requester, type, output or designer" showDates={false} filters={[]} />
       <PipelineTable
         rows={rows}
         total={total}
         page={params.page}
-        pageSize={PAGE_SIZE}
+        pageSize={params.pageSize}
         designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
         canAssign={user.isManager}
       />

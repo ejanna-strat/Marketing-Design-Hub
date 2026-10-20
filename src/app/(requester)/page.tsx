@@ -94,7 +94,7 @@ export default async function HomePage() {
         })}
       </div>
 
-      <SpamNotice className="mx-auto max-w-2xl" />
+      <SpamNotice />
 
       {user.isStaff && (
         <p className="text-center text-sm text-muted-foreground">

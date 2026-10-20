@@ -20,6 +20,10 @@ export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: s
 
 const byValue = new Map(STATUSES.map((s) => [s.value, s]));
 
+// Cancelled and Returned requests leave the pipeline for the Inactive
+// Requests page (owner, Oct 20).
+export const INACTIVE_STATUSES = ["rejected", "cancelled"] as const;
+
 // The Pendings tabs (§7.2 #5), in order.
 export const PENDING_TABS: { status: RequestStatus; label: string }[] = [
   { status: "new_request", label: "New Requests" },

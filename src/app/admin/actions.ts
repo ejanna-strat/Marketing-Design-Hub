@@ -35,6 +35,9 @@ const patchSchema = z
     team_id: z.uuid("Please choose a business unit."),
     final_approver_name: z.string().trim().min(1, "Please enter the approver's name.").max(200),
     final_approver_email: z.email("Please enter a valid approver email.").trim().toLowerCase(),
+    is_deal: z.boolean(),
+    deal_name: z.string().trim().min(1, "Please enter the deal name.").max(200).nullable(),
+    deal_size: z.number().int("Please enter the deal size in whole pesos.").min(0).max(999999999999999).nullable(),
   })
   .partial()
   .strict();

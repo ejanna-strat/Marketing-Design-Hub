@@ -2,9 +2,9 @@
 
 import { type ColumnDef, createColumnHelper, type RowData, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Pagination } from "./Pagination";
 import { useUrlParams } from "./use-url-params";
 
 // The table runs in "manual" mode: the server already paged, sorted and
@@ -50,10 +50,6 @@ export function DataTable<T extends { id: string }>({
     if (sort === id) setParams({ sort: id, dir: dir === "asc" ? "desc" : "asc" });
     else setParams({ sort: id, dir: id === "created_at" ? "desc" : "asc" });
   }
-
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const last = Math.min(total, page * pageSize);
 
   return (
     <div className="space-y-3">
@@ -113,32 +109,7 @@ export function DataTable<T extends { id: string }>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          {total === 0 ? "No results" : `Showing ${first}–${last} of ${total}`}
-        </span>
-        <div className="flex items-center gap-2">
-          <span>
-            Page {Math.min(page, pages)} of {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1 || pending}
-            onClick={() => setParams({ page: String(page - 1) })}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= pages || pending}
-            onClick={() => setParams({ page: String(page + 1) })}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <Pagination total={total} page={page} pageSize={pageSize} />
     </div>
   );
 }

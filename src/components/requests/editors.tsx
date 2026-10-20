@@ -19,11 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/dates";
+import { digitsOnly } from "@/lib/money";
 import { NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
 
@@ -259,6 +261,10 @@ export type GeneralInfo = {
   teamId: string;
   approverName: string;
   approverEmail: string;
+  isDeal: boolean;
+  dealName: string;
+  // whole pesos as digits ("" when none)
+  dealSize: string;
 };
 
 // Edit the request's title and General Information (any Marketing team
@@ -282,7 +288,9 @@ export function GeneralInfoEditor({
     form.requesterName.trim() !== value.requesterName ||
     form.teamId !== value.teamId ||
     form.approverName.trim() !== value.approverName ||
-    form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase();
+    form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase() ||
+    form.isDeal !== value.isDeal ||
+    (form.isDeal && (form.dealName.trim() !== value.dealName || form.dealSize !== value.dealSize));
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -293,6 +301,17 @@ export function GeneralInfoEditor({
     if (form.approverName.trim() !== value.approverName) patch.final_approver_name = form.approverName;
     if (form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase()) {
       patch.final_approver_email = form.approverEmail;
+    }
+    const dealChanged =
+      form.isDeal !== value.isDeal || (form.isDeal && (form.dealName.trim() !== value.dealName || form.dealSize !== value.dealSize));
+    if (dealChanged) {
+      if (form.isDeal && (!form.dealName.trim() || !form.dealSize)) {
+        toast.error("Please enter the deal name and deal size.");
+        return;
+      }
+      patch.is_deal = form.isDeal;
+      patch.deal_name = form.isDeal ? form.dealName : null;
+      patch.deal_size = form.isDeal ? Number(form.dealSize) : null;
     }
     save(patch, "Request details updated");
     setOpen(false);
@@ -376,6 +395,29 @@ export function GeneralInfoEditor({
                 <Label htmlFor="gi-approver-email">Approver Email</Label>
                 <Input id="gi-approver-email" type="email" value={form.approverEmail} onChange={set("approverEmail")} required />
               </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <Checkbox id="gi-deal" checked={form.isDeal} onCheckedChange={(on) => setForm({ ...form, isDeal: on === true })} />
+                <Label htmlFor="gi-deal">Associated with a deal</Label>
+              </div>
+              {form.isDeal && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="gi-deal-name">Deal Name</Label>
+                    <Input id="gi-deal-name" value={form.dealName} onChange={set("dealName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gi-deal-size">Deal Size (PHP)</Label>
+                    <Input
+                      id="gi-deal-size"
+                      inputMode="numeric"
+                      value={form.dealSize ? Number(form.dealSize).toLocaleString("en-PH") : ""}
+                      onChange={(e) => setForm({ ...form, dealSize: digitsOnly(e.target.value).slice(0, 15) })}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => (changed ? setConfirmClose(true) : setOpen(false))}>

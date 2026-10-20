@@ -17,11 +17,12 @@ export function SpamNotice({ className }: { className?: string }) {
     >
       <MailWarningIcon className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
       <p>
-        <span className="font-semibold">Check your spam folder.</span> Our emails come from{" "}
+        <span className="font-semibold">Check your spam folder.</span> Our emails will appear under the sender name{" "}
         <span className="font-medium">
           {EMAIL_SENDER_NAME} (<span className="whitespace-nowrap">{EMAIL_SENDER}</span>)
         </span>
-        . If you don&apos;t see them in your inbox, look in Spam or Junk and mark them as &ldquo;Not spam&rdquo;.
+        . If you don&apos;t see them in your inbox, check your Spam or Junk folder and mark the email as &ldquo;Not
+        spam.&rdquo;
       </p>
     </div>
   );

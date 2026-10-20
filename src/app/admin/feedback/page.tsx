@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
+import { Pagination } from "@/components/data-table/Pagination";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,7 +26,11 @@ export default async function FeedbackPage({
   await requireStaff();
   const sp = await searchParams;
   const f1 = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? "";
-  const filter = { team: f1("team"), designer: f1("designer"), process: f1("process"), output: f1("output"), overall: f1("overall") };
+  // Tick-box filters: several values each, comma-separated in the URL.
+  const fs = (k: string) => f1(k).split(",").filter(Boolean);
+  const filter = { team: fs("team"), designer: fs("designer"), process: fs("process").map(Number), output: fs("output").map(Number), overall: fs("overall").map(Number) };
+  const size = [10, 25, 50, 100].includes(Number(f1("size"))) ? Number(f1("size")) : 25;
+  const page = Math.max(1, Number.parseInt(f1("page"), 10) || 1);
   const supabase = await createClient();
   const year = todayInManila().slice(0, 4);
   const yearStart = manilaDayStart(`${year}-01-01`);
@@ -49,15 +54,16 @@ export default async function FeedbackPage({
   if (error) throw new Error(error.message);
 
   const byTeamDesigner = (r: { team_id: string; assigned_designer_id: string | null } | null) =>
-    (!filter.team || r?.team_id === filter.team) && (!filter.designer || r?.assigned_designer_id === filter.designer);
+    (!filter.team.length || filter.team.includes(r?.team_id ?? "")) &&
+    (!filter.designer.length || filter.designer.includes(r?.assigned_designer_id ?? ""));
   const all = (rows ?? [])
     .map((f) => ({ ...f, request: one(f.request) }))
     .filter(
       (f) =>
         byTeamDesigner(f.request) &&
-        (!filter.process || f.process_rating === Number(filter.process)) &&
-        (!filter.output || f.output_rating === Number(filter.output)) &&
-        (!filter.overall || overallRating(f) === Number(filter.overall)),
+        (!filter.process.length || filter.process.includes(f.process_rating)) &&
+        (!filter.output.length || filter.output.includes(f.output_rating)) &&
+        (!filter.overall.length || filter.overall.includes(overallRating(f))),
     );
   const counted = all.filter((f) => !f.request?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
@@ -79,18 +85,6 @@ export default async function FeedbackPage({
         </p>
       </div>
 
-      <DataTableToolbar
-        showSearch={false}
-        showDates={false}
-        filters={[
-          { key: "team", label: "Team", options: (teams ?? []).map((t) => ({ value: t.id, label: t.name })) },
-          { key: "designer", label: "Designer", options: (designers ?? []).map((d) => ({ value: d.id, label: d.display_name })) },
-          { key: "process", label: "Process", options: STARS },
-          { key: "output", label: "Output", options: STARS },
-          { key: "overall", label: "Overall", options: HALF_STARS },
-        ]}
-      />
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat title="Process Average" value={counted.length ? <StarsDisplay value={processAvg} size="md" /> : "—"} />
         <Stat title="Output Average" value={counted.length ? <StarsDisplay value={outputAvg} size="md" /> : "—"} />
@@ -105,6 +99,18 @@ export default async function FeedbackPage({
         Averages and the response rate leave out requesters from the Marketing team ({all.length - counted.length} of{" "}
         {all.length} responses).
       </p>
+
+      <DataTableToolbar
+        showSearch={false}
+        showDates={false}
+        filters={[
+          { key: "team", label: "Team", options: (teams ?? []).map((t) => ({ value: t.id, label: t.name })) },
+          { key: "designer", label: "Designer", options: (designers ?? []).map((d) => ({ value: d.id, label: d.display_name })) },
+          { key: "process", label: "Process", options: STARS },
+          { key: "output", label: "Output", options: STARS },
+          { key: "overall", label: "Overall", options: HALF_STARS },
+        ]}
+      />
 
       <div className="overflow-hidden rounded-xl border bg-background">
         <Table>
@@ -127,7 +133,7 @@ export default async function FeedbackPage({
                 </TableCell>
               </TableRow>
             ) : (
-              all.map((f) => (
+              all.slice((page - 1) * size, page * size).map((f) => (
                 <TableRow key={f.id}>
                   <TableCell className="align-top">
                     {f.request && (
@@ -156,6 +162,7 @@ export default async function FeedbackPage({
           </TableBody>
         </Table>
       </div>
+      <Pagination total={all.length} page={page} pageSize={size} />
     </div>
   );
 }

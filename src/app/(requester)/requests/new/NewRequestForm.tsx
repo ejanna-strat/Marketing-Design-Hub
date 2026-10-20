@@ -12,12 +12,14 @@ import { UnsavedChangesGuard } from "@/components/form/UnsavedChangesGuard";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { links } from "@/config/links";
 import { formatDate, todayInManila } from "@/lib/dates";
+import { digitsOnly } from "@/lib/money";
 import {
   buildRequestSchema,
   FINAL_APPROVER,
@@ -84,6 +86,9 @@ export function NewRequestForm({
       final_approver: "myself",
       approver_name: "",
       approver_email: "",
+      is_deal: false,
+      deal_name: "",
+      deal_size: "",
       answers: {},
     },
   });
@@ -91,6 +96,7 @@ export function NewRequestForm({
   const formRef = useRef<HTMLFormElement>(null);
   const typeId = watch("request_type_id");
   const approver = watch("final_approver");
+  const isDeal = watch("is_deal");
   const typeQuestions = questionsByType.get(typeId) ?? [];
   const typeName = requestTypes.find((t) => t.id === typeId)?.name;
   const answerErrors = errors.answers as Record<string, { message?: string }> | undefined;
@@ -295,6 +301,48 @@ export function NewRequestForm({
               </Field>
             </div>
           )}
+
+          <div className="space-y-3">
+            <Controller
+              control={control}
+              name="is_deal"
+              render={({ field }) => (
+                <div className="flex items-center gap-2.5">
+                  <Checkbox id="is_deal" checked={field.value} onCheckedChange={(on) => field.onChange(on === true)} />
+                  <Label htmlFor="is_deal">Is this design request associated with a deal?</Label>
+                </div>
+              )}
+            />
+            {isDeal && (
+              <div className="grid gap-5 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
+                <Field label="Deal Name Associated" htmlFor="deal_name" required error={errors.deal_name?.message}>
+                  <Input id="deal_name" aria-invalid={!!errors.deal_name || undefined} {...register("deal_name")} />
+                </Field>
+                <Field label="Deal Size Associated (PHP)" htmlFor="deal_size" required error={errors.deal_size?.message}>
+                  <Controller
+                    control={control}
+                    name="deal_size"
+                    render={({ field }) => (
+                      <div className="relative">
+                        <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">
+                          ₱
+                        </span>
+                        <Input
+                          id="deal_size"
+                          inputMode="numeric"
+                          placeholder="1,250,000"
+                          className="pl-6"
+                          aria-invalid={!!errors.deal_size || undefined}
+                          value={field.value ? Number(field.value).toLocaleString("en-PH") : ""}
+                          onChange={(e) => field.onChange(digitsOnly(e.target.value).slice(0, 15))}
+                        />
+                      </div>
+                    )}
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
 
           <Field label="Type of Design Request" htmlFor="request_type_id" required error={errors.request_type_id?.message}>
             <Controller
