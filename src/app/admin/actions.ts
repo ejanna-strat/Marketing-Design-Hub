@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url";
+import { isOutputLink, OUTPUT_LINK_ERROR } from "@/lib/links";
 import { getCurrentUser } from "@/lib/auth";
 import {
   notifyAssigned,
@@ -29,6 +30,7 @@ const patchSchema = z
       .string()
       .trim()
       .max(2000, "Please keep the link under 2,000 characters.")
+      .refine((v) => !v || isOutputLink(v), OUTPUT_LINK_ERROR)
       .transform((v) => v || null)
       .nullable(),
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
