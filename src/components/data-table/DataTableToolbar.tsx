@@ -26,8 +26,11 @@ export function DataTableToolbar({
   searchPlaceholder = "Search ID, title, type, output or designer",
   showSearch = true,
   showDates = true,
+  leading,
 }: {
   filters: FilterConfig[];
+  // Shown first on the same row (e.g. the Open / On Hold / Completed / All switch).
+  leading?: React.ReactNode;
   searchPlaceholder?: string;
   showSearch?: boolean;
   showDates?: boolean;
@@ -57,10 +60,11 @@ export function DataTableToolbar({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {leading}
         {showSearch && (
           <form
-            className="relative w-full sm:w-80"
+            className="relative w-full sm:w-60"
             onSubmit={(e) => {
               e.preventDefault();
               setParams({ q: q.trim() || null });
@@ -91,28 +95,12 @@ export function DataTableToolbar({
         ))}
 
         {showDates && (
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">Request date</span>
-            <Input
-              type="date"
-              aria-label="Request date from"
-              value={get("from")}
-              max={get("to") || undefined}
-              onChange={(e) => setParams({ from: e.target.value || null })}
-              className="w-36 bg-background"
-            />
-            <span className="text-muted-foreground">to</span>
-            <Input
-              type="date"
-              aria-label="Request date to"
-              value={get("to")}
-              min={get("from") || undefined}
-              onChange={(e) => setParams({ to: e.target.value || null })}
-              className="w-36 bg-background"
-            />
-          </div>
+          <DateFilter
+            from={get("from")}
+            to={get("to")}
+            onChange={(from, to) => setParams({ from: from || null, to: to || null })}
+          />
         )}
-
       </div>
       {chips.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Active filters">
@@ -221,6 +209,62 @@ function MultiFilter({
             className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
           >
             Clear {filter.label.toLowerCase()}
+          </button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Request date range in one filter button (keeps the toolbar on one row,
+// owner, Oct 21).
+function DateFilter({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
+  const summary =
+    from && to ? `${formatDate(from)} – ${formatDate(to)}` : from ? `From ${formatDate(from)}` : to ? `Until ${formatDate(to)}` : "All";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Request date"
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            (from || to) && "border-brand/50",
+          )}
+        >
+          <span className="text-muted-foreground">Request date:</span>
+          <span className="truncate font-medium">{summary}</span>
+          <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 space-y-3 p-3">
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">From</span>
+          <Input
+            type="date"
+            aria-label="Request date from"
+            value={from}
+            max={to || undefined}
+            onChange={(e) => onChange(e.target.value, to)}
+          />
+        </label>
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">To</span>
+          <Input
+            type="date"
+            aria-label="Request date to"
+            value={to}
+            min={from || undefined}
+            onChange={(e) => onChange(from, e.target.value)}
+          />
+        </label>
+        {(from || to) && (
+          <button
+            type="button"
+            onClick={() => onChange("", "")}
+            className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
+          >
+            Clear dates
           </button>
         )}
       </PopoverContent>

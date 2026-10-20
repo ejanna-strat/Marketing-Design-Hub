@@ -62,8 +62,8 @@ export default async function DealRequestsPage({
           lines={[`Deal size: ${formatPeso(size(completed))}`]}
         />
       </div>
-      <ViewSwitch />
       <DataTableToolbar
+        leading={<ViewSwitch />}
         searchPlaceholder="Search ID, title, deal, requester, type, output or designer"
         filters={[
           {

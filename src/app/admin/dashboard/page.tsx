@@ -136,7 +136,7 @@ export default async function DashboardPage() {
                 <span className="font-semibold">{counted.length}</span> of {completedOutside} completed requests have feedback
                 {completedOutside > 0 && <span className="text-muted-foreground"> · {rate(counted.length, completedOutside)}</span>}
               </p>
-              <p className="text-xs text-muted-foreground">This year, Marketing team requesters excluded</p>
+              <p className="text-xs text-muted-foreground">Marketing team requesters excluded</p>
             </CardContent>
           </Card>
         </Link>
@@ -162,7 +162,10 @@ export default async function DashboardPage() {
             <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0 }))} total={total} />
+            <BarList
+              data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0, href: statusPage(s.value) }))}
+              total={total}
+            />
           </CardContent>
         </Card>
 
@@ -238,6 +241,16 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+}
+
+// Where each status in "Requests by status" opens (owner, Oct 21): pending
+// statuses → their Pendings tab, Completed / On hold → that pipeline view,
+// Returned / Cancelled → Inactive Requests.
+function statusPage(status: string) {
+  if ((PENDING_TABS as { status: string }[]).some((t) => t.status === status)) return `/admin/pendings?status=${status}`;
+  if (status === "completed") return "/admin/pipeline?view=completed";
+  if (status === "on_hold") return "/admin/pipeline?view=on_hold";
+  return `/admin/inactive?status=${status}`;
 }
 
 function Stat({ title, value, note, href }: { title: string; value: React.ReactNode; note?: string; href?: string }) {
