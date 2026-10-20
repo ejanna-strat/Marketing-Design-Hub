@@ -18,6 +18,8 @@ import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
+// updateRequest also returns the saved status (it can change automatically).
+type UpdateResult = { ok: true; status?: string } | { ok: false; error: string };
 
 const patchSchema = z
   .object({
@@ -50,7 +52,7 @@ export type RequestPatch = z.input<typeof patchSchema>;
 // automatically (in the database).
 // The database enforces the same rules (RLS + column guard) and writes the
 // activity log.
-export async function updateRequest(requestId: string, patch: RequestPatch): Promise<Result> {
+export async function updateRequest(requestId: string, patch: RequestPatch): Promise<UpdateResult> {
   const user = await getCurrentUser();
   if (!user?.isStaff) return { ok: false, error: "Only the Marketing team can change requests." };
   if (!z.uuid().safeParse(requestId).success) return { ok: false, error: "Request not found." };
@@ -96,7 +98,7 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
 
   revalidatePath("/admin/pipeline");
   revalidatePath(`/admin/requests/${data.request_code}`);
-  return { ok: true };
+  return { ok: true, status: data.status };
 }
 
 // Saves a request's specification answers (any Marketing team member). The
