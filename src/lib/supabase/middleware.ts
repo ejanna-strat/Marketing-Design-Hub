@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
 // Pages anyone can open without signing in.
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+// /api/cron checks its own secret (CRON_SECRET).
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/api/cron"];
 
 // Refreshes the login session on every request and sends signed-out
 // visitors to /login.
