@@ -2,6 +2,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { LinkifiedText } from "@/components/LinkifiedText";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatPeso } from "@/lib/money";
 import { answerText, type RequestDetail } from "@/lib/requests/detail";
 
 // General Information and Request Specifications of one request (read-only),
@@ -54,6 +55,11 @@ export function RequestInfo({
             <Item label="Request Title" value={request.title} wide />
             <Item label="Date Needed" value={formatDate(request.date_needed)} />
             <Item label="Final Approver of the Design" value={approver} wide />
+            <Item
+              label="Associated with a deal"
+              wide
+              value={request.is_deal ? `Yes · ${request.deal_name} · ${formatPeso(request.deal_size)}` : "No"}
+            />
             <Item label="Type of Design Request" value={request.request_type?.name} />
             <Item label="Output Needed" value={request.output_needed} />
           </dl>

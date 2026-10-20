@@ -58,6 +58,9 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
           final_approver: approverIsMe ? "myself" : "other",
           approver_name: approverIsMe ? "" : request.final_approver_name,
           approver_email: approverIsMe ? "" : request.final_approver_email,
+          is_deal: request.is_deal,
+          deal_name: request.deal_name ?? "",
+          deal_size: request.deal_size === null ? "" : String(request.deal_size),
           answers,
         },
       }}

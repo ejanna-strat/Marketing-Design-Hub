@@ -71,6 +71,9 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
       final_approver: z.enum(["myself", "other"], { error: "Please choose the final approver of the design." }),
       approver_name: z.string().trim().max(200),
       approver_email: z.string().trim().max(200),
+      is_deal: z.boolean(),
+      deal_name: z.string().trim().max(200),
+      deal_size: z.string().trim().max(20),
       answers: answersRecord,
     })
     .superRefine((v, ctx) => {
@@ -83,6 +86,14 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
         }
       }
 
+      if (v.is_deal) {
+        if (!v.deal_name) {
+          ctx.addIssue({ code: "custom", path: ["deal_name"], message: "Please enter the deal name." });
+        }
+        if (!/^\d{1,15}$/.test(v.deal_size)) {
+          ctx.addIssue({ code: "custom", path: ["deal_size"], message: "Please enter the deal size in whole pesos." });
+        }
+      }
       checkAnswers(v.answers, questions, ctx);
     });
 }
@@ -143,6 +154,9 @@ export function toSubmitPayload(values: RequestFormValues, questions: FormQuesti
     final_approver: values.final_approver,
     approver_name: values.approver_name.trim(),
     approver_email: values.approver_email.trim(),
+    is_deal: values.is_deal,
+    deal_name: values.is_deal ? values.deal_name.trim() : "",
+    deal_size: values.is_deal ? values.deal_size.trim() : "",
     answers,
   };
 }
