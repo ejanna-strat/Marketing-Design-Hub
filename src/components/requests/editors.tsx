@@ -3,7 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { CalendarIcon, PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { type RequestPatch, updateRequest } from "@/app/admin/actions";
 import { ConfirmLeaveDialog } from "@/components/form/UnsavedChangesGuard";
@@ -34,6 +34,26 @@ import { cn } from "@/lib/utils";
 
 export type DesignerOption = { id: string; name: string; active: boolean };
 
+// The status can change automatically (e.g. removing the designer → New
+// request). The saved status is passed straight to that request's Status
+// dropdown so it updates at once, before the page finishes refreshing
+// (owner, Oct 21).
+const statusListeners = new Map<string, Set<(status: string) => void>>();
+
+function useStatusUpdates(requestId: string, onStatus: (status: string) => void) {
+  const listener = useRef(onStatus);
+  listener.current = onStatus;
+  useEffect(() => {
+    const fn = (s: string) => listener.current(s);
+    const set = statusListeners.get(requestId) ?? new Set();
+    set.add(fn);
+    statusListeners.set(requestId, set);
+    return () => {
+      set.delete(fn);
+    };
+  }, [requestId]);
+}
+
 function useSave(requestId: string) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,6 +62,7 @@ function useSave(requestId: string) {
       const result = await updateRequest(requestId, patch);
       if (result.ok) {
         toast.success(success);
+        if (result.status) statusListeners.get(requestId)?.forEach((fn) => fn(result.status!));
         router.refresh();
       } else {
         toast.error(result.error);
@@ -80,6 +101,7 @@ export function StatusSelect({
     setSynced(value);
     setCurrent(value);
   }
+  useStatusUpdates(requestId, setCurrent);
 
   return (
     <Select

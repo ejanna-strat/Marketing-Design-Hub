@@ -27,7 +27,7 @@ function menuFor(isManager: boolean): MenuItem[] {
     { title: "Deal Requests", icon: BriefcaseBusinessIcon, href: "/admin/deals" },
     { title: "Inactive Requests", icon: ArchiveIcon, href: "/admin/inactive" },
     { title: "Feedback", icon: MessageSquareHeartIcon, href: "/admin/feedback" },
-    { title: "Analytics", icon: BarChart3Icon },
+    { title: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
     ...(isManager ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
   ];
 }
