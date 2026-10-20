@@ -9,8 +9,6 @@ import { FEEDBACK_COPY as C, one, overallRating } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/server";
 import { FeedbackForm } from "./FeedbackForm";
 
-export const metadata = { title: "Share Feedback" };
-
 // The §9 feedback form for one of the requester's own requests. Reached from
 // the home page, the request page, or the N8 "Share Feedback" email button.
 export default async function FeedbackFormPage({ params }: { params: Promise<{ code: string }> }) {

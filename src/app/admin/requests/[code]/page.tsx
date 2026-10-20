@@ -18,13 +18,9 @@ import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
-import { statusLabel } from "@/lib/statuses";
+import { lockedFor, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
-
-export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
-  return { title: (await params).code };
-}
 
 // Request Details window for the Marketing team. Everyone on the team can edit
 // Status, Link, Date Needed and General Information; Admins and Lead Designers
@@ -94,6 +90,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       value={request.status}
                       hasDesigner={!!request.assigned_designer_id}
                       hasLink={!!request.link_to_output}
+                      accepted={!!request.assigned_designer_id && request.designer_response === "accepted"}
                     />} />
                 <Item
                   label="Assigned Designer"
@@ -103,14 +100,18 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                         requestId={request.id}
                         value={request.assigned_designer_id}
                         designers={designerOptions}
-                        locked={request.status === "completed"}
+                        locked={lockedFor(request.status)}
                       />
                     ) : (
                       request.designer?.display_name
                     )
                   }
                 />
-                <Item label="Link to Output" value={<LinkEditor requestId={request.id} value={request.link_to_output} />} />
+                <Item label="Link to Output" value={<LinkEditor
+                      requestId={request.id}
+                      value={request.link_to_output}
+                      locked={request.status === "cancelled" || request.status === "rejected"}
+                    />} />
                 <Item label="Date Needed" value={<DateNeededEditor requestId={request.id} value={request.date_needed} />} />
                 <Item label="Date Started" value={formatDate(request.date_started)} />
                 <Item label="Date Completed" value={formatDate(request.date_completed)} />

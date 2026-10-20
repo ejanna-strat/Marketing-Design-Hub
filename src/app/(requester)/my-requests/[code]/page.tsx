@@ -1,6 +1,7 @@
 import { ArrowLeftIcon, CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CopyButton } from "@/components/CopyButton";
 import { FeedbackCard } from "@/components/feedback/FeedbackCard";
 import { OutputLink } from "@/components/LinkifiedText";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
@@ -13,10 +14,6 @@ import { one } from "@/lib/feedback";
 import { canRequesterEdit, getRequestByCode } from "@/lib/requests/detail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
-  return { title: (await params).code };
-}
 
 // One of the signed-in person's own requests, in the same compact two-column
 // layout as the staff page (owner, Oct 18). They can edit it until accepted.
@@ -34,12 +31,12 @@ export default async function MyRequestDetailPage({
   const request = await getRequestByCode(supabase, code, { requesterId: user.id });
   if (!request) notFound();
   const editable = canRequesterEdit(request);
-  // Requesters can't read staff profiles, so the reviewer's name is looked up
-  // on the server (name only).
-  const returnedByName =
+  // Requesters can't read staff profiles, so the reviewer's name and email
+  // are looked up on the server.
+  const returnedBy =
     request.status === "rejected" && request.returned_by
-      ? ((await createAdminClient().from("profiles").select("full_name").eq("id", request.returned_by).maybeSingle()).data
-          ?.full_name ?? null)
+      ? (await createAdminClient().from("profiles").select("full_name, email").eq("id", request.returned_by).maybeSingle())
+          .data
       : null;
 
   return (
@@ -81,7 +78,15 @@ export default async function MyRequestDetailPage({
           </p>
           <p>
             For any questions or clarifications, you may coordinate with{" "}
-            <span className="font-medium">{returnedByName ?? "the Design team"}</span> that returned the request.
+            <span className="font-bold">{returnedBy?.full_name ?? "the Design team"}</span>
+            {returnedBy?.email && (
+              <span className="inline-flex items-center gap-1">
+                {" "}
+                ({returnedBy.email}
+                <CopyButton value={returnedBy.email} label="Copy email" />)
+              </span>
+            )}{" "}
+            that returned the request.
           </p>
           <Button asChild>
             <Link href="/requests/new">
@@ -106,7 +111,17 @@ export default async function MyRequestDetailPage({
         <CardContent>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Item label="Status" value={<StatusBadge status={request.status} audience="requester" />} />
-            <Item label="Assigned Designer" value={request.designer?.display_name} />
+            <Item
+              label="Assigned Designer"
+              value={
+                request.designer && (
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    {request.designer.display_name} · {request.designer.email}
+                    <CopyButton value={request.designer.email} label="Copy designer's email" />
+                  </span>
+                )
+              }
+            />
             <Item label="Link to Output" value={request.link_to_output && <OutputLink value={request.link_to_output} />} />
             <Item label="Date Completed" value={request.date_completed && formatDate(request.date_completed)} />
           </dl>

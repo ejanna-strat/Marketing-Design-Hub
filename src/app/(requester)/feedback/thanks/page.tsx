@@ -3,8 +3,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FEEDBACK_COPY as C } from "@/lib/feedback";
 
-export const metadata = { title: "Thank you" };
-
 export default async function FeedbackThanksPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const { code } = await searchParams;
   return (

@@ -90,51 +90,63 @@ const LIST_COLUMNS = `
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-export async function listRequests(
-  supabase: Supabase,
-  params: ListParams,
-  options: {
-    requesterId?: string;
-    searchRequester?: boolean;
-    // "pipeline": active requests only, with the Open / Completed / All view.
-    // "inactive": Cancelled and Returned only. Default: everything.
-    scope?: "pipeline" | "inactive";
-    dealsOnly?: boolean;
-  } = {},
-) {
-  let query = supabase.from("requests").select(LIST_COLUMNS, { count: "exact" });
 
+type ListOptions = {
+  requesterId?: string;
+  searchRequester?: boolean;
+  // "pipeline": active requests only, with the Open / Completed / All view.
+  // "inactive": Cancelled and Returned only. Default: everything.
+  scope?: "pipeline" | "inactive";
+  dealsOnly?: boolean;
+};
+
+// The filter methods used below, shared by every requests query.
+type Filterable = {
+  eq(column: string, value: unknown): Filterable;
+  neq(column: string, value: unknown): Filterable;
+  not(column: string, operator: string, value: unknown): Filterable;
+  in(column: string, values: readonly unknown[]): Filterable;
+  or(filters: string): Filterable;
+  is(column: string, value: null): Filterable;
+  gte(column: string, value: unknown): Filterable;
+  lt(column: string, value: unknown): Filterable;
+};
+
+// The search box as one or() condition. Also matches Type of Request, Output
+// Needed and the assigned designer (owner, Oct 18); type and designer names
+// live in other tables, so their ids are looked up first.
+async function searchCondition(supabase: Supabase, params: ListParams, options: ListOptions) {
+  // Characters that would break PostgREST's or() syntax are dropped.
+  const term = params.q.replace(/[,()*%\\"':]/g, " ").trim();
+  if (!term) return null;
+  const [types, designers] = await Promise.all([
+    supabase.from("request_types").select("id").ilike("name", `%${term}%`),
+    supabase.from("designers").select("id").ilike("display_name", `%${term}%`),
+  ]);
+  const fields = ["request_code", "title", "output_needed"];
+  if (options.searchRequester) fields.push("requester_name", "requester_email");
+  if (options.dealsOnly) fields.push("deal_name");
+  const conditions = fields.map((f) => `${f}.ilike.*${term}*`);
+  const typeIds = (types.data ?? []).map((t) => t.id);
+  const designerIds = (designers.data ?? []).map((d) => d.id);
+  if (typeIds.length) conditions.push(`request_type_id.in.(${typeIds.join(",")})`);
+  if (designerIds.length) conditions.push(`assigned_designer_id.in.(${designerIds.join(",")})`);
+  return conditions.join(",");
+}
+
+// Applies every filter in the URL (except Status when `skipStatus`).
+function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, search: string | null, skipStatus = false): Q {
+  let query = base as unknown as Filterable;
   if (options.requesterId) query = query.eq("requester_id", options.requesterId);
   if (options.dealsOnly) query = query.eq("is_deal", true);
-  const inactive = `(${INACTIVE_STATUSES.join(",")})`;
   if (options.scope === "pipeline") {
-    query = query.not("status", "in", inactive);
+    query = query.not("status", "in", `(${INACTIVE_STATUSES.join(",")})`);
     if (params.view === "open") query = query.neq("status", "completed");
     if (params.view === "completed") query = query.eq("status", "completed");
   }
-  if (options.scope === "inactive") query = query.in("status", [...INACTIVE_STATUSES]);
-
-  // Characters that would break PostgREST's or() syntax are dropped.
-  const term = params.q.replace(/[,()*%\\"':]/g, " ").trim();
-  if (term) {
-    // Also matches Type of Request, Output Needed and the assigned designer
-    // (owner, Oct 18). Type and designer names live in other tables, so find
-    // their ids first.
-    const [types, designers] = await Promise.all([
-      supabase.from("request_types").select("id").ilike("name", `%${term}%`),
-      supabase.from("designers").select("id").ilike("display_name", `%${term}%`),
-    ]);
-    const fields = ["request_code", "title", "output_needed"];
-    if (options.searchRequester) fields.push("requester_name", "requester_email");
-    if (options.dealsOnly) fields.push("deal_name");
-    const conditions = fields.map((f) => `${f}.ilike.*${term}*`);
-    const typeIds = (types.data ?? []).map((t) => t.id);
-    const designerIds = (designers.data ?? []).map((d) => d.id);
-    if (typeIds.length) conditions.push(`request_type_id.in.(${typeIds.join(",")})`);
-    if (designerIds.length) conditions.push(`assigned_designer_id.in.(${designerIds.join(",")})`);
-    query = query.or(conditions.join(","));
-  }
-  if (params.status.length) query = query.in("status", params.status as never[]);
+  if (options.scope === "inactive") query = query.in("status", INACTIVE_STATUSES);
+  if (search) query = query.or(search);
+  if (!skipStatus && params.status.length) query = query.in("status", params.status);
   if (params.type.length) query = query.in("request_type_id", params.type);
   if (params.team.length) query = query.in("team_id", params.team);
   if (params.designer === "none") query = query.is("assigned_designer_id", null);
@@ -142,7 +154,12 @@ export async function listRequests(
   // Date range on the request date, in Manila days (both ends included).
   if (params.from) query = query.gte("created_at", manilaDayStart(params.from));
   if (params.to) query = query.lt("created_at", manilaDayStart(format(addDays(parseISO(params.to), 1), "yyyy-MM-dd")));
+  return query as unknown as Q;
+}
 
+export async function listRequests(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
+  const search = await searchCondition(supabase, params, options);
+  let query = applyFilters(supabase.from("requests").select(LIST_COLUMNS, { count: "exact" }), params, options, search);
   query = query.order(params.sort, { ascending: params.dir === "asc", nullsFirst: false });
   if (params.sort !== "created_at") query = query.order("created_at", { ascending: false });
 
@@ -150,6 +167,16 @@ export async function listRequests(
   const { data, count, error } = await query.range(start, start + params.pageSize - 1);
   if (error) throw new Error(error.message);
   return { rows: data ?? [], total: count ?? 0 };
+}
+
+// The statuses present under the current tab, view and filters (ignoring the
+// Status filter itself), so the Status filter can grey out the rest
+// (owner, Oct 21).
+export async function statusesInView(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
+  const search = await searchCondition(supabase, params, options);
+  const { data, error } = await applyFilters(supabase.from("requests").select("status"), params, options, search, true);
+  if (error) throw new Error(error.message);
+  return new Set((data ?? []).map((r) => r.status as string));
 }
 
 export type RequestListRow = Awaited<ReturnType<typeof listRequests>>["rows"][number];

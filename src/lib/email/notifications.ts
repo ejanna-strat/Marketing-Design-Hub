@@ -6,7 +6,10 @@ import { N4Accepted, n4Subject } from "@/emails/N4Accepted";
 import { N6Reassigned, n6Subject } from "@/emails/N6Reassigned";
 import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
-import { formatDate } from "@/lib/dates";
+import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
+import { DUE_REMINDER_LEAD_EMAIL } from "@/config/links";
+import { addDays, format, parseISO } from "date-fns";
+import { formatDate, todayInManila } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "./send";
 
@@ -92,7 +95,7 @@ export async function notifyReturned(requestId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
     const { data: reviewer } = r.returned_by
-      ? await createAdminClient().from("profiles").select("full_name").eq("id", r.returned_by).maybeSingle()
+      ? await createAdminClient().from("profiles").select("full_name, email").eq("id", r.returned_by).maybeSingle()
       : { data: null };
     await sendEmail({
       key: "N2_RETURNED",
@@ -104,6 +107,7 @@ export async function notifyReturned(requestId: string, appUrl: string) {
         code: r.request_code,
         reason: r.return_reason ?? "—",
         reviewerName: reviewer?.full_name || "the Marketing Design team",
+        reviewerEmail: reviewer?.email ?? null,
         url: `${appUrl}/requests/new`,
       }),
     });
@@ -202,4 +206,44 @@ export async function notifyForReview(requestId: string, appUrl: string) {
   } catch (e) {
     console.error("[email N7] failed", e);
   }
+}
+
+// Statuses that still get the 3-day reminder. On hold, Cancelled, Returned
+// and Completed don't (owner, Oct 21).
+const REMIND_STATUSES = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"] as const;
+
+// N10 — run every weekday at 8AM (Manila) by Vercel Cron. Sends once per
+// request and Date Needed to Jerome + the assigned designer, for requests due
+// within the next 3 days (so weekends aren't skipped). A changed Date Needed
+// gets its own reminder.
+export async function sendDueReminders(appUrl: string) {
+  const today = todayInManila();
+  const until = format(addDays(parseISO(today), 3), "yyyy-MM-dd");
+  const { data, error } = await createAdminClient()
+    .from("requests")
+    .select("id, request_code, title, status, requester_name, date_needed, team:teams(name), designer:designers(email)")
+    .in("status", [...REMIND_STATUSES])
+    .gte("date_needed", today)
+    .lte("date_needed", until);
+  if (error) throw new Error(error.message);
+
+  const results: Record<string, string> = {};
+  for (const r of data ?? []) {
+    results[r.request_code] = await sendEmail({
+      key: `N10_DUE_SOON:${r.date_needed}`,
+      requestId: r.id,
+      to: [DUE_REMINDER_LEAD_EMAIL, ...(r.designer?.email ? [r.designer.email] : [])],
+      subject: n10Subject(),
+      email: N10DueSoon({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        team: r.team?.name ?? "—",
+        dateNeeded: formatDate(r.date_needed),
+        status: r.status,
+        url: `${appUrl}/admin/requests/${r.request_code}`,
+      }),
+    });
+  }
+  return results;
 }

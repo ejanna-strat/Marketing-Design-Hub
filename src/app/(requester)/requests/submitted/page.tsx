@@ -3,8 +3,6 @@ import Link from "next/link";
 import { SpamNotice } from "@/components/SpamNotice";
 import { Button } from "@/components/ui/button";
 
-export const metadata = { title: "Request Submitted" };
-
 export default async function SubmittedPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const { code } = await searchParams;
 

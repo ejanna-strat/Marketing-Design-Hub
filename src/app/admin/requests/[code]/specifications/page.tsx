@@ -5,10 +5,6 @@ import { type AnswerValue, QUESTION_COLUMNS, toFormQuestion } from "@/lib/reques
 import { createClient } from "@/lib/supabase/server";
 import { SpecsForm } from "./SpecsForm";
 
-export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
-  return { title: `Edit specifications · ${(await params).code}` };
-}
-
 // Marketing team: edit a request's specification answers. The type of
 // request is fixed (a different type needs a new request).
 export default async function EditSpecificationsPage({ params }: { params: Promise<{ code: string }> }) {

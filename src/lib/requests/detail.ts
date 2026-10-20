@@ -8,7 +8,7 @@ const DETAIL_COLUMNS = `
   *,
   request_type:request_types(name),
   team:teams(name),
-  designer:designers(display_name),
+  designer:designers(display_name, email),
   feedback(process_rating, output_rating, comments, submitted_at),
   answers:request_answers(id, question_id, question_label_snapshot, value, question:form_questions(sort_order))
 `;

@@ -8,8 +8,6 @@ import { statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MyRequestsTable } from "./MyRequestsTable";
 
-export const metadata = { title: "My Design Requests" };
-
 export default async function MyRequestsPage({
   searchParams,
 }: {
