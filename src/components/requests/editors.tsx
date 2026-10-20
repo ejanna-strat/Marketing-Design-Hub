@@ -190,48 +190,48 @@ export function LinkEditor({ requestId, value, locked }: { requestId: string; va
     <div className="flex items-center gap-1">
       <OutputLink value={value} />
       {!locked && (
-      <Popover
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (next) setDraft(value ?? "");
-        }}
-      >
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon-xs" aria-label={value ? "Edit Link to Output" : "Add Link to Output"}>
-            <PencilIcon />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-80">
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
-              setOpen(false);
-            }}
-          >
-            <label className="text-sm font-medium" htmlFor={`link-${requestId}`}>
-              Link to Output
-            </label>
-            <Input
-              id={`link-${requestId}`}
-              placeholder="https://…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={pending}>
-                Save
-              </Button>
-            </div>
-          </form>
-        </PopoverContent>
-      </Popover>
+        <Popover
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next);
+            if (next) setDraft(value ?? "");
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon-xs" aria-label={value ? "Edit Link to Output" : "Add Link to Output"}>
+              <PencilIcon />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80">
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
+                setOpen(false);
+              }}
+            >
+              <label className="text-sm font-medium" htmlFor={`link-${requestId}`}>
+                Link to Output
+              </label>
+              <Input
+                id={`link-${requestId}`}
+                placeholder="https://…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={pending}>
+                  Save
+                </Button>
+              </div>
+            </form>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );

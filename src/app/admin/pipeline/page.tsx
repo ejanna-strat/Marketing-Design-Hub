@@ -2,8 +2,8 @@ import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { RememberList } from "@/components/data-table/ListMemory";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { requireStaff } from "@/lib/auth";
-import { listRequests, parseListParams } from "@/lib/requests/list";
-import { INACTIVE_STATUSES, statusOptions } from "@/lib/statuses";
+import { listRequests, parseListParams, statusesInView } from "@/lib/requests/list";
+import { statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { DesignerTabs } from "./DesignerTabs";
 import { PipelineTable } from "./PipelineTable";
@@ -21,8 +21,10 @@ export default async function PipelinePage({
   if (sp.designer === undefined && user.designerId) params.designer = user.designerId;
   const supabase = await createClient();
 
-  const [{ rows, total }, designers, teams, types] = await Promise.all([
-    listRequests(supabase, params, { searchRequester: true, scope: "pipeline" }),
+  const options = { searchRequester: true, scope: "pipeline" } as const;
+  const [{ rows, total }, present, designers, teams, types] = await Promise.all([
+    listRequests(supabase, params, options),
+    statusesInView(supabase, params, options),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
@@ -49,7 +51,7 @@ export default async function PipelinePage({
             key: "status",
             label: "Status",
             // Cancelled and Returned live on the Inactive Requests page.
-            options: statusOptions().filter((o) => !(INACTIVE_STATUSES as readonly string[]).includes(o.value)),
+            options: statusFilterOptions(null, present),
           },
           { key: "team", label: "Team", options: (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
           { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },

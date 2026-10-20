@@ -79,3 +79,11 @@ export function lockedFor(status: string): string | undefined {
   if (status === "cancelled" || status === "rejected") return "Cancelled and Returned requests can't be changed";
   return undefined;
 }
+
+// Status filter options for staff lists. Statuses with no requests in the
+// current tab / view are greyed out (owner, Oct 21).
+export function statusFilterOptions(include: readonly string[] | null, present: Set<string>) {
+  return statusOptions()
+    .filter((o) => (include ? include.includes(o.value) : !(INACTIVE_STATUSES as readonly string[]).includes(o.value)))
+    .map((o) => ({ ...o, disabled: !present.has(o.value) }));
+}
