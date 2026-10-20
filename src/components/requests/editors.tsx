@@ -54,20 +54,24 @@ function useSave(requestId: string) {
 
 // Statuses that can't be picked right now are greyed out with the reason:
 // "Designer assigned" comes from the designer's Accept, "Returned" from the
-// Return button, work statuses need a designer, and For requester's review /
-// Completed need a Link to Output. The database enforces the same rules.
+// Return button, work statuses need a designer, For requester's review / For
+// revision / Completed need a Link to Output, and New request is closed once
+// the designer has accepted. The database enforces the same rules.
 export function StatusSelect({
   requestId,
   value,
   label,
   hasDesigner = true,
   hasLink = true,
+  accepted = false,
 }: {
   requestId: string;
   value: string;
   label?: string;
   hasDesigner?: boolean;
   hasLink?: boolean;
+  // The assigned designer has accepted the task.
+  accepted?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -96,7 +100,7 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent position="popper">
         {STATUSES.map((s) => {
-          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink);
+          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink, accepted);
           return (
             <SelectItem key={s.value} value={s.value} disabled={!!reason}>
               {s.label}
@@ -109,27 +113,31 @@ export function StatusSelect({
   );
 }
 
-function lockReason(status: string, hasDesigner: boolean, hasLink: boolean): string | null {
+function lockReason(status: string, hasDesigner: boolean, hasLink: boolean, accepted: boolean): string | null {
   if (status === "designer_assigned") return "set when the designer accepts";
   if (status === "rejected") return "use the Return button";
   if (!hasDesigner && NEEDS_DESIGNER.has(status as never)) return "assign a designer first";
-  if (!hasLink && (status === "for_review" || status === "completed")) return "add a Link to Output first";
+  if (!hasLink && LINK_REQUIRED.has(status)) return "add a Link to Output first";
+  if (accepted && status === "new_request") return "the designer already accepted";
   return null;
 }
 
+const LINK_REQUIRED = new Set(["for_review", "for_revision", "completed"]);
+
 const UNASSIGNED = "__none__";
 
-// Locked once the request is Completed.
+// Locked once the request is Completed, Cancelled or Returned.
 export function DesignerSelect({
   requestId,
   value,
   designers,
-  locked = false,
+  locked,
 }: {
   requestId: string;
   value: string | null;
   designers: DesignerOption[];
-  locked?: boolean;
+  // The reason it's locked, shown on hover.
+  locked?: string;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value ?? UNASSIGNED);
@@ -144,7 +152,7 @@ export function DesignerSelect({
   return (
     <Select
       value={current}
-      disabled={pending || locked}
+      disabled={pending || !!locked}
       onValueChange={(next) => {
         const previous = current;
         setCurrent(next);
@@ -156,7 +164,7 @@ export function DesignerSelect({
       }}
     >
       <SelectTrigger size="sm" aria-label="Assigned Designer"
-        title={locked ? "Completed requests keep their designer" : undefined} className="h-7 min-w-32 bg-background text-xs">
+        title={locked} className="h-7 min-w-32 bg-background text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
@@ -173,7 +181,7 @@ export function DesignerSelect({
   );
 }
 
-export function LinkEditor({ requestId, value }: { requestId: string; value: string | null }) {
+export function LinkEditor({ requestId, value, locked }: { requestId: string; value: string | null; locked?: boolean }) {
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -181,6 +189,7 @@ export function LinkEditor({ requestId, value }: { requestId: string; value: str
   return (
     <div className="flex items-center gap-1">
       <OutputLink value={value} />
+      {!locked && (
       <Popover
         open={open}
         onOpenChange={(next) => {
@@ -223,6 +232,7 @@ export function LinkEditor({ requestId, value }: { requestId: string; value: str
           </form>
         </PopoverContent>
       </Popover>
+      )}
     </div>
   );
 }

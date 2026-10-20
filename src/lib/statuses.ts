@@ -71,3 +71,11 @@ export function statusBadgeClass(status: string): string {
 export function statusOptions(audience: "staff" | "requester" = "staff") {
   return STATUSES.map((s) => ({ value: s.value, label: audience === "requester" ? (s.requesterLabel ?? s.label) : s.label }));
 }
+
+// Why the designer / link can't change: Completed keeps its designer, and
+// Cancelled or Returned requests are closed (owner, Oct 21).
+export function lockedFor(status: string): string | undefined {
+  if (status === "completed") return "Completed requests keep their designer";
+  if (status === "cancelled" || status === "rejected") return "Cancelled and Returned requests can't be changed";
+  return undefined;
+}
