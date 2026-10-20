@@ -3,7 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { CalendarIcon, PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { type RequestPatch, updateRequest } from "@/app/admin/actions";
 import { ConfirmLeaveDialog } from "@/components/form/UnsavedChangesGuard";
@@ -34,6 +34,26 @@ import { cn } from "@/lib/utils";
 
 export type DesignerOption = { id: string; name: string; active: boolean };
 
+// The status can change automatically (e.g. removing the designer → New
+// request). The saved status is passed straight to that request's Status
+// dropdown so it updates at once, before the page finishes refreshing
+// (owner, Oct 21).
+const statusListeners = new Map<string, Set<(status: string) => void>>();
+
+function useStatusUpdates(requestId: string, onStatus: (status: string) => void) {
+  const listener = useRef(onStatus);
+  listener.current = onStatus;
+  useEffect(() => {
+    const fn = (s: string) => listener.current(s);
+    const set = statusListeners.get(requestId) ?? new Set();
+    set.add(fn);
+    statusListeners.set(requestId, set);
+    return () => {
+      set.delete(fn);
+    };
+  }, [requestId]);
+}
+
 function useSave(requestId: string) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,6 +62,7 @@ function useSave(requestId: string) {
       const result = await updateRequest(requestId, patch);
       if (result.ok) {
         toast.success(success);
+        if (result.status) statusListeners.get(requestId)?.forEach((fn) => fn(result.status!));
         router.refresh();
       } else {
         toast.error(result.error);
@@ -54,20 +75,24 @@ function useSave(requestId: string) {
 
 // Statuses that can't be picked right now are greyed out with the reason:
 // "Designer assigned" comes from the designer's Accept, "Returned" from the
-// Return button, work statuses need a designer, and For requester's review /
-// Completed need a Link to Output. The database enforces the same rules.
+// Return button, work statuses need a designer, For requester's review / For
+// revision / Completed need a Link to Output, and New request is closed once
+// the designer has accepted. The database enforces the same rules.
 export function StatusSelect({
   requestId,
   value,
   label,
   hasDesigner = true,
   hasLink = true,
+  accepted = false,
 }: {
   requestId: string;
   value: string;
   label?: string;
   hasDesigner?: boolean;
   hasLink?: boolean;
+  // The assigned designer has accepted the task.
+  accepted?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -76,6 +101,7 @@ export function StatusSelect({
     setSynced(value);
     setCurrent(value);
   }
+  useStatusUpdates(requestId, setCurrent);
 
   return (
     <Select
@@ -96,7 +122,7 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent position="popper">
         {STATUSES.map((s) => {
-          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink);
+          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink, accepted);
           return (
             <SelectItem key={s.value} value={s.value} disabled={!!reason}>
               {s.label}
@@ -109,27 +135,31 @@ export function StatusSelect({
   );
 }
 
-function lockReason(status: string, hasDesigner: boolean, hasLink: boolean): string | null {
+function lockReason(status: string, hasDesigner: boolean, hasLink: boolean, accepted: boolean): string | null {
   if (status === "designer_assigned") return "set when the designer accepts";
   if (status === "rejected") return "use the Return button";
   if (!hasDesigner && NEEDS_DESIGNER.has(status as never)) return "assign a designer first";
-  if (!hasLink && (status === "for_review" || status === "completed")) return "add a Link to Output first";
+  if (!hasLink && LINK_REQUIRED.has(status)) return "add a Link to Output first";
+  if (accepted && status === "new_request") return "the designer already accepted";
   return null;
 }
 
+const LINK_REQUIRED = new Set(["for_review", "for_revision", "completed"]);
+
 const UNASSIGNED = "__none__";
 
-// Locked once the request is Completed.
+// Locked once the request is Completed, Cancelled or Returned.
 export function DesignerSelect({
   requestId,
   value,
   designers,
-  locked = false,
+  locked,
 }: {
   requestId: string;
   value: string | null;
   designers: DesignerOption[];
-  locked?: boolean;
+  // The reason it's locked, shown on hover.
+  locked?: string;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value ?? UNASSIGNED);
@@ -144,7 +174,7 @@ export function DesignerSelect({
   return (
     <Select
       value={current}
-      disabled={pending || locked}
+      disabled={pending || !!locked}
       onValueChange={(next) => {
         const previous = current;
         setCurrent(next);
@@ -156,7 +186,7 @@ export function DesignerSelect({
       }}
     >
       <SelectTrigger size="sm" aria-label="Assigned Designer"
-        title={locked ? "Completed requests keep their designer" : undefined} className="h-7 min-w-32 bg-background text-xs">
+        title={locked} className="h-7 min-w-32 bg-background text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
@@ -173,7 +203,7 @@ export function DesignerSelect({
   );
 }
 
-export function LinkEditor({ requestId, value }: { requestId: string; value: string | null }) {
+export function LinkEditor({ requestId, value, locked }: { requestId: string; value: string | null; locked?: boolean }) {
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -181,48 +211,50 @@ export function LinkEditor({ requestId, value }: { requestId: string; value: str
   return (
     <div className="flex items-center gap-1">
       <OutputLink value={value} />
-      <Popover
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (next) setDraft(value ?? "");
-        }}
-      >
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon-xs" aria-label={value ? "Edit Link to Output" : "Add Link to Output"}>
-            <PencilIcon />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-80">
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
-              setOpen(false);
-            }}
-          >
-            <label className="text-sm font-medium" htmlFor={`link-${requestId}`}>
-              Link to Output
-            </label>
-            <Input
-              id={`link-${requestId}`}
-              placeholder="https://…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={pending}>
-                Save
-              </Button>
-            </div>
-          </form>
-        </PopoverContent>
-      </Popover>
+      {!locked && (
+        <Popover
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next);
+            if (next) setDraft(value ?? "");
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon-xs" aria-label={value ? "Edit Link to Output" : "Add Link to Output"}>
+              <PencilIcon />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80">
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
+                setOpen(false);
+              }}
+            >
+              <label className="text-sm font-medium" htmlFor={`link-${requestId}`}>
+                Link to Output
+              </label>
+              <Input
+                id={`link-${requestId}`}
+                placeholder="https://…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={pending}>
+                  Save
+                </Button>
+              </div>
+            </form>
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }

@@ -12,7 +12,8 @@ import { useUrlParams } from "./use-url-params";
 export type FilterConfig = {
   key: string;
   label: string;
-  options: { value: string; label: string }[];
+  // disabled: nothing matches it in the current tab or view (greyed out).
+  options: { value: string; label: string; disabled?: boolean }[];
 };
 
 // Comma-separated values in the URL (?status=in_progress,for_review).
@@ -188,12 +189,21 @@ function MultiFilter({
           {filter.options.map((o) => {
             const id = `f-${filter.key}-${o.value}`;
             const on = selected.includes(o.value);
+            // A ticked option stays clickable so it can be unticked.
+            const off = o.disabled && !on;
             return (
               <li key={o.value}>
-                <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                <label
+                  htmlFor={id}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm",
+                    off ? "cursor-not-allowed text-muted-foreground/60" : "cursor-pointer hover:bg-muted",
+                  )}
+                >
                   <Checkbox
                     id={id}
                     checked={on}
+                    disabled={off}
                     onCheckedChange={(next) =>
                       onChange(next === true ? [...selected, o.value] : selected.filter((v) => v !== o.value))
                     }

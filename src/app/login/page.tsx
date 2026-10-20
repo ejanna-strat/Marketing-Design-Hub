@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import { SpamNotice } from "@/components/SpamNotice";
 import { AuthShell } from "@/components/shell/AuthShell";
-import { theme } from "@/config/theme";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./LoginForm";
-
-export const metadata = { title: `Sign in · ${theme.appName}` };
 
 export default async function LoginPage({
   searchParams,

@@ -5,13 +5,17 @@ import { useMemo } from "react";
 import { columnHelper, DataTable, type TableColumn } from "@/components/data-table/DataTable";
 import { Highlight } from "@/components/data-table/Highlight";
 import { StarsDisplay } from "@/components/feedback/Stars";
+import { OutputLink } from "@/components/LinkifiedText";
+import { StatusBadge } from "@/components/StatusBadge";
 import { type DesignerOption, DesignerSelect, LinkEditor, StatusSelect } from "@/components/requests/editors";
 import { formatDate } from "@/lib/dates";
 import { one, overallRating } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import type { RequestListRow } from "@/lib/requests/list";
+import { lockedFor } from "@/lib/statuses";
 
 const col = columnHelper<RequestListRow>();
+const INACTIVE = new Set(["cancelled", "rejected"]);
 const muted = <span className="text-muted-foreground">—</span>;
 
 // The staff request table, shared by the Design Pipeline, Pendings, Deal
@@ -25,6 +29,7 @@ export function PipelineTable({
   designers,
   canAssign,
   extra,
+  readOnly = false,
 }: {
   rows: RequestListRow[];
   total: number;
@@ -34,6 +39,9 @@ export function PipelineTable({
   // Admins and Lead Designers can assign designers; Designers see the name.
   canAssign: boolean;
   extra?: "deal" | "inactive";
+  // Deal Requests (owner, Oct 21): nothing editable in the table; changes are
+  // made on the request page.
+  readOnly?: boolean;
 }) {
   const columns = useMemo(() => {
     const dealColumns: TableColumn<RequestListRow>[] =
@@ -84,12 +92,17 @@ export function PipelineTable({
                 : null;
           return (
             <div className="space-y-1">
-              <StatusSelect
-                requestId={r.id}
-                value={info.getValue()}
-                hasDesigner={!!r.assigned_designer_id}
-                hasLink={!!r.link_to_output}
-              />
+              {readOnly ? (
+                <StatusBadge status={info.getValue()} />
+              ) : (
+                <StatusSelect
+                  requestId={r.id}
+                  value={info.getValue()}
+                  hasDesigner={!!r.assigned_designer_id}
+                  hasLink={!!r.link_to_output}
+                  accepted={!!r.assigned_designer_id && r.designer_response === "accepted"}
+                />
+              )}
               {note && <p className="max-w-56 text-xs whitespace-normal text-muted-foreground">{note}</p>}
             </div>
           );
@@ -105,7 +118,7 @@ export function PipelineTable({
               requestId={info.row.original.id}
               value={info.getValue()}
               designers={designers}
-              locked={info.row.original.status === "completed"}
+              locked={lockedFor(info.row.original.status)}
             />
           ) : info.row.original.designer?.display_name ? (
             <Highlight text={info.row.original.designer.display_name} />
@@ -118,7 +131,16 @@ export function PipelineTable({
       col.accessor("requester_email", { header: "Requester's Email", cell: (info) => <Highlight text={info.getValue()} /> }),
       col.accessor("link_to_output", {
         header: "Link to Output",
-        cell: (info) => <LinkEditor requestId={info.row.original.id} value={info.getValue()} />,
+        cell: (info) =>
+          readOnly ? (
+            <OutputLink value={info.getValue()} />
+          ) : (
+            <LinkEditor
+              requestId={info.row.original.id}
+              value={info.getValue()}
+              locked={INACTIVE.has(info.row.original.status)}
+            />
+          ),
       }),
       col.display({
         id: "feedback",
@@ -129,7 +151,7 @@ export function PipelineTable({
         },
       }),
     ]);
-  }, [canAssign, designers, extra]);
+  }, [canAssign, designers, extra, readOnly]);
 
   return (
     <DataTable

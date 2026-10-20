@@ -12,6 +12,7 @@ export function N4Accepted(p: { title: string; code: string; designerName: strin
       details={[
         { label: "Request", value: p.title },
         { label: "Request ID", value: p.code },
+        { label: "Assigned Designer", value: p.designerName },
       ]}
       button={{ text: "Track Request", href: p.url }}
       footer={FOOTERS.requester}

@@ -12,10 +12,10 @@ import { UnsavedChangesGuard } from "@/components/form/UnsavedChangesGuard";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { links } from "@/config/links";
 import { formatDate, todayInManila } from "@/lib/dates";
@@ -86,7 +86,8 @@ export function NewRequestForm({
       final_approver: "myself",
       approver_name: "",
       approver_email: "",
-      is_deal: false,
+      // Required Yes / No (owner, Oct 21): no answer until the requester picks one.
+      is_deal: "" as never,
       deal_name: "",
       deal_size: "",
       answers: {},
@@ -96,7 +97,7 @@ export function NewRequestForm({
   const formRef = useRef<HTMLFormElement>(null);
   const typeId = watch("request_type_id");
   const approver = watch("final_approver");
-  const isDeal = watch("is_deal");
+  const isDeal = watch("is_deal") === "yes";
   const typeQuestions = questionsByType.get(typeId) ?? [];
   const typeName = requestTypes.find((t) => t.id === typeId)?.name;
   const answerErrors = errors.answers as Record<string, { message?: string }> | undefined;
@@ -115,7 +116,7 @@ export function NewRequestForm({
   );
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl space-y-6">
+    <form ref={formRef} onSubmit={onSubmit} noValidate autoComplete="off" className="mx-auto max-w-3xl space-y-6">
       {edit ? (
         <UnsavedChangesGuard active={isDirty && !isSubmitting} onSave={() => formRef.current?.requestSubmit()} />
       ) : (
@@ -303,16 +304,36 @@ export function NewRequestForm({
           )}
 
           <div className="space-y-3">
-            <Controller
-              control={control}
-              name="is_deal"
-              render={({ field }) => (
-                <div className="flex items-center gap-2.5">
-                  <Checkbox id="is_deal" checked={field.value} onCheckedChange={(on) => field.onChange(on === true)} />
-                  <Label htmlFor="is_deal">Is this design request associated with a deal?</Label>
-                </div>
-              )}
-            />
+            <Field
+              label="Is this design request associated with a deal?"
+              htmlFor="is_deal"
+              required
+              help="Select Yes if this design supports an active sales deal or client opportunity (e.g. a proposal deck or pitch for a prospect). Add the deal name and its estimated size in Philippine pesos."
+              error={errors.is_deal?.message}
+            >
+              <Controller
+                control={control}
+                name="is_deal"
+                render={({ field }) => (
+                  <RadioGroup
+                    id="is_deal"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="flex gap-6"
+                    aria-invalid={!!errors.is_deal || undefined}
+                  >
+                    {(["yes", "no"] as const).map((v) => (
+                      <div key={v} className="flex items-center gap-2">
+                        <RadioGroupItem id={`is_deal-${v}`} value={v} />
+                        <Label htmlFor={`is_deal-${v}`} className="font-normal">
+                          {v === "yes" ? "Yes" : "No"}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </Field>
             {isDeal && (
               <div className="grid gap-5 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
                 <Field label="Deal Name Associated" htmlFor="deal_name" required error={errors.deal_name?.message}>

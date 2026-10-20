@@ -5,10 +5,6 @@ import { type AnswerValue, QUESTION_COLUMNS, toFormQuestion } from "@/lib/reques
 import { createClient } from "@/lib/supabase/server";
 import { NewRequestForm } from "../../../requests/new/NewRequestForm";
 
-export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
-  return { title: `Edit ${(await params).code}` };
-}
-
 // The New Design Request form, filled in with the request's current details.
 export default async function EditRequestPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -58,7 +54,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
           final_approver: approverIsMe ? "myself" : "other",
           approver_name: approverIsMe ? "" : request.final_approver_name,
           approver_email: approverIsMe ? "" : request.final_approver_email,
-          is_deal: request.is_deal,
+          is_deal: request.is_deal ? "yes" : "no",
           deal_name: request.deal_name ?? "",
           deal_size: request.deal_size === null ? "" : String(request.deal_size),
           answers,

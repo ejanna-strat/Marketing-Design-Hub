@@ -3,12 +3,11 @@ import { RememberList } from "@/components/data-table/ListMemory";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
-import { listRequests, parseListParams } from "@/lib/requests/list";
-import { INACTIVE_STATUSES, statusOptions } from "@/lib/statuses";
+import { SummaryBox, shareOf } from "@/components/SummaryBox";
+import { listRequests, parseListParams, statusesInView } from "@/lib/requests/list";
+import { INACTIVE_STATUSES, PENDING_TABS, statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
-
-export const metadata = { title: "Deal Requests" };
 
 // Requests associated with a deal (owner, Oct 20): the pipeline with Deal
 // Name and Deal Size (PHP) columns.
@@ -17,28 +16,52 @@ export default async function DealRequestsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireStaff();
+  await requireStaff();
   const params = parseListParams(await searchParams);
   const supabase = await createClient();
 
-  const [{ rows, total }, designers, teams, types, sums] = await Promise.all([
-    listRequests(supabase, params, { searchRequester: true, scope: "pipeline", dealsOnly: true }),
-    supabase.from("designers").select("id, display_name, active").order("display_name"),
+  const options = { searchRequester: true, scope: "pipeline", dealsOnly: true } as const;
+  const [{ rows, total }, present, teams, types, sums] = await Promise.all([
+    listRequests(supabase, params, options),
+    statusesInView(supabase, params, options),
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
-    supabase.from("requests").select("deal_size").eq("is_deal", true).not("status", "in", `(${INACTIVE_STATUSES.join(",")})`),
+    supabase.from("requests").select("status, deal_size").eq("is_deal", true).not("status", "in", `(${INACTIVE_STATUSES.join(",")})`),
   ]);
-  const totalSize = (sums.data ?? []).reduce((n, r) => n + (r.deal_size ?? 0), 0);
+  // Summary boxes (owner, Oct 21): all active deal requests, then the pending
+  // and completed ones with their deal size and share of the total.
+  const deals = sums.data ?? [];
+  const size = (list: typeof deals) => list.reduce((n, r) => n + (r.deal_size ?? 0), 0);
+  const pendingStatuses: string[] = PENDING_TABS.map((t) => t.status);
+  const pending = deals.filter((r) => pendingStatuses.includes(r.status));
+  const completed = deals.filter((r) => r.status === "completed");
 
   return (
     <div className="space-y-5">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold">Deal Requests</h1>
-        <p className="text-muted-foreground">
-          Design requests associated with a deal · {(sums.data ?? []).length} active requests · {formatPeso(totalSize)} in deals
-        </p>
+        <p className="text-muted-foreground">Design requests associated with a deal.</p>
       </div>
       <RememberList label="Deal Requests" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <SummaryBox
+          title="Requests with associated deals"
+          value={deals.length}
+          lines={[`Total deal size: ${formatPeso(size(deals))}`]}
+        />
+        <SummaryBox
+          title="Pending"
+          value={pending.length}
+          rate={shareOf(pending.length, deals.length)}
+          lines={[`Deal size: ${formatPeso(size(pending))}`]}
+        />
+        <SummaryBox
+          title="Completed"
+          value={completed.length}
+          rate={shareOf(completed.length, deals.length)}
+          lines={[`Deal size: ${formatPeso(size(completed))}`]}
+        />
+      </div>
       <ViewSwitch />
       <DataTableToolbar
         searchPlaceholder="Search ID, title, deal, requester, type, output or designer"
@@ -46,7 +69,7 @@ export default async function DealRequestsPage({
           {
             key: "status",
             label: "Status",
-            options: statusOptions().filter((o) => !(INACTIVE_STATUSES as readonly string[]).includes(o.value)),
+            options: statusFilterOptions(null, present),
           },
           { key: "team", label: "Team", options: (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
           { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
@@ -57,8 +80,9 @@ export default async function DealRequestsPage({
         total={total}
         page={params.page}
         pageSize={params.pageSize}
-        designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
-        canAssign={user.isManager}
+        designers={[]}
+        canAssign={false}
+        readOnly
         extra="deal"
       />
     </div>

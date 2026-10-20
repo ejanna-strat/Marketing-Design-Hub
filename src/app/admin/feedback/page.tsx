@@ -9,8 +9,6 @@ import { formatDate, manilaDayStart, todayInManila } from "@/lib/dates";
 import { formatRating, one, overallRating } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Feedback" };
-
 const STARS = ["1", "2", "3", "4", "5"].map((v) => ({ value: v, label: `${v} ★` }));
 const HALF_STARS = ["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"].map((v) => ({ value: v, label: `${v} ★` }));
 

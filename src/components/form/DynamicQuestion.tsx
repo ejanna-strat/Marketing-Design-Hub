@@ -144,7 +144,7 @@ function Field({
       );
     }
     default:
-      return <Input id={id} value={text} onChange={(e) => onChange(e.target.value)} {...aria} />;
+      return <Input id={id} autoComplete="off" value={text} onChange={(e) => onChange(e.target.value)} {...aria} />;
   }
 }
 
