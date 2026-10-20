@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/dates";
+import { isOutputLink, OUTPUT_LINK_ERROR } from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
 import { NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
@@ -207,6 +208,8 @@ export function LinkEditor({ requestId, value, locked }: { requestId: string; va
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
+  const [touched, setTouched] = useState(false);
+  const invalid = draft.trim() !== "" && !isOutputLink(draft.trim());
 
   return (
     <div className="flex items-center gap-1">
@@ -216,7 +219,10 @@ export function LinkEditor({ requestId, value, locked }: { requestId: string; va
           open={open}
           onOpenChange={(next) => {
             setOpen(next);
-            if (next) setDraft(value ?? "");
+            if (next) {
+              setDraft(value ?? "");
+              setTouched(false);
+            }
           }}
         >
           <PopoverTrigger asChild>
@@ -229,6 +235,8 @@ export function LinkEditor({ requestId, value, locked }: { requestId: string; va
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
+                setTouched(true);
+                if (invalid) return;
                 save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
                 setOpen(false);
               }}
@@ -241,8 +249,11 @@ export function LinkEditor({ requestId, value, locked }: { requestId: string; va
                 placeholder="https://…"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
+                onBlur={() => setTouched(true)}
+                aria-invalid={(touched && invalid) || undefined}
                 autoFocus
               />
+              {touched && invalid && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Cancel
