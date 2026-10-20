@@ -18,7 +18,7 @@ export function N7ForReview(p: { title: string; code: string; designerName: stri
         {
           label: "Request ID",
           value: (
-            <Link href={p.url} style={{ color: theme.brand }}>
+            <Link href={p.url} style={{ color: theme.brand, textDecoration: "underline" }}>
               {p.code}
             </Link>
           ),

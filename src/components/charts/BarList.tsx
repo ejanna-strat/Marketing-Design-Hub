@@ -1,4 +1,7 @@
-export type BarDatum = { label: string; value: number };
+import Link from "next/link";
+
+// href: optional page the row opens (e.g. that status's list).
+export type BarDatum = { label: string; value: number; href?: string };
 
 // Horizontal bars in one hue (magnitude). Full category names wrap instead of
 // being shortened (owner, Oct 21); the value (and share) sits at the bar end.
@@ -27,7 +30,13 @@ export function BarList({
           className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
           title={`${d.label}: ${d.value} ${unit}${pct(d.value)}`}
         >
-          <span className="text-right text-xs leading-snug text-muted-foreground">{d.label}</span>
+          {d.href ? (
+            <Link href={d.href} className="text-right text-xs leading-snug text-brand hover:underline">
+              {d.label}
+            </Link>
+          ) : (
+            <span className="text-right text-xs leading-snug text-muted-foreground">{d.label}</span>
+          )}
           <span className="flex items-center gap-2">
             {d.value > 0 && (
               <span className="h-[18px] rounded-r bg-brand" style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />

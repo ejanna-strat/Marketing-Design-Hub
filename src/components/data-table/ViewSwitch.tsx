@@ -5,11 +5,13 @@ import { useUrlParams } from "./use-url-params";
 
 const VIEWS = [
   { value: "open", label: "Open" },
+  { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },
   { value: "all", label: "All" },
 ] as const;
 
-// Open (default) / Completed / All for the pipeline tabs (owner, Oct 20).
+// Open (default) / On Hold / Completed / All for the pipeline tabs (owner,
+// Oct 20; On Hold added Oct 21).
 export function ViewSwitch() {
   const { get, setParams } = useUrlParams();
   const current = get("view") || "open";
