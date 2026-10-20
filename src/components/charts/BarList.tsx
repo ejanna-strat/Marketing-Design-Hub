@@ -1,15 +1,7 @@
-"use client";
-
-import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { theme } from "@/config/theme";
-
 export type BarDatum = { label: string; value: number };
 
-const shorten = (s: string, max = 28) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
-
-// Horizontal bar chart in one hue (magnitude): thin bars with rounded data
-// ends, values written at the bar end, recessive axes, hover tooltip with the
-// full name. Long category names are shortened on the axis.
+// Horizontal bars in one hue (magnitude). Full category names wrap instead of
+// being shortened (owner, Oct 21); the value (and share) sits at the bar end.
 export function BarList({
   data,
   unit = "requests",
@@ -25,49 +17,29 @@ export function BarList({
   if (data.length === 0 || data.every((d) => d.value === 0)) {
     return <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>;
   }
+  const max = Math.max(...data.map((d) => d.value));
   const pct = (v: number) => (total ? ` (${Math.round((v / total) * 100)}%)` : "");
-  const height = Math.max(110, data.length * 32 + 16);
   return (
-    <>
-      <div style={{ height }} aria-hidden>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 8, right: total ? 72 : 40, bottom: 8, left: 0 }} barCategoryGap={8}>
-            <XAxis type="number" hide allowDecimals={false} />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={190}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#6b7280", fontSize: 12 }}
-              tickFormatter={(v: string) => shorten(v)}
-            />
-            <Tooltip
-              cursor={{ fill: theme.brandSoft }}
-              formatter={(v) => [`${v} ${unit}${pct(Number(v))}`, ""]}
-              separator=""
-              contentStyle={{ borderRadius: 8, borderColor: "#e5e7eb", fontSize: 13 }}
-              labelStyle={{ fontWeight: 600, color: "#111827" }}
-            />
-            <Bar dataKey="value" fill={theme.brand} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false}>
-              <LabelList
-                dataKey="value"
-                position="right"
-                formatter={(v) => `${v}${pct(Number(v))}`}
-                style={{ fill: "#374151", fontSize: 12, fontWeight: 600 }} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      {/* Screen readers get the numbers as a list. */}
-      <ul className="sr-only">
-        {data.map((d) => (
-          <li key={d.label}>
-            {d.label}: {d.value} {unit}
-            {pct(d.value)}
-          </li>
-        ))}
-      </ul>
-    </>
+    <ul className="space-y-2.5">
+      {data.map((d) => (
+        <li
+          key={d.label}
+          className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
+          title={`${d.label}: ${d.value} ${unit}${pct(d.value)}`}
+        >
+          <span className="text-right text-xs leading-snug text-muted-foreground">{d.label}</span>
+          <span className="flex items-center gap-2">
+            {d.value > 0 && (
+              <span className="h-[18px] rounded-r bg-brand" style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />
+            )}
+            <span className="shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 tabular-nums">
+              {d.value}
+              {pct(d.value)}
+              <span className="sr-only"> {unit}</span>
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
