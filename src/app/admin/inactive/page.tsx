@@ -6,8 +6,6 @@ import { INACTIVE_STATUSES, statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
 
-export const metadata = { title: "Inactive Requests" };
-
 // Cancelled and Returned requests, kept out of the pipeline (owner, Oct 20).
 export default async function InactiveRequestsPage({
   searchParams,

@@ -7,8 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
 import { PendingTabs } from "./PendingTabs";
 
-export const metadata = { title: "Pendings" };
-
 // §7.2 #5: every open request, one tab per pending status. Status, Designer
 // and Link to Output can be edited right here (same table as the pipeline).
 export default async function PendingsPage({

@@ -8,8 +8,6 @@ import { INACTIVE_STATUSES, statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
 
-export const metadata = { title: "Deal Requests" };
-
 // Requests associated with a deal (owner, Oct 20): the pipeline with Deal
 // Name and Deal Size (PHP) columns.
 export default async function DealRequestsPage({

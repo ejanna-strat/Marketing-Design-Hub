@@ -14,8 +14,6 @@ import { formatPeso } from "@/lib/money";
 import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Dashboard" };
-
 // Manila calendar date of a timestamp, for counting working days.
 const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTime(), theme.timeZone), "yyyy-MM-dd"));
 

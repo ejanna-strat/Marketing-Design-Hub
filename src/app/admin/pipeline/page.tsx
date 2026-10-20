@@ -8,8 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 import { DesignerTabs } from "./DesignerTabs";
 import { PipelineTable } from "./PipelineTable";
 
-export const metadata = { title: "Marketing Design Pipeline" };
-
 export default async function PipelinePage({
   searchParams,
 }: {

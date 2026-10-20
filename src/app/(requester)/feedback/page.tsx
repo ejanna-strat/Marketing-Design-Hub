@@ -6,8 +6,6 @@ import { FEEDBACK_COPY as C, one } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/server";
 import { RequestIdBox } from "./RequestIdBox";
 
-export const metadata = { title: "Share Feedback" };
-
 // Pick the request to rate: type its Request ID, or click one of your
 // Completed requests that's still waiting for feedback (owner, Oct 18).
 export default async function FeedbackPickerPage() {

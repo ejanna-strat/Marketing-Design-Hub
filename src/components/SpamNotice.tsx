@@ -21,8 +21,12 @@ export function SpamNotice({ className }: { className?: string }) {
         <span className="font-medium">
           {EMAIL_SENDER_NAME} (<span className="whitespace-nowrap">{EMAIL_SENDER}</span>)
         </span>
-        . If you don&apos;t see them in your inbox, check your Spam or Junk folder and mark the email as &ldquo;Not
-        spam.&rdquo;
+        .{" "}
+        {/* The second sentence starts on its own line on wider screens (owner, Oct 21). */}
+        <span className="sm:block">
+          If you don&apos;t see them in your inbox, check your Spam or Junk folder and mark the email as &ldquo;Not
+          spam.&rdquo;
+        </span>
       </p>
     </div>
   );

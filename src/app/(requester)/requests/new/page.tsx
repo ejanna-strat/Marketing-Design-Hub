@@ -3,8 +3,6 @@ import { QUESTION_COLUMNS, toFormQuestion } from "@/lib/requests/schema";
 import { createClient } from "@/lib/supabase/server";
 import { NewRequestForm } from "./NewRequestForm";
 
-export const metadata = { title: "New Design Request" };
-
 export default async function NewRequestPage() {
   const user = await requireUser();
   const supabase = await createClient();

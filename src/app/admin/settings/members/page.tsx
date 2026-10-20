@@ -2,8 +2,6 @@ import { requireManager } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MembersManager } from "./MembersManager";
 
-export const metadata = { title: "Members · Settings" };
-
 export default async function MembersPage() {
   const user = await requireManager();
   const supabase = await createClient();

@@ -56,9 +56,9 @@ export function RequestInfo({
             <Item label="Date Needed" value={formatDate(request.date_needed)} />
             <Item label="Final Approver of the Design" value={approver} wide />
             <Item
-              label="Associated with a deal"
+              label="Associated Deal"
               wide
-              value={request.is_deal ? `Yes · ${request.deal_name} · ${formatPeso(request.deal_size)}` : "No"}
+              value={request.is_deal ? `${request.deal_name} · ${formatPeso(request.deal_size)}` : "No"}
             />
             <Item label="Type of Design Request" value={request.request_type?.name} />
             <Item label="Output Needed" value={request.output_needed} />
