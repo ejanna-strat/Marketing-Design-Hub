@@ -70,7 +70,9 @@ export default async function DashboardPage() {
   const total = rows.length;
   const completed = byStatus.get("completed") ?? 0;
   const inactive = INACTIVE_STATUSES.reduce((n, st) => n + (byStatus.get(st) ?? 0), 0);
-  const rate = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "—");
+  const rate = (n: number, of = total) => (of ? `${Math.round((n / of) * 100)}%` : "—");
+  // Feedback response rate: completed requests from outside the Marketing team.
+  const completedOutside = rows.filter((r) => r.status === "completed" && !r.team?.is_marketing).length;
   const teams = foldShares(sorted(byTeam));
   const deals = rows.filter((r) => r.is_deal);
   const dealTotal = deals.reduce((n, r) => n + (r.deal_size ?? 0), 0);
@@ -111,32 +113,38 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardDescription>Overall feedback</CardDescription>
-            <CardTitle className="text-2xl">
-              {overall === null ? "—" : <StarsDisplay value={overall} size="md" />}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Process average</dt>
-                <dd>{processAvg === null ? "—" : <StarsDisplay value={processAvg} />}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Output average</dt>
-                <dd>{outputAvg === null ? "—" : <StarsDisplay value={outputAvg} />}</dd>
-              </div>
-            </dl>
-            <p className="text-xs text-muted-foreground">{counted.length} responses this year (Marketing team excluded)</p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/feedback" className="block rounded-xl transition-shadow hover:shadow-md">
+          <Card className="h-full">
+            <CardHeader>
+              <CardDescription>Overall feedback</CardDescription>
+              <CardTitle className="text-2xl">
+                {overall === null ? "—" : <StarsDisplay value={overall} size="md" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">Process average</dt>
+                  <dd>{processAvg === null ? "—" : <StarsDisplay value={processAvg} />}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Output average</dt>
+                  <dd>{outputAvg === null ? "—" : <StarsDisplay value={outputAvg} />}</dd>
+                </div>
+              </dl>
+              <p className="text-sm">
+                <span className="font-semibold">{counted.length}</span> of {completedOutside} completed requests have feedback
+                {completedOutside > 0 && <span className="text-muted-foreground"> · {rate(counted.length, completedOutside)}</span>}
+              </p>
+              <p className="text-xs text-muted-foreground">This year, Marketing team requesters excluded</p>
+            </CardContent>
+          </Card>
+        </Link>
 
         <Link href="/admin/deals" className="block rounded-xl transition-shadow hover:shadow-md">
           <Card className="h-full">
             <CardHeader>
-              <CardDescription>Deal requests this year</CardDescription>
+              <CardDescription>Requests with Associated Deals this year</CardDescription>
               <CardTitle className="text-2xl">{deals.length}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
