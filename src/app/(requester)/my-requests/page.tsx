@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { listRequests, PAGE_SIZE, parseListParams } from "@/lib/requests/list";
+import { listRequests, parseListParams } from "@/lib/requests/list";
 import { statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MyRequestsTable } from "./MyRequestsTable";
@@ -44,7 +44,7 @@ export default async function MyRequestsPage({
           { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
         ]}
       />
-      <MyRequestsTable rows={rows} total={total} page={params.page} pageSize={PAGE_SIZE} />
+      <MyRequestsTable rows={rows} total={total} page={params.page} pageSize={params.pageSize} />
     </div>
   );
 }

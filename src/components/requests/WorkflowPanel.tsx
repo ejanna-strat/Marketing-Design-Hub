@@ -50,15 +50,17 @@ export function WorkflowPanel({
   const s = state;
   const canReview = isManager && s.status === "new_request";
   const canRespond = isAssignedDesigner && s.designerResponse === "pending";
+  const showButtons = (canReview && !s.designer) || canRespond;
 
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <Tag state={s} />
-      {(canReview || canRespond) && (
+      {showButtons && (
         <div className="flex flex-wrap gap-2 sm:justify-end">
           {canRespond && <DesignerButtons requestId={s.requestId} />}
           {canReview && !s.designer && <AssignButton requestId={s.requestId} designers={designers} />}
-          {canReview && <ReturnButton requestId={s.requestId} />}
+          {/* Return only before a designer is assigned (owner, Oct 20). */}
+          {canReview && !s.designer && <ReturnButton requestId={s.requestId} />}
         </div>
       )}
     </div>
@@ -125,7 +127,7 @@ function AssignButton({ requestId, designers }: { requestId: string; designers: 
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Accept and assign a designer</DialogTitle>
-            <DialogDescription>The designer gets an email (N3) and accepts or asks to reassign.</DialogDescription>
+            <DialogDescription>The designer gets an email and can accept the task or ask to reassign it.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="assign-designer">Designer</Label>
@@ -176,7 +178,7 @@ function ReturnButton({ requestId }: { requestId: string }) {
           <DialogHeader>
             <DialogTitle>Return this request</DialogTitle>
             <DialogDescription>
-              The requester sees &ldquo;Returned&rdquo; with your reason and gets an email (N2). They can file a new
+              The requester sees &ldquo;Returned&rdquo; with your reason and gets an email. They can file a new
               request with the missing details.
             </DialogDescription>
           </DialogHeader>

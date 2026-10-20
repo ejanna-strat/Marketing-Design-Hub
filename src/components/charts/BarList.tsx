@@ -14,20 +14,24 @@ export function BarList({
   data,
   unit = "requests",
   emptyText = "No data yet.",
+  total,
 }: {
   data: BarDatum[];
   unit?: string;
   emptyText?: string;
+  // When given, each value also shows its share of this total, e.g. "12 (40%)".
+  total?: number;
 }) {
   if (data.length === 0 || data.every((d) => d.value === 0)) {
     return <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>;
   }
+  const pct = (v: number) => (total ? ` (${Math.round((v / total) * 100)}%)` : "");
   const height = Math.max(110, data.length * 32 + 16);
   return (
     <>
       <div style={{ height }} aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 40, bottom: 8, left: 0 }} barCategoryGap={8}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: total ? 72 : 40, bottom: 8, left: 0 }} barCategoryGap={8}>
             <XAxis type="number" hide allowDecimals={false} />
             <YAxis
               type="category"
@@ -40,13 +44,17 @@ export function BarList({
             />
             <Tooltip
               cursor={{ fill: theme.brandSoft }}
-              formatter={(v) => [`${v} ${unit}`, ""]}
+              formatter={(v) => [`${v} ${unit}${pct(Number(v))}`, ""]}
               separator=""
               contentStyle={{ borderRadius: 8, borderColor: "#e5e7eb", fontSize: 13 }}
               labelStyle={{ fontWeight: 600, color: "#111827" }}
             />
             <Bar dataKey="value" fill={theme.brand} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false}>
-              <LabelList dataKey="value" position="right" style={{ fill: "#374151", fontSize: 12, fontWeight: 600 }} />
+              <LabelList
+                dataKey="value"
+                position="right"
+                formatter={(v) => `${v}${pct(Number(v))}`}
+                style={{ fill: "#374151", fontSize: 12, fontWeight: 600 }} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -56,6 +64,7 @@ export function BarList({
         {data.map((d) => (
           <li key={d.label}>
             {d.label}: {d.value} {unit}
+            {pct(d.value)}
           </li>
         ))}
       </ul>

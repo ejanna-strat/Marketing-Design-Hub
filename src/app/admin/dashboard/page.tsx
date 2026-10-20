@@ -2,13 +2,16 @@ import { TZDate } from "@date-fns/tz";
 import { differenceInBusinessDays, format, parseISO } from "date-fns";
 import Link from "next/link";
 import { BarList } from "@/components/charts/BarList";
+import { foldShares } from "@/components/charts/palette";
+import { ShareDonut } from "@/components/charts/ShareDonut";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { theme } from "@/config/theme";
 import { requireStaff } from "@/lib/auth";
 import { manilaDayStart, todayInManila } from "@/lib/dates";
 import { one } from "@/lib/feedback";
-import { PENDING_TABS, STATUSES } from "@/lib/statuses";
+import { formatPeso } from "@/lib/money";
+import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Dashboard" };
@@ -27,7 +30,7 @@ export default async function DashboardPage() {
   const [{ data: requests, error }, { data: open }, { data: feedback }] = await Promise.all([
     supabase
       .from("requests")
-      .select("status, created_at, date_completed, team:teams(name, is_marketing), request_type:request_types(name)")
+      .select("status, created_at, date_completed, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name)")
       .gte("created_at", yearStart),
     supabase.from("requests").select("status").in("status", PENDING_TABS.map((t) => t.status)),
     supabase
@@ -66,6 +69,14 @@ export default async function DashboardPage() {
   const outputAvg = avg((f) => f.output_rating);
   const overall = processAvg !== null && outputAvg !== null ? (processAvg + outputAvg) / 2 : null;
 
+  const total = rows.length;
+  const completed = byStatus.get("completed") ?? 0;
+  const inactive = INACTIVE_STATUSES.reduce((n, st) => n + (byStatus.get(st) ?? 0), 0);
+  const rate = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "—");
+  const teams = foldShares(sorted(byTeam));
+  const deals = rows.filter((r) => r.is_deal);
+  const dealTotal = deals.reduce((n, r) => n + (r.deal_size ?? 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="space-y-1">
@@ -74,23 +85,78 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat title="Requests this year" value={String(rows.length)} />
-        <Stat title="Completed" value={String(byStatus.get("completed") ?? 0)} />
+        <Stat title="Requests this year" value={String(total)} note={`${totalPending} still pending`} />
+        <Stat
+          title="Completed"
+          value={
+            <>
+              {completed} <span className="text-base font-medium text-muted-foreground">· {rate(completed)}</span>
+            </>
+          }
+          note="Completion rate, of this year's requests"
+        />
+        <Stat
+          title="Inactive"
+          value={
+            <>
+              {inactive} <span className="text-base font-medium text-muted-foreground">· {rate(inactive)}</span>
+            </>
+          }
+          note="Cancelled and Returned, of this year's requests"
+          href="/admin/inactive"
+        />
         <Stat
           title="Average turnaround"
           value={turnaround === null ? "—" : `${turnaround.toFixed(1)} days`}
           note="Working days, request date to completed"
         />
-        <Stat title="Overall feedback" value={overall === null ? "—" : <StarsDisplay value={overall} size="md" />} note={`${counted.length} responses (Marketing team excluded)`} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardDescription>Overall feedback</CardDescription>
+            <CardTitle className="text-2xl">
+              {overall === null ? "—" : <StarsDisplay value={overall} size="md" />}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Process average</dt>
+                <dd>{processAvg === null ? "—" : <StarsDisplay value={processAvg} />}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Output average</dt>
+                <dd>{outputAvg === null ? "—" : <StarsDisplay value={outputAvg} />}</dd>
+              </div>
+            </dl>
+            <p className="text-xs text-muted-foreground">{counted.length} responses this year (Marketing team excluded)</p>
+          </CardContent>
+        </Card>
+
+        <Link href="/admin/deals" className="block rounded-xl transition-shadow hover:shadow-md">
+          <Card className="h-full">
+            <CardHeader>
+              <CardDescription>Deal requests this year</CardDescription>
+              <CardTitle className="text-2xl">{deals.length}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <p className="text-sm text-muted-foreground">Total deal size</p>
+              <p className="text-xl font-semibold">{formatPeso(dealTotal)}</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
             <CardTitle>Requests by status</CardTitle>
+            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0 }))} />
+            <BarList data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0 }))} total={total} />
           </CardContent>
         </Card>
 
@@ -121,32 +187,56 @@ export default async function DashboardPage() {
             <CardTitle>Requests per team</CardTitle>
           </CardHeader>
           <CardContent>
-            <BarList data={sorted(byTeam)} />
+            {teams.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No data yet.</p>
+            ) : (
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                <ShareDonut data={teams} />
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 font-medium">Team</th>
+                      <th className="py-2 text-right font-medium">Requests</th>
+                      <th className="py-2 text-right font-medium">Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.map((t) => (
+                      <tr key={t.label} className="border-b last:border-0">
+                        <td className="py-2">
+                          <span className="flex items-center gap-2">
+                            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.color }} />
+                            {t.label}
+                          </span>
+                        </td>
+                        <td className="py-2 text-right tabular-nums">{t.value}</td>
+                        <td className="py-2 text-right tabular-nums">{rate(t.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Top types of request</CardTitle>
+            <CardTitle>Top 5 types of request</CardTitle>
+            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList data={sorted(byType)} />
+            <BarList data={sorted(byType).slice(0, 5)} total={total} />
           </CardContent>
         </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat title="Process average" value={processAvg === null ? "—" : <StarsDisplay value={processAvg} size="md" />} />
-        <Stat title="Output average" value={outputAvg === null ? "—" : <StarsDisplay value={outputAvg} size="md" />} />
-        <Stat title="Overall rating" value={overall === null ? "—" : <StarsDisplay value={overall} size="md" />} />
       </div>
     </div>
   );
 }
 
-function Stat({ title, value, note }: { title: string; value: React.ReactNode; note?: string }) {
-  return (
-    <Card>
+function Stat({ title, value, note, href }: { title: string; value: React.ReactNode; note?: string; href?: string }) {
+  const card = (
+    <Card className="h-full">
       <CardHeader>
         <CardDescription>{title}</CardDescription>
         <CardTitle className="text-2xl">{value}</CardTitle>
@@ -157,5 +247,12 @@ function Stat({ title, value, note }: { title: string; value: React.ReactNode; n
         </CardContent>
       )}
     </Card>
+  );
+  return href ? (
+    <Link href={href} className="block rounded-xl transition-shadow hover:shadow-md">
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }

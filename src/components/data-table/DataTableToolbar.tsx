@@ -1,10 +1,12 @@
 "use client";
 
-import { SearchIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { formatDate } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useUrlParams } from "./use-url-params";
 
 export type FilterConfig = {
@@ -13,9 +15,11 @@ export type FilterConfig = {
   options: { value: string; label: string }[];
 };
 
-const ALL = "__all__";
+// Comma-separated values in the URL (?status=in_progress,for_review).
+const split = (v: string) => (v ? v.split(",").filter(Boolean) : []);
 
-// Search box, dropdown filters and a request-date range, all kept in the URL.
+// Search box, tick-box filters (pick several) and a request-date range, all
+// kept in the URL.
 export function DataTableToolbar({
   filters,
   searchPlaceholder = "Search ID, title, type, output or designer",
@@ -31,15 +35,24 @@ export function DataTableToolbar({
   const [q, setQ] = useState(get("q"));
   const keys = [...(showSearch ? ["q"] : []), ...(showDates ? ["from", "to"] : []), ...filters.map((f) => f.key)];
 
-  // One removable tag per active filter.
-  const chips: { key: string; label: string; value: string }[] = [];
-  if (get("q")) chips.push({ key: "q", label: "Search", value: `“${get("q")}”` });
-  for (const f of filters) {
-    const v = get(f.key);
-    if (v) chips.push({ key: f.key, label: f.label, value: f.options.find((o) => o.value === v)?.label ?? v });
+  // One removable tag per active filter value.
+  const chips: { id: string; label: string; value: string; remove: () => void }[] = [];
+  if (get("q")) {
+    chips.push({ id: "q", label: "Search", value: `“${get("q")}”`, remove: () => (setQ(""), setParams({ q: null })) });
   }
-  if (get("from")) chips.push({ key: "from", label: "From", value: formatDate(get("from")) });
-  if (get("to")) chips.push({ key: "to", label: "To", value: formatDate(get("to")) });
+  for (const f of filters) {
+    const selected = split(get(f.key));
+    for (const v of selected) {
+      chips.push({
+        id: `${f.key}:${v}`,
+        label: f.label,
+        value: f.options.find((o) => o.value === v)?.label ?? v,
+        remove: () => setParams({ [f.key]: selected.filter((x) => x !== v).join(",") || null }),
+      });
+    }
+  }
+  if (get("from")) chips.push({ id: "from", label: "From", value: formatDate(get("from")), remove: () => setParams({ from: null }) });
+  if (get("to")) chips.push({ id: "to", label: "To", value: formatDate(get("to")), remove: () => setParams({ to: null }) });
 
   return (
     <div className="space-y-2">
@@ -68,20 +81,12 @@ export function DataTableToolbar({
         )}
 
         {filters.map((f) => (
-          <Select key={f.key} value={get(f.key) || ALL} onValueChange={(v) => setParams({ [f.key]: v === ALL ? null : v })}>
-            <SelectTrigger aria-label={f.label} className="w-auto max-w-56 bg-background">
-              <span className="text-muted-foreground">{f.label}:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value={ALL}>All</SelectItem>
-              {f.options.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MultiFilter
+            key={f.key}
+            filter={f}
+            selected={split(get(f.key))}
+            onChange={(values) => setParams({ [f.key]: values.join(",") || null })}
+          />
         ))}
 
         {showDates && (
@@ -112,18 +117,15 @@ export function DataTableToolbar({
         <ul className="flex flex-wrap gap-1.5" aria-label="Active filters">
           {chips.map((c) => (
             <li
-              key={c.key}
+              key={c.id}
               className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand-soft py-0.5 pr-1 pl-2.5 text-xs"
             >
               <span className="text-muted-foreground">{c.label}:</span>
               <span className="font-medium">{c.value}</span>
               <button
                 type="button"
-                aria-label={`Remove ${c.label} filter`}
-                onClick={() => {
-                  if (c.key === "q") setQ("");
-                  setParams({ [c.key]: null });
-                }}
+                aria-label={`Remove ${c.label} filter ${c.value}`}
+                onClick={c.remove}
                 className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-brand/10 hover:text-foreground"
               >
                 <XIcon className="size-3" />
@@ -146,5 +148,72 @@ export function DataTableToolbar({
         </ul>
       )}
     </div>
+  );
+}
+
+// A filter button that opens a list of tick boxes; several can be ticked.
+function MultiFilter({
+  filter,
+  selected,
+  onChange,
+}: {
+  filter: FilterConfig;
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const summary =
+    selected.length === 0
+      ? "All"
+      : selected.length === 1
+        ? (filter.options.find((o) => o.value === selected[0])?.label ?? "1 selected")
+        : `${selected.length} selected`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={filter.label}
+          className={cn(
+            "flex h-8 max-w-60 items-center gap-1.5 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            selected.length > 0 && "border-brand/50",
+          )}
+        >
+          <span className="text-muted-foreground">{filter.label}:</span>
+          <span className="truncate">{summary}</span>
+          <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        <ul className="max-h-72 space-y-0.5 overflow-y-auto" role="group" aria-label={filter.label}>
+          {filter.options.map((o) => {
+            const id = `f-${filter.key}-${o.value}`;
+            const on = selected.includes(o.value);
+            return (
+              <li key={o.value}>
+                <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                  <Checkbox
+                    id={id}
+                    checked={on}
+                    onCheckedChange={(next) =>
+                      onChange(next === true ? [...selected, o.value] : selected.filter((v) => v !== o.value))
+                    }
+                  />
+                  {o.label}
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+        {selected.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
+          >
+            Clear {filter.label.toLowerCase()}
+          </button>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

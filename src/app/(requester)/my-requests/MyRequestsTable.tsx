@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { columnHelper, DataTable } from "@/components/data-table/DataTable";
+import { Highlight } from "@/components/data-table/Highlight";
 import { OutputLink } from "@/components/LinkifiedText";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -16,15 +17,19 @@ const columns = col.columns([
     header: "Request ID",
     cell: (info) => (
       <Link href={`/my-requests/${info.getValue()}`} className="font-mono font-medium text-brand hover:underline">
-        {info.getValue()}
+        <Highlight text={info.getValue()} />
       </Link>
     ),
   }),
   col.accessor("created_at", { header: "Request Date", cell: (info) => formatDate(info.getValue()) }),
   col.accessor("date_needed", { header: "Date Needed", cell: (info) => formatDate(info.getValue()) }),
-  col.accessor("title", { header: "Request Title" }),
-  col.accessor((r) => r.request_type?.name ?? "", { id: "type", header: "Type of Request" }),
-  col.accessor("output_needed", { header: "Output Needed" }),
+  col.accessor("title", { header: "Request Title", cell: (info) => <Highlight text={info.getValue()} /> }),
+  col.accessor((r) => r.request_type?.name ?? "", {
+    id: "type",
+    header: "Type of Request",
+    cell: (info) => <Highlight text={info.getValue()} />,
+  }),
+  col.accessor("output_needed", { header: "Output Needed", cell: (info) => <Highlight text={info.getValue()} /> }),
   col.accessor("status", {
     header: "Status",
     cell: (info) => <StatusBadge status={info.getValue()} audience="requester" />,
@@ -32,7 +37,7 @@ const columns = col.columns([
   col.accessor((r) => r.designer?.display_name ?? "", {
     id: "designer",
     header: "Assigned Designer",
-    cell: (info) => info.getValue() || <span className="text-muted-foreground">—</span>,
+    cell: (info) => (info.getValue() ? <Highlight text={info.getValue()} /> : <span className="text-muted-foreground">—</span>),
   }),
   col.accessor("link_to_output", { header: "Link to Output", cell: (info) => <OutputLink value={info.getValue()} /> }),
   col.display({

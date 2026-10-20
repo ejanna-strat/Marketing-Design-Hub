@@ -1,7 +1,9 @@
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
+import { RememberList } from "@/components/data-table/ListMemory";
+import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { requireStaff } from "@/lib/auth";
-import { listRequests, PAGE_SIZE, parseListParams } from "@/lib/requests/list";
-import { statusOptions } from "@/lib/statuses";
+import { listRequests, parseListParams } from "@/lib/requests/list";
+import { INACTIVE_STATUSES, statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { DesignerTabs } from "./DesignerTabs";
 import { PipelineTable } from "./PipelineTable";
@@ -22,7 +24,7 @@ export default async function PipelinePage({
   const supabase = await createClient();
 
   const [{ rows, total }, designers, teams, types] = await Promise.all([
-    listRequests(supabase, params, { searchRequester: true }),
+    listRequests(supabase, params, { searchRequester: true, scope: "pipeline" }),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
@@ -35,13 +37,22 @@ export default async function PipelinePage({
     <div className="space-y-5">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold">Marketing Design Pipeline</h1>
-        <p className="text-muted-foreground">Track all design requests</p>
+        <p className="text-muted-foreground">
+          Track all design requests. Cancelled and returned requests are on the Inactive Requests page.
+        </p>
       </div>
+      <RememberList label="Marketing Design Pipeline" />
       <DesignerTabs designers={tabDesigners} current={params.designer} myDesignerId={user.designerId} />
+      <ViewSwitch />
       <DataTableToolbar
         searchPlaceholder="Search ID, title, requester, type, output or designer"
         filters={[
-          { key: "status", label: "Status", options: statusOptions() },
+          {
+            key: "status",
+            label: "Status",
+            // Cancelled and Returned live on the Inactive Requests page.
+            options: statusOptions().filter((o) => !(INACTIVE_STATUSES as readonly string[]).includes(o.value)),
+          },
           { key: "team", label: "Team", options: (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
           { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
         ]}
@@ -50,7 +61,7 @@ export default async function PipelinePage({
         rows={rows}
         total={total}
         page={params.page}
-        pageSize={PAGE_SIZE}
+        pageSize={params.pageSize}
         designers={designerOptions}
         canAssign={user.isManager}
       />

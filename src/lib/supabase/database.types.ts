@@ -347,11 +347,14 @@ export type Database = {
           date_completed: string | null
           date_needed: string
           date_started: string | null
+          deal_name: string | null
+          deal_size: number | null
           designer_responded_at: string | null
           designer_response: string | null
           final_approver_email: string
           final_approver_name: string
           id: string
+          is_deal: boolean
           link_to_output: string | null
           output_needed: string
           reassign_reason: string | null
@@ -373,11 +376,14 @@ export type Database = {
           date_completed?: string | null
           date_needed: string
           date_started?: string | null
+          deal_name?: string | null
+          deal_size?: number | null
           designer_responded_at?: string | null
           designer_response?: string | null
           final_approver_email: string
           final_approver_name: string
           id?: string
+          is_deal?: boolean
           link_to_output?: string | null
           output_needed: string
           reassign_reason?: string | null
@@ -399,11 +405,14 @@ export type Database = {
           date_completed?: string | null
           date_needed?: string
           date_started?: string | null
+          deal_name?: string | null
+          deal_size?: number | null
           designer_responded_at?: string | null
           designer_response?: string | null
           final_approver_email?: string
           final_approver_name?: string
           id?: string
+          is_deal?: boolean
           link_to_output?: string | null
           output_needed?: string
           reassign_reason?: string | null

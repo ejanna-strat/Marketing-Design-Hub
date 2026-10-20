@@ -1,4 +1,5 @@
-import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
+import { BackToList } from "@/components/data-table/ListMemory";
 import { FeedbackCard } from "@/components/feedback/FeedbackCard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -52,10 +53,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/pipeline" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-4" />
-        Marketing Design Pipeline
-      </Link>
+      <BackToList fallbackHref="/admin/pipeline" fallbackLabel="Marketing Design Pipeline" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <p className="font-mono text-sm text-muted-foreground">{request.request_code}</p>
@@ -141,6 +139,9 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                   teamId: request.team_id,
                   approverName: request.final_approver_name,
                   approverEmail: request.final_approver_email,
+                  isDeal: request.is_deal,
+                  dealName: request.deal_name ?? "",
+                  dealSize: request.deal_size === null ? "" : String(request.deal_size),
                 }}
               />
             }
