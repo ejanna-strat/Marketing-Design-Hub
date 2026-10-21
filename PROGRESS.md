@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 21, 2026 · version 0.21.0_
+_Last updated: Oct 21, 2026 · version 0.22.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -36,6 +36,7 @@ _Last updated: Oct 21, 2026 · version 0.21.0_
 - v0.19.0 (owner list, Oct 21, fifth round): Inactive Requests gets a Deal Associated column + filter and drops Link to Output / Overall Feedback; My Requests has Open / On Hold / Completed / Inactive / All; star text shortened; Analytics opens on the current month and year, three summary cards, "Open at the end" = New request to For revision, Requests by status on both tabs, "Monthly Pipeline Summary" + Key insights, frozen Designer column, Inactive Requests section.
 - v0.20.0 (owner list, Oct 21, sixth round): requesters can cancel a request (reason required) any time before Completed, emailing the assigned designer if there is one; Cancelled/Returned requests are read-only except the status; Edit Request explains how to change the type; view switch shown as separate buttons with "Show:"; Analytics section bands + "Jump to" menu.
 - v0.21.0 (owner list, Oct 21, seventh round): Inactive Requests shows who cancelled or returned each request; Requester's Email column removed from the staff tables; view switch restyled as one rounded bar with a filled pill.
+- v0.22.0 (owner, Oct 21): Team and Type filters grey out options with no requests in the current tab/view (Pipeline, Deal Requests, My Requests), like Status.
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql` and `0013_requester_cancel.sql` are applied to staging only. **Owner:** add `CRON_SECRET` (any long random text) to Vercel's Production environment so the daily reminder can run; Vercel only runs scheduled jobs on Production. At release also: create a public `brand` storage bucket with `logo.png` in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates.
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
