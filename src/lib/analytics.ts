@@ -50,6 +50,19 @@ export type PeriodTotals = {
 
 export type MonthRow = PeriodTotals & { month: string; label: string };
 
+// Monthly report's Designer Productivity (owner, Oct 21): requests completed
+// in the period, by type, credited to the designer assigned at completion.
+export type DesignerPeriodRow = {
+  name: string;
+  byType: Record<string, number>;
+  total: number;
+  openAtEnd: number;
+  avgTurnaround: number | null;
+  feedbackRating: number | null;
+  feedbackCount: number;
+  feedbackOutOf: number;
+};
+
 export type DesignerRow = {
   name: string;
   handled: number;
@@ -72,7 +85,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       supabase
         .from("requests")
         .select(
-          "id, status, created_at, date_completed, assigned_designer_id, is_deal, deal_size, team:teams(name), request_type:request_types(name)",
+          "id, status, created_at, date_completed, assigned_designer_id, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name, sort_order), feedback(process_rating, output_rating)",
         )
         .lt("created_at", end)
         .order("created_at")
@@ -124,12 +137,14 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
   };
 
   const isCompleted = (r: Req) => r.status === "completed" && !!r.date_completed;
+  // Deal numbers leave out Returned and Cancelled requests (owner, Oct 21).
+  const isDeal = (r: Req) => r.is_deal && r.status !== "rejected" && r.status !== "cancelled";
   const totalsFor = (s: string, e: string): PeriodTotals => {
     const within = (ts: string | null) => !!ts && ts >= s && ts < e;
     const filed = requests.filter((r) => within(r.created_at));
     const done = requests.filter((r) => isCompleted(r) && within(r.date_completed));
     const fb = counted.filter((f) => within(f.submitted_at));
-    const deals = filed.filter((r) => r.is_deal);
+    const deals = filed.filter(isDeal);
     return {
       requestsIn: filed.length,
       accepted: filed.filter(everAccepted).length,
@@ -178,9 +193,43 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     })
     .filter((d) => d.active || d.handled > 0 || d.completed > 0);
 
+  // Monthly report: completed in the period (by Date Completed, Manila),
+  // credited to the designer assigned at completion (locked once Completed).
+  // Open at the end = assigned to them and not Completed, Cancelled or
+  // Returned at the end of the period. Feedback = feedback on those same
+  // completed requests, whenever it was submitted, Marketing team excluded.
+  const closed = new Set(["completed", "cancelled", "rejected"]);
+  const periodTypes = [...new Map(doneInPeriod.map((r) => [r.request_type?.name ?? "—", r.request_type?.sort_order ?? 99]))]
+    .sort((x, y) => x[1] - y[1])
+    .map(([name]) => name);
+  const designerPeriod: DesignerPeriodRow[] = (designers.data ?? [])
+    .map((d) => {
+      const done = doneInPeriod.filter((r) => r.assigned_designer_id === d.id);
+      const outside = done.filter((r) => !r.team?.is_marketing);
+      const rated = outside.map((r) => one(r.feedback)).filter((f): f is NonNullable<typeof f> => !!f);
+      const p = average(rated.map((f) => f.process_rating));
+      const o = average(rated.map((f) => f.output_rating));
+      const byType: Record<string, number> = {};
+      for (const r of done) byType[r.request_type?.name ?? "—"] = (byType[r.request_type?.name ?? "—"] ?? 0) + 1;
+      return {
+        name: d.active ? d.display_name : `${d.display_name} (former)`,
+        active: d.active,
+        byType,
+        total: done.length,
+        openAtEnd: requests.filter(
+          (r) => r.assigned_designer_id === d.id && r.created_at < end && !closed.has(statusAt(r.id, end)),
+        ).length,
+        avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
+        feedbackRating: p === null || o === null ? null : (p + o) / 2,
+        feedbackCount: rated.length,
+        feedbackOutOf: outside.length,
+      };
+    })
+    .filter((d) => d.active || d.total > 0 || d.openAtEnd > 0);
+
   // Deals by type of request: how many deal requests, and their deal size.
   const dealTypes = new Map<string, { label: string; requests: number; size: number }>();
-  for (const r of filed.filter((x) => x.is_deal)) {
+  for (const r of filed.filter(isDeal)) {
     const label = r.request_type?.name ?? "—";
     const t = dealTypes.get(label) ?? { label, requests: 0, size: 0 };
     t.requests += 1;
@@ -194,6 +243,8 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     byTeam: shares((r) => r.team?.name ?? "—"),
     byType: shares((r) => r.request_type?.name ?? "—"),
     designers: designerRows,
+    designerPeriod,
+    periodTypes,
     dealTypes: [...dealTypes.values()].sort((a, b) => b.size - a.size || b.requests - a.requests),
   };
 }
