@@ -14,8 +14,9 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 // A request counts as Accepted once it reached Designer assigned or later.
 const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
-// "Open at the end" = Not started + In progress (owner's report).
-const OPEN_AT_END = new Set(["designer_assigned", "in_progress"]);
+// "Open at the end" = the Pendings categories: New request, Not started, In
+// progress, For review, For revision (owner, Oct 21).
+const OPEN_AT_END = new Set(["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"]);
 
 const manilaDay = (ts: string) => format(new TZDate(new Date(ts).getTime(), theme.timeZone), "yyyy-MM-dd");
 const workingDays = (from: string, to: string) =>
@@ -46,6 +47,10 @@ export type PeriodTotals = {
   dealSize: number;
   feedbackRating: number | null;
   feedbackCount: number;
+  returned: number;
+  cancelled: number;
+  inactiveDeals: number;
+  inactiveDealSize: number;
 };
 
 export type MonthRow = PeriodTotals & { month: string; label: string };
@@ -145,6 +150,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     const done = requests.filter((r) => isCompleted(r) && within(r.date_completed));
     const fb = counted.filter((f) => within(f.submitted_at));
     const deals = filed.filter(isDeal);
+    const inactiveDeals = filed.filter((r) => r.is_deal && !isDeal(r));
     return {
       requestsIn: filed.length,
       accepted: filed.filter(everAccepted).length,
@@ -155,6 +161,10 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       dealSize: deals.reduce((n, r) => n + (r.deal_size ?? 0), 0),
       feedbackRating: overall(fb),
       feedbackCount: fb.length,
+      returned: filed.filter((r) => r.status === "rejected").length,
+      cancelled: filed.filter((r) => r.status === "cancelled").length,
+      inactiveDeals: inactiveDeals.length,
+      inactiveDealSize: inactiveDeals.reduce((n, r) => n + (r.deal_size ?? 0), 0),
     };
   };
 
@@ -237,8 +247,26 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     dealTypes.set(label, t);
   }
 
+  // Requests filed in the period by their current status.
+  const byStatus = new Map<string, number>();
+  for (const r of filed) byStatus.set(r.status, (byStatus.get(r.status) ?? 0) + 1);
+
+  // Inactive requests (Returned / Cancelled) filed in the period, by type,
+  // including the deal size of those that had a deal (owner, Oct 21).
+  const inactiveTypes = new Map<string, { label: string; returned: number; cancelled: number; dealSize: number }>();
+  for (const r of filed.filter((x) => x.status === "rejected" || x.status === "cancelled")) {
+    const label = r.request_type?.name ?? "—";
+    const t = inactiveTypes.get(label) ?? { label, returned: 0, cancelled: 0, dealSize: 0 };
+    if (r.status === "rejected") t.returned += 1;
+    else t.cancelled += 1;
+    if (r.is_deal) t.dealSize += r.deal_size ?? 0;
+    inactiveTypes.set(label, t);
+  }
+
   return {
     totals: totalsFor(start, end),
+    byStatus,
+    inactiveTypes: [...inactiveTypes.values()].sort((x, y) => y.returned + y.cancelled - (x.returned + x.cancelled)),
     months,
     byTeam: shares((r) => r.team?.name ?? "—"),
     byType: shares((r) => r.request_type?.name ?? "—"),

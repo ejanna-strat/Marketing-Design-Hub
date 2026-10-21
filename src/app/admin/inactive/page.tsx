@@ -48,6 +48,14 @@ export default async function InactiveRequestsPage({
             label: "Status",
             options: statusFilterOptions(INACTIVE_STATUSES, present),
           },
+          {
+            key: "deal",
+            label: "Deal Associated",
+            options: [
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ],
+          },
         ]}
       />
       <PipelineTable
