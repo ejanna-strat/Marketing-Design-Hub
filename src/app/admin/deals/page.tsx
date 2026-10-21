@@ -4,7 +4,7 @@ import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
-import { listRequests, parseListParams, statusesInView } from "@/lib/requests/list";
+import { facetsInView, listRequests, markAvailable, parseListParams } from "@/lib/requests/list";
 import { INACTIVE_STATUSES, PENDING_TABS, statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
@@ -21,9 +21,9 @@ export default async function DealRequestsPage({
   const supabase = await createClient();
 
   const options = { searchRequester: true, scope: "pipeline", dealsOnly: true } as const;
-  const [{ rows, total }, present, teams, types, sums] = await Promise.all([
+  const [{ rows, total }, facets, teams, types, sums] = await Promise.all([
     listRequests(supabase, params, options),
-    statusesInView(supabase, params, options),
+    facetsInView(supabase, params, options),
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
     supabase.from("requests").select("status, deal_size").eq("is_deal", true).not("status", "in", `(${INACTIVE_STATUSES.join(",")})`),
@@ -69,10 +69,18 @@ export default async function DealRequestsPage({
           {
             key: "status",
             label: "Status",
-            options: statusFilterOptions(null, present),
+            options: statusFilterOptions(null, facets.status),
           },
-          { key: "team", label: "Team", options: (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
-          { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
+          {
+            key: "team",
+            label: "Team",
+            options: markAvailable((teams.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.team),
+          },
+          {
+            key: "type",
+            label: "Type",
+            options: markAvailable((types.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.type),
+          },
         ]}
       />
       <PipelineTable
