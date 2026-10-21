@@ -58,7 +58,7 @@ export function RequestInfo({
             <Item
               label="Associated Deal"
               wide
-              value={request.is_deal ? `${request.deal_name} · ${formatPeso(request.deal_size)}` : "No"}
+              value={request.is_deal ? `${request.deal_name} · ${formatPeso(request.deal_size)}` : "None"}
             />
             <Item label="Type of Design Request" value={request.request_type?.name} />
             <Item label="Output Needed" value={request.output_needed} />
