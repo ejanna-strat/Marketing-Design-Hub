@@ -232,49 +232,101 @@ export default async function AnalyticsPage({
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Designer Productivity</h2>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              Handled: requests filed in this period, by the designer currently assigned. Completed and turnaround:
-              requests completed in this period. Feedback leaves out Marketing team requesters.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-medium">Designer</th>
-                  <th className={th}>Handled</th>
-                  <th className={th}>Completed</th>
-                  <th className={th}>Avg. Turnaround</th>
-                  <th className={th}>Feedback</th>
-                  {a.months.map((m) => (
-                    <th key={m.month} className={th} title={`Completed in ${m.label}`}>
-                      {m.label.slice(0, 3)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {a.designers.map((d) => (
-                  <tr key={d.name} className="border-b last:border-0">
-                    <td className="px-3 py-2">{d.name}</td>
-                    <td className={td}>{d.handled}</td>
-                    <td className={td}>{d.completed}</td>
-                    <td className={td}>{days(d.avgTurnaround)}</td>
-                    <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
-                    {d.completedByMonth.map((n, i) => (
-                      <td key={a.months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
-                        {n}
-                      </td>
+        {mom ? (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                Handled: requests filed in this period, by the designer currently assigned. Completed and turnaround:
+                requests completed in this period. Feedback leaves out Marketing team requesters.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Designer</th>
+                    <th className={th}>Handled</th>
+                    <th className={th}>Completed</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Feedback</th>
+                    {a.months.map((m) => (
+                      <th key={m.month} className={th} title={`Completed in ${m.label}`}>
+                        {m.label.slice(0, 3)}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {mom && <p className="mt-2 text-xs text-muted-foreground">Month columns: requests completed in that month.</p>}
-          </CardContent>
-        </Card>
+                </thead>
+                <tbody>
+                  {a.designers.map((d) => (
+                    <tr key={d.name} className="border-b last:border-0">
+                      <td className="px-3 py-2">{d.name}</td>
+                      <td className={td}>{d.handled}</td>
+                      <td className={td}>{d.completed}</td>
+                      <td className={td}>{days(d.avgTurnaround)}</td>
+                      <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
+                      {d.completedByMonth.map((n, i) => (
+                        <td key={a.months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
+                          {n}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {mom && <p className="mt-2 text-xs text-muted-foreground">Month columns: requests completed in that month.</p>}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                Requests completed in this period (by Date Completed), credited to the designer assigned at completion,
+                with open work at the end of the period and feedback on those completed requests (Marketing team
+                excluded).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Designer</th>
+                    {a.periodTypes.map((type) => (
+                      <th key={type} className={`${th} whitespace-normal`}>
+                        {type}
+                      </th>
+                    ))}
+                    <th className={th}>Total completed</th>
+                    <th className={th}>{month ? "Open at month-end" : "Open at end of range"}</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Feedback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.designerPeriod.map((d) => (
+                    <tr key={d.name} className="border-b last:border-0">
+                      <td className="px-3 py-2">{d.name}</td>
+                      {a.periodTypes.map((type) => (
+                        <td key={type} className={`${td} ${d.byType[type] ? "" : "text-muted-foreground"}`}>
+                          {d.byType[type] ?? 0}
+                        </td>
+                      ))}
+                      <td className={`${td} font-semibold`}>{d.total}</td>
+                      <td className={td}>{d.openAtEnd}</td>
+                      <td className={td}>{days(d.avgTurnaround)}</td>
+                      <td className={td}>
+                        {d.feedbackRating === null
+                          ? d.feedbackOutOf
+                            ? `— (0 of ${d.feedbackOutOf})`
+                            : "—"
+                          : `${stars(d.feedbackRating)} ★ (${d.feedbackCount} of ${d.feedbackOutOf})`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section className="space-y-4">

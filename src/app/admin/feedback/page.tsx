@@ -94,8 +94,7 @@ export default async function FeedbackPage({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Averages and the response rate leave out requesters from the Marketing team ({all.length - counted.length} of{" "}
-        {all.length} responses).
+        Averages and the response rate leave out requesters from the Marketing team.
       </p>
 
       <DataTableToolbar
