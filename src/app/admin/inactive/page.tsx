@@ -56,7 +56,6 @@ export default async function InactiveRequestsPage({
         <SummaryBox title="Cancelled" value={cancelled} rate={shareOf(cancelled, inactive.length)} />
       </div>
       <DataTableToolbar
-        searchPlaceholder="Search ID, title, requester, type, output or designer"
         filters={[
           {
             key: "status",

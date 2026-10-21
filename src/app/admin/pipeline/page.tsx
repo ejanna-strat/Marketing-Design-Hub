@@ -58,7 +58,6 @@ export default async function PipelinePage({
       <DesignerTabs designers={tabDesigners} current={params.designer} myDesignerId={user.designerId} counts={counts} />
       <DataTableToolbar
         leading={<ViewSwitch />}
-        searchPlaceholder="Search ID, title, requester, type, output or designer"
         filters={[
           {
             key: "status",
