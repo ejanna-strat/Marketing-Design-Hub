@@ -1,4 +1,13 @@
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  BarChart3Icon,
+  BriefcaseBusinessIcon,
+  LayoutDashboardIcon,
+  type LucideIcon,
+  UsersIcon,
+} from "lucide-react";
 import { BarList } from "@/components/charts/BarList";
 import { MonthBars } from "@/components/charts/MonthBars";
 import { foldShares, type Share } from "@/components/charts/palette";
@@ -103,31 +112,47 @@ export default async function AnalyticsPage({
         year={year}
       />
 
-      {/* Three grouped cards instead of six boxes (owner, Oct 21). */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader>
-            <CardDescription>Request flow</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Flow label="Requests in" value={t.requestsIn} />
-              <Flow label="Accepted" value={t.accepted} rate={shareOf(t.accepted, t.requestsIn)} />
-              <Flow label="Completed" value={t.completed} rate={shareOf(t.completed, t.requestsIn)} />
-              <Flow label="Open at the end" value={t.openAtEnd} note="New request to For revision" />
-            </dl>
-          </CardContent>
-        </Card>
-        <SummaryBox title="Average turnaround" value={days(t.avgTurnaround)} lines={["Working days, request to completed"]} />
-        <SummaryBox
-          title="Feedback (overall)"
-          value={t.feedbackRating === null ? "—" : <StarsDisplay value={t.feedbackRating} size="md" />}
-          lines={[`${t.feedbackCount} responses (Marketing team excluded)`]}
-        />
-      </div>
+      <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm">
+        <span className="mr-1 text-muted-foreground">Jump to:</span>
+        {JUMPS.map((j) => (
+          <a
+            key={j.id}
+            href={`#${j.id}`}
+            className="rounded-full border bg-background px-3 py-1 font-medium text-brand transition-colors hover:border-brand/60 hover:bg-brand-soft"
+          >
+            {j.label}
+          </a>
+        ))}
+      </nav>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Brand Team Productivity</h2>
+      <section id="overview" className="scroll-mt-20 space-y-4">
+        <SectionHeader icon={LayoutDashboardIcon} title="Overview" description="The period at a glance" />
+        {/* Three grouped cards instead of six boxes (owner, Oct 21). */}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <Card>
+            <CardHeader>
+              <CardDescription>Request flow</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Flow label="Requests in" value={t.requestsIn} />
+                <Flow label="Accepted" value={t.accepted} rate={shareOf(t.accepted, t.requestsIn)} />
+                <Flow label="Completed" value={t.completed} rate={shareOf(t.completed, t.requestsIn)} />
+                <Flow label="Open at the end" value={t.openAtEnd} note="New request to For revision" />
+              </dl>
+            </CardContent>
+          </Card>
+          <SummaryBox title="Average turnaround" value={days(t.avgTurnaround)} lines={["Working days, request to completed"]} />
+          <SummaryBox
+            title="Feedback (overall)"
+            value={t.feedbackRating === null ? "—" : <StarsDisplay value={t.feedbackRating} size="md" />}
+            lines={[`${t.feedbackCount} responses (Marketing team excluded)`]}
+          />
+        </div>
+      </section>
+
+      <section id="brand" className="scroll-mt-20 space-y-4">
+        <SectionHeader icon={BarChart3Icon} title="Brand Team Productivity" description="How many requests came in, were accepted, finished and still open" />
         {/* Month-by-month view: Month on Month only. */}
         {mom && (
           <>
@@ -266,8 +291,8 @@ export default async function AnalyticsPage({
         </Card>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Designer Productivity</h2>
+      <section id="designers" className="scroll-mt-20 space-y-4">
+        <SectionHeader icon={UsersIcon} title="Designer Productivity" description="Work each designer completed, with turnaround and feedback" />
         {mom ? (
           <Card>
             <CardHeader>
@@ -365,8 +390,8 @@ export default async function AnalyticsPage({
         )}
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Deal Requests</h2>
+      <section id="deals" className="scroll-mt-20 space-y-4">
+        <SectionHeader icon={BriefcaseBusinessIcon} title="Deal Requests" description="Requests tied to a deal, and the deal value behind them" />
         <div className="grid gap-4 sm:grid-cols-2">
           <SummaryBox title="Requests with associated deals" value={t.dealRequests} rate={shareOf(t.dealRequests, t.requestsIn)} />
           <SummaryBox title="Total deal size" value={formatPeso(t.dealSize)} />
@@ -413,8 +438,8 @@ export default async function AnalyticsPage({
         </Card>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Inactive Requests</h2>
+      <section id="inactive" className="scroll-mt-20 space-y-4">
+        <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
         <div className="grid gap-4 sm:grid-cols-3">
           <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox title="Cancelled" value={t.cancelled} rate={shareOf(t.cancelled, t.requestsIn)} lines={["Of this period's requests"]} />
@@ -603,4 +628,29 @@ function insights(a: Analytics, year: string): string[] {
     );
   }
   return out;
+}
+
+// Sections people can jump to from the top of the page (owner, Oct 21).
+const JUMPS = [
+  { id: "overview", label: "Overview" },
+  { id: "brand", label: "Brand Team" },
+  { id: "designers", label: "Designers" },
+  { id: "deals", label: "Deals" },
+  { id: "inactive", label: "Inactive" },
+];
+
+// A tinted band that opens each section, so the report reads as sections
+// rather than one long page (owner, Oct 21).
+function SectionHeader({ icon: Icon, title, description }: { icon: LucideIcon; title: string; description: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border-l-4 border-brand bg-brand-soft px-4 py-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <div>
+        <h2 className="text-lg font-bold text-brand">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
 }
