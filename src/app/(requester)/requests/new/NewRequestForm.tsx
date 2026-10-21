@@ -326,7 +326,7 @@ export function NewRequestForm({
                       <div key={v} className="flex items-center gap-2">
                         <RadioGroupItem id={`is_deal-${v}`} value={v} />
                         <Label htmlFor={`is_deal-${v}`} className="font-normal">
-                          {v === "yes" ? "Yes" : "No"}
+                          {v === "yes" ? "Yes" : "None"}
                         </Label>
                       </div>
                     ))}
