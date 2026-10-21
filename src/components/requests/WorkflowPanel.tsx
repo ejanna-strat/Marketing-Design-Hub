@@ -34,6 +34,8 @@ export type WorkflowState = {
   returnReason: string | null;
   returnedByName: string | null;
   reassignReason: string | null;
+  // Set when the requester cancelled it themselves (owner, Oct 21).
+  cancelReason: string | null;
 };
 
 export function WorkflowPanel({
@@ -75,6 +77,10 @@ function Tag({ state: s }: { state: WorkflowState }) {
     tone = "bg-red-100 text-red-800";
     text = `Returned${s.returnedByName ? ` by ${s.returnedByName}` : ""}`;
     detail = s.returnReason;
+  } else if (s.status === "cancelled") {
+    tone = "bg-red-100 text-red-800";
+    text = s.cancelReason ? "Cancelled by the requester" : "Cancelled";
+    detail = s.cancelReason;
   } else if (s.designer && s.designerResponse === "pending") {
     tone = "bg-amber-100 text-amber-900";
     text = `Waiting for ${s.designer.name} to accept`;

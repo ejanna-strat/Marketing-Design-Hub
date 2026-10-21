@@ -7,6 +7,7 @@ import { N6Reassigned, n6Subject } from "@/emails/N6Reassigned";
 import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
+import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
 import { DUE_REMINDER_LEAD_EMAIL } from "@/config/links";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
@@ -19,7 +20,7 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, assigned_designer_id, return_reason, returned_by, team:teams(name), designer:designers(display_name, email)")
+    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, assigned_designer_id, return_reason, returned_by, cancel_reason, team:teams(name), designer:designers(display_name, email)")
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
@@ -246,4 +247,28 @@ export async function sendDueReminders(appUrl: string) {
     });
   }
   return results;
+}
+
+// To the assigned designer, once, when the requester cancels (owner, Oct 21).
+// Nobody is emailed when no designer was assigned yet.
+export async function notifyCancelled(requestId: string, appUrl: string) {
+  try {
+    const r = await loadRequest(requestId);
+    if (!r.designer) return;
+    await sendEmail({
+      key: "N11_CANCELLED",
+      requestId,
+      to: [r.designer.email],
+      subject: n11Subject(r.title),
+      email: N11Cancelled({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        reason: r.cancel_reason ?? "—",
+        url: `${appUrl}/admin/requests/${r.request_code}`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email cancelled] failed", e);
+  }
 }

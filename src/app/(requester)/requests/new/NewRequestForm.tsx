@@ -136,7 +136,7 @@ export function NewRequestForm({
           </div>
           <p className="rounded-xl border border-brand/20 bg-brand-soft/60 p-4 text-sm leading-relaxed">
             You can edit your request until it is accepted by the reviewer. The type of design request can&apos;t be
-            changed. If you need a different type, please submit a new request.
+            changed. If you need a different type, please cancel this request and file a new design request.
           </p>
         </div>
       ) : (
@@ -391,6 +391,14 @@ export function NewRequestForm({
                 </Select>
               )}
             />
+            {/* The type can't change on an edit (owner, Oct 21). */}
+            {edit && (
+              <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                <InfoIcon className="mt-0.5 size-4 shrink-0" />
+                The type of design request can&apos;t be changed. To change it, please cancel this request and file a new
+                design request.
+              </p>
+            )}
           </Field>
         </CardContent>
       </Card>
