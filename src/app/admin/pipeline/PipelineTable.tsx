@@ -30,6 +30,7 @@ export function PipelineTable({
   canAssign,
   extra,
   readOnly = false,
+  closedBy,
 }: {
   rows: RequestListRow[];
   total: number;
@@ -42,6 +43,8 @@ export function PipelineTable({
   // Deal Requests (owner, Oct 21): nothing editable in the table; changes are
   // made on the request page.
   readOnly?: boolean;
+  // Inactive Requests: who cancelled or returned each request, by request id.
+  closedBy?: Record<string, string>;
 }) {
   const columns = useMemo(() => {
     const dealColumns: TableColumn<RequestListRow>[] =
@@ -59,6 +62,11 @@ export function PipelineTable({
               id: "return_reason",
               header: "Reason",
               cell: (info) => info.getValue() || muted,
+            }),
+            col.display({
+              id: "closed_by",
+              header: "Cancelled / Returned By",
+              cell: (info) => closedBy?.[info.row.original.id] ?? muted,
             }),
             col.accessor("updated_at", { header: "Last Updated", cell: (info) => formatDate(info.getValue()) }),
             col.accessor("is_deal", { header: "Deal Associated", cell: (info) => (info.getValue() ? "Yes" : "No") }),
@@ -158,10 +166,10 @@ export function PipelineTable({
       }),
       col.accessor("requester_name", { header: "Requester's Name", cell: (info) => <Highlight text={info.getValue()} /> }),
       col.accessor((r) => r.team?.name ?? "", { id: "team", header: "Requester's Team" }),
-      col.accessor("requester_email", { header: "Requester's Email", cell: (info) => <Highlight text={info.getValue()} /> }),
+      // Requester's Email is on the request page, not in the tables (owner, Oct 21).
       ...closingColumns,
     ]);
-  }, [canAssign, designers, extra, readOnly]);
+  }, [canAssign, designers, extra, readOnly, closedBy]);
 
   return (
     <DataTable
@@ -178,7 +186,6 @@ export function PipelineTable({
         "output_needed",
         "status",
         "requester_name",
-        "requester_email",
         "deal_name",
         "deal_size",
       ]}

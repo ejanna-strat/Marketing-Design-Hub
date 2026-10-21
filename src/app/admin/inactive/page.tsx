@@ -24,6 +24,21 @@ export default async function InactiveRequestsPage({
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase.from("requests").select("status").in("status", [...INACTIVE_STATUSES]),
   ]);
+  // Who cancelled or returned each request on this page: the latest
+  // Returned / Cancelled entry in its activity log (owner, Oct 21).
+  const { data: closings } = rows.length
+    ? await supabase
+        .from("activity_log")
+        .select("request_id, created_at, actor:profiles(full_name)")
+        .in("request_id", rows.map((r) => r.id))
+        .or("action.in.(returned,cancelled),and(action.eq.status,to_value.in.(cancelled,rejected))")
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const closedBy: Record<string, string> = {};
+  for (const c of closings ?? []) {
+    if (!(c.request_id in closedBy)) closedBy[c.request_id] = c.actor?.full_name ?? "—";
+  }
+
   const inactive = all.data ?? [];
   const returned = inactive.filter((r) => r.status === "rejected").length;
   const cancelled = inactive.filter((r) => r.status === "cancelled").length;
@@ -66,6 +81,7 @@ export default async function InactiveRequestsPage({
         designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
         canAssign={user.isManager}
         extra="inactive"
+        closedBy={closedBy}
       />
     </div>
   );
