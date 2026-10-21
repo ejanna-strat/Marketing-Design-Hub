@@ -54,9 +54,11 @@ export function PipelineTable({
     const inactiveColumns: TableColumn<RequestListRow>[] =
       extra === "inactive"
         ? [
-            col.accessor("return_reason", {
-              header: "Reason for Return",
-              cell: (info) => (info.row.original.status === "rejected" ? (info.getValue() ?? muted) : muted),
+            // Returned: the reviewer's reason. Cancelled: the requester's reason, if they cancelled it.
+            col.accessor((r) => (r.status === "rejected" ? r.return_reason : r.cancel_reason) ?? "", {
+              id: "return_reason",
+              header: "Reason",
+              cell: (info) => info.getValue() || muted,
             }),
             col.accessor("updated_at", { header: "Last Updated", cell: (info) => formatDate(info.getValue()) }),
             col.accessor("is_deal", { header: "Deal Associated", cell: (info) => (info.getValue() ? "Yes" : "No") }),

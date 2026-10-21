@@ -343,6 +343,8 @@ export type Database = {
       requests: {
         Row: {
           assigned_designer_id: string | null
+          cancel_reason: string | null
+          cancelled_by: string | null
           created_at: string
           date_completed: string | null
           date_needed: string
@@ -372,6 +374,8 @@ export type Database = {
         }
         Insert: {
           assigned_designer_id?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string
           date_completed?: string | null
           date_needed: string
@@ -401,6 +405,8 @@ export type Database = {
         }
         Update: {
           assigned_designer_id?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: string | null
           created_at?: string
           date_completed?: string | null
           date_needed?: string
@@ -563,6 +569,7 @@ export type Database = {
         Returns: Json
       }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
+      cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       submit_feedback: {
         Args: { p_comments: string; p_output: number; p_process: number; p_request_code: string }
         Returns: Json
