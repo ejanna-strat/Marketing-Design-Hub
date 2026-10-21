@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon, XCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/CopyButton";
@@ -14,6 +14,7 @@ import { one } from "@/lib/feedback";
 import { canRequesterEdit, getRequestByCode } from "@/lib/requests/detail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { CancelRequestButton } from "./CancelRequestButton";
 
 // One of the signed-in person's own requests, in the same compact two-column
 // layout as the staff page (owner, Oct 18). They can edit it until accepted.
@@ -31,6 +32,8 @@ export default async function MyRequestDetailPage({
   const request = await getRequestByCode(supabase, code, { requesterId: user.id });
   if (!request) notFound();
   const editable = canRequesterEdit(request);
+  // Requesters can cancel any time before Completed (owner, Oct 21).
+  const cancellable = !["completed", "cancelled", "rejected"].includes(request.status);
   // Requesters can't read staff profiles, so the reviewer's name and email
   // are looked up on the server.
   const returnedBy =
@@ -51,14 +54,19 @@ export default async function MyRequestDetailPage({
           <h1 className="text-2xl font-bold">{request.title}</h1>
           <p className="text-sm text-muted-foreground">Requested {formatDate(request.created_at)}</p>
         </div>
-        {editable && (
-          <Button asChild>
-            <Link href={`/my-requests/${request.request_code}/edit`}>
-              <PencilIcon />
-              Edit request
-            </Link>
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {cancellable && (
+            <CancelRequestButton requestId={request.id} hasDesigner={!!request.assigned_designer_id} />
+          )}
+          {editable && (
+            <Button asChild>
+              <Link href={`/my-requests/${request.request_code}/edit`}>
+                <PencilIcon />
+                Edit request
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {saved && (
@@ -96,7 +104,26 @@ export default async function MyRequestDetailPage({
           </Button>
         </div>
       )}
-      {request.status === "rejected" ? null : editable ? (
+      {request.status === "cancelled" && (
+        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-950">
+          <p className="flex items-center gap-2 text-base font-semibold">
+            <XCircleIcon className="size-5" />
+            This request was cancelled
+          </p>
+          {request.cancel_reason && (
+            <p>
+              <span className="font-medium">Reason for cancellation:</span> {request.cancel_reason}
+            </p>
+          )}
+          <Button asChild>
+            <Link href="/requests/new">
+              <FilePlus2Icon />
+              Submit a New Design Request
+            </Link>
+          </Button>
+        </div>
+      )}
+      {request.status === "rejected" || request.status === "cancelled" ? null : editable ? (
         <p className="text-sm text-muted-foreground">You can edit this request until it is accepted by the reviewer.</p>
       ) : (
         <p className="text-sm text-muted-foreground">

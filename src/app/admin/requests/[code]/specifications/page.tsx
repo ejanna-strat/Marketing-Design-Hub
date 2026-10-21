@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { getRequestByCode } from "@/lib/requests/detail";
 import { type AnswerValue, QUESTION_COLUMNS, toFormQuestion } from "@/lib/requests/schema";
@@ -13,6 +13,8 @@ export default async function EditSpecificationsPage({ params }: { params: Promi
   const supabase = await createClient();
   const request = await getRequestByCode(supabase, code);
   if (!request) notFound();
+  // Cancelled and Returned requests are read-only (owner, Oct 21).
+  if (request.status === "cancelled" || request.status === "rejected") redirect(`/admin/requests/${request.request_code}`);
 
   const { data: rows, error } = await supabase
     .from("form_questions")

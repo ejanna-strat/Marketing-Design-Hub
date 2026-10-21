@@ -47,6 +47,8 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     : { data: null };
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
+  const closed = request.status === "cancelled" || request.status === "rejected";
+
   return (
     <div className="space-y-6">
       <BackToList fallbackHref="/admin/pipeline" fallbackLabel="Marketing Design Pipeline" />
@@ -73,6 +75,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             returnReason: request.return_reason,
             returnedByName: returnedBy?.full_name ?? null,
             reassignReason: request.reassign_reason,
+            cancelReason: request.cancel_reason,
           }}
         />
       </div>
@@ -112,7 +115,10 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       value={request.link_to_output}
                       locked={request.status === "cancelled" || request.status === "rejected"}
                     />} />
-                <Item label="Date Needed" value={<DateNeededEditor requestId={request.id} value={request.date_needed} />} />
+                <Item
+                  label="Date Needed"
+                  value={closed ? formatDate(request.date_needed) : <DateNeededEditor requestId={request.id} value={request.date_needed} />}
+                />
                 <Item label="Date Started" value={formatDate(request.date_started)} />
                 <Item label="Date Completed" value={formatDate(request.date_completed)} />
               </dl>
@@ -122,29 +128,34 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
           <RequestInfo
             request={request}
             copyApprover
+            // Cancelled and Returned requests are read-only except the status (owner, Oct 21).
             specsActions={
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/admin/requests/${request.request_code}/specifications`}>
-                  <PencilIcon />
-                  Edit specifications
-                </Link>
-              </Button>
+              closed ? undefined : (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/admin/requests/${request.request_code}/specifications`}>
+                    <PencilIcon />
+                    Edit specifications
+                  </Link>
+                </Button>
+              )
             }
             generalActions={
-              <GeneralInfoEditor
-                requestId={request.id}
-                teams={teams ?? []}
-                value={{
-                  title: request.title,
-                  requesterName: request.requester_name,
-                  teamId: request.team_id,
-                  approverName: request.final_approver_name,
-                  approverEmail: request.final_approver_email,
-                  isDeal: request.is_deal,
-                  dealName: request.deal_name ?? "",
-                  dealSize: request.deal_size === null ? "" : String(request.deal_size),
-                }}
-              />
+              closed ? undefined : (
+                <GeneralInfoEditor
+                  requestId={request.id}
+                  teams={teams ?? []}
+                  value={{
+                    title: request.title,
+                    requesterName: request.requester_name,
+                    teamId: request.team_id,
+                    approverName: request.final_approver_name,
+                    approverEmail: request.final_approver_email,
+                    isDeal: request.is_deal,
+                    dealName: request.deal_name ?? "",
+                    dealSize: request.deal_size === null ? "" : String(request.deal_size),
+                  }}
+                />
+              )
             }
           />
         </div>
@@ -186,6 +197,7 @@ const SENTENCES: Record<string, string> = {
   designer_accepted: "accepted the request",
   reassign_requested: "asked to reassign the request",
   returned: "returned the request",
+  cancelled: "cancelled the request",
 };
 
 function showValue(action: string, value: string | null) {
