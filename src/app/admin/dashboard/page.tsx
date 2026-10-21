@@ -75,7 +75,8 @@ export default async function DashboardPage() {
   // Feedback response rate: completed requests from outside the Marketing team.
   const completedOutside = rows.filter((r) => r.status === "completed" && !r.team?.is_marketing).length;
   const teams = foldShares(sorted(byTeam));
-  const deals = rows.filter((r) => r.is_deal);
+  // Returned and Cancelled deal requests don't count (owner, Oct 21).
+  const deals = rows.filter((r) => r.is_deal && !(INACTIVE_STATUSES as readonly string[]).includes(r.status));
   const dealTotal = deals.reduce((n, r) => n + (r.deal_size ?? 0), 0);
 
   return (
