@@ -2,7 +2,7 @@ import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { RememberList } from "@/components/data-table/ListMemory";
 import { requireStaff } from "@/lib/auth";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
-import { listRequests, parseListParams, statusesInView } from "@/lib/requests/list";
+import { facetsInView, listRequests, parseListParams } from "@/lib/requests/list";
 import { INACTIVE_STATUSES, statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
@@ -18,9 +18,9 @@ export default async function InactiveRequestsPage({
   const supabase = await createClient();
 
   const options = { searchRequester: true, scope: "inactive" } as const;
-  const [{ rows, total }, present, designers, all] = await Promise.all([
+  const [{ rows, total }, facets, designers, all] = await Promise.all([
     listRequests(supabase, params, options),
-    statusesInView(supabase, params, options),
+    facetsInView(supabase, params, options),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase.from("requests").select("status").in("status", [...INACTIVE_STATUSES]),
   ]);
@@ -61,7 +61,7 @@ export default async function InactiveRequestsPage({
           {
             key: "status",
             label: "Status",
-            options: statusFilterOptions(INACTIVE_STATUSES, present),
+            options: statusFilterOptions(INACTIVE_STATUSES, facets.status),
           },
           {
             key: "deal",

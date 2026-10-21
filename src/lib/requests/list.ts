@@ -139,8 +139,8 @@ async function searchCondition(supabase: Supabase, params: ListParams, options: 
   return conditions.join(",");
 }
 
-// Applies every filter in the URL (except Status when `skipStatus`).
-function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, search: string | null, skipStatus = false): Q {
+// Applies every filter in the URL.
+function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, search: string | null): Q {
   let query = base as unknown as Filterable;
   if (options.requesterId) query = query.eq("requester_id", options.requesterId);
   if (options.dealsOnly) query = query.eq("is_deal", true);
@@ -159,7 +159,7 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
   }
   if (params.deal) query = query.eq("is_deal", params.deal === "yes");
   if (search) query = query.or(search);
-  if (!skipStatus && params.status.length) query = query.in("status", params.status);
+  if (params.status.length) query = query.in("status", params.status);
   if (params.type.length) query = query.in("request_type_id", params.type);
   if (params.team.length) query = query.in("team_id", params.team);
   if (params.designer === "none") query = query.is("assigned_designer_id", null);
@@ -182,14 +182,38 @@ export async function listRequests(supabase: Supabase, params: ListParams, optio
   return { rows: data ?? [], total: count ?? 0 };
 }
 
-// The statuses present under the current tab, view and filters (ignoring the
-// Status filter itself), so the Status filter can grey out the rest
-// (owner, Oct 21).
-export async function statusesInView(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
+// Which statuses, teams and types have requests under the current tab, view
+// and other filters, so each filter can grey out the rest (owner, Oct 21).
+// Each list ignores its own filter, so ticking one value never greys out
+// the other choices in that same filter.
+export async function facetsInView(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
   const search = await searchCondition(supabase, params, options);
-  const { data, error } = await applyFilters(supabase.from("requests").select("status"), params, options, search, true);
-  if (error) throw new Error(error.message);
-  return new Set((data ?? []).map((r) => r.status as string));
+  const values = async (p: ListParams, pick: (r: { status: string; team_id: string; request_type_id: string }) => string) => {
+    // Read in pages of 1,000 (the most the database returns at once).
+    const found = new Set<string>();
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await applyFilters(
+        supabase.from("requests").select("status, team_id, request_type_id"),
+        p,
+        options,
+        search,
+      ).range(from, from + 999);
+      if (error) throw new Error(error.message);
+      for (const r of data ?? []) found.add(pick(r));
+      if (!data || data.length < 1000) return found;
+    }
+  };
+  const [status, team, type] = await Promise.all([
+    values({ ...params, status: [] }, (r) => r.status),
+    values({ ...params, team: [] }, (r) => r.team_id),
+    values({ ...params, type: [] }, (r) => r.request_type_id),
+  ]);
+  return { status, team, type };
+}
+
+// Marks the options with no requests as greyed out.
+export function markAvailable<T extends { value: string }>(options: T[], present: Set<string>) {
+  return options.map((o) => ({ ...o, disabled: !present.has(o.value) }));
 }
 
 export type RequestListRow = Awaited<ReturnType<typeof listRequests>>["rows"][number];
