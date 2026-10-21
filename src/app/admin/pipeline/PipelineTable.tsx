@@ -59,8 +59,36 @@ export function PipelineTable({
               cell: (info) => (info.row.original.status === "rejected" ? (info.getValue() ?? muted) : muted),
             }),
             col.accessor("updated_at", { header: "Last Updated", cell: (info) => formatDate(info.getValue()) }),
+            col.accessor("is_deal", { header: "Deal Associated", cell: (info) => (info.getValue() ? "Yes" : "No") }),
           ]
         : [];
+    // Inactive Requests leaves out Link to Output and Overall Feedback (owner, Oct 21).
+    const closingColumns: TableColumn<RequestListRow>[] =
+      extra === "inactive"
+        ? []
+        : [
+            col.accessor("link_to_output", {
+              header: "Link to Output",
+              cell: (info) =>
+                readOnly ? (
+                  <OutputLink value={info.getValue()} />
+                ) : (
+                  <LinkEditor
+                    requestId={info.row.original.id}
+                    value={info.getValue()}
+                    locked={INACTIVE.has(info.row.original.status)}
+                  />
+                ),
+            }),
+            col.display({
+              id: "feedback",
+              header: "Overall Feedback",
+              cell: (info) => {
+                const f = one(info.row.original.feedback);
+                return f ? <StarsDisplay value={overallRating(f)} /> : muted;
+              },
+            }),
+          ];
     return col.columns([
       col.accessor("request_code", {
         header: "Request ID",
@@ -129,27 +157,7 @@ export function PipelineTable({
       col.accessor("requester_name", { header: "Requester's Name", cell: (info) => <Highlight text={info.getValue()} /> }),
       col.accessor((r) => r.team?.name ?? "", { id: "team", header: "Requester's Team" }),
       col.accessor("requester_email", { header: "Requester's Email", cell: (info) => <Highlight text={info.getValue()} /> }),
-      col.accessor("link_to_output", {
-        header: "Link to Output",
-        cell: (info) =>
-          readOnly ? (
-            <OutputLink value={info.getValue()} />
-          ) : (
-            <LinkEditor
-              requestId={info.row.original.id}
-              value={info.getValue()}
-              locked={INACTIVE.has(info.row.original.status)}
-            />
-          ),
-      }),
-      col.display({
-        id: "feedback",
-        header: "Overall Feedback",
-        cell: (info) => {
-          const f = one(info.row.original.feedback);
-          return f ? <StarsDisplay value={overallRating(f)} /> : muted;
-        },
-      }),
+      ...closingColumns,
     ]);
   }, [canAssign, designers, extra, readOnly]);
 

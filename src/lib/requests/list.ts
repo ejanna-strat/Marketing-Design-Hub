@@ -28,7 +28,8 @@ type SortColumn = (typeof SORTABLE_COLUMNS)[number];
 
 // Pipeline views (owner, Oct 20): open work by default. On hold requests
 // have their own view and are not in Open (owner, Oct 21).
-export type View = "open" | "on_hold" | "completed" | "all";
+// My Requests also has Inactive (Cancelled + Returned).
+export type View = "open" | "on_hold" | "completed" | "inactive" | "all";
 
 export type ListParams = {
   q: string;
@@ -39,6 +40,7 @@ export type ListParams = {
   from: string;
   to: string;
   view: View;
+  deal: "" | "yes" | "no"; // Deal Associated filter
   sort: SortColumn;
   dir: "asc" | "desc";
   page: number;
@@ -73,7 +75,8 @@ export function parseListParams(sp: SearchParams): ListParams {
     designer: designer === "none" || UUID.test(designer) ? designer : "",
     from: DAY.test(one(sp, "from")) ? one(sp, "from") : "",
     to: DAY.test(one(sp, "to")) ? one(sp, "to") : "",
-    view: view === "on_hold" || view === "completed" || view === "all" ? view : "open",
+    view: view === "on_hold" || view === "completed" || view === "inactive" || view === "all" ? view : "open",
+    deal: one(sp, "deal") === "yes" || one(sp, "deal") === "no" ? (one(sp, "deal") as "yes" | "no") : "",
     sort: (SORTABLE_COLUMNS as readonly string[]).includes(sort) ? (sort as SortColumn) : "created_at",
     dir: one(sp, "dir") === "asc" ? "asc" : "desc",
     page: Number.isFinite(page) && page > 0 ? page : 1,
@@ -96,8 +99,9 @@ type ListOptions = {
   requesterId?: string;
   searchRequester?: boolean;
   // "pipeline": active requests only, with the Open / Completed / All view.
-  // "inactive": Cancelled and Returned only. Default: everything.
-  scope?: "pipeline" | "inactive";
+  // "inactive": Cancelled and Returned only. "requester": My Requests, with
+  // the Open / On Hold / Completed / Inactive / All view. Default: everything.
+  scope?: "pipeline" | "inactive" | "requester";
   dealsOnly?: boolean;
 };
 
@@ -147,6 +151,13 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
     if (params.view === "completed") query = query.eq("status", "completed");
   }
   if (options.scope === "inactive") query = query.in("status", INACTIVE_STATUSES);
+  if (options.scope === "requester") {
+    if (params.view === "open") query = query.not("status", "in", `(completed,on_hold,${INACTIVE_STATUSES.join(",")})`);
+    if (params.view === "on_hold") query = query.eq("status", "on_hold");
+    if (params.view === "completed") query = query.eq("status", "completed");
+    if (params.view === "inactive") query = query.in("status", INACTIVE_STATUSES);
+  }
+  if (params.deal) query = query.eq("is_deal", params.deal === "yes");
   if (search) query = query.or(search);
   if (!skipStatus && params.status.length) query = query.in("status", params.status);
   if (params.type.length) query = query.in("request_type_id", params.type);

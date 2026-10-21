@@ -65,12 +65,9 @@ export function StarRating({
             Click to rate {hover} – {levels[hover - 1]}
           </span>
         ) : value ? (
-          <>
-            <span className="font-medium">
-              You rated {value} of 5 – {levels[value - 1]}
-            </span>
-            <span className="text-muted-foreground"> · click another star to change</span>
-          </>
+          <span className="font-medium">
+            You rated {value} of 5 – {levels[value - 1]}
+          </span>
         ) : (
           <span className="text-muted-foreground">Click a star to rate (1 to 5).</span>
         )}
