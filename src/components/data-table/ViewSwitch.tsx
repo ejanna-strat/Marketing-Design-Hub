@@ -18,12 +18,12 @@ export function ViewSwitch({ requester = false }: { requester?: boolean }) {
   const views = requester ? REQUESTER_VIEWS : PIPELINE_VIEWS;
   const { get, setParams } = useUrlParams();
   const current = get("view") || "open";
-  // Each option looks like its own button so it's clear they can be clicked
-  // (owner, Oct 21).
+  // One rounded bar with a "Show:" label; the selected option is a filled
+  // pill and the others highlight on hover (owner's mock-up, Oct 21).
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Show:</span>
-      <div role="radiogroup" aria-label="Show" className="flex flex-wrap gap-1.5">
+    <div className="inline-flex items-center gap-1 rounded-full border bg-background py-1 pr-1 pl-3 text-sm shadow-sm">
+      <span className="mr-1 text-muted-foreground">Show:</span>
+      <div role="radiogroup" aria-label="Show" className="flex flex-wrap gap-0.5">
         {views.map((v) => (
           <button
             key={v.value}
@@ -32,10 +32,10 @@ export function ViewSwitch({ requester = false }: { requester?: boolean }) {
             aria-checked={current === v.value}
             onClick={() => setParams({ view: v.value === "open" ? null : v.value })}
             className={cn(
-              "h-8 cursor-pointer rounded-lg border px-3 font-medium shadow-xs transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "h-7 cursor-pointer rounded-full px-3 font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               current === v.value
-                ? "border-brand bg-brand text-white"
-                : "border-input bg-background text-foreground hover:border-brand/60 hover:bg-brand-soft hover:text-brand",
+                ? "bg-brand text-white shadow-sm"
+                : "text-foreground/80 hover:bg-brand-soft hover:text-brand",
             )}
           >
             {v.label}

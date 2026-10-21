@@ -64,7 +64,7 @@ export function DataTableToolbar({
         {leading}
         {showSearch && (
           <form
-            className="relative w-full sm:w-60"
+            className="relative w-full sm:w-48"
             onSubmit={(e) => {
               e.preventDefault();
               setParams({ q: q.trim() || null });
