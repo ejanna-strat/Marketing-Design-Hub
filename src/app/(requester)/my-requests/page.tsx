@@ -4,7 +4,7 @@ import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { listRequests, parseListParams } from "@/lib/requests/list";
+import { facetsInView, listRequests, markAvailable, parseListParams } from "@/lib/requests/list";
 import { statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MyRequestsTable } from "./MyRequestsTable";
@@ -18,8 +18,10 @@ export default async function MyRequestsPage({
   const params = parseListParams(await searchParams);
   const supabase = await createClient();
 
-  const [{ rows, total }, types] = await Promise.all([
-    listRequests(supabase, params, { requesterId: user.id, scope: "requester" }),
+  const options = { requesterId: user.id, scope: "requester" } as const;
+  const [{ rows, total }, facets, types] = await Promise.all([
+    listRequests(supabase, params, options),
+    facetsInView(supabase, params, options),
     supabase.from("request_types").select("id, name").order("sort_order"),
   ]);
 
@@ -40,8 +42,13 @@ export default async function MyRequestsPage({
       <DataTableToolbar
         leading={<ViewSwitch requester />}
         filters={[
-          { key: "status", label: "Status", options: statusOptions("requester") },
-          { key: "type", label: "Type", options: (types.data ?? []).map((t) => ({ value: t.id, label: t.name })) },
+          // Options with none of your requests in the current view are greyed out (owner, Oct 21).
+          { key: "status", label: "Status", options: markAvailable(statusOptions("requester"), facets.status) },
+          {
+            key: "type",
+            label: "Type",
+            options: markAvailable((types.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.type),
+          },
         ]}
       />
       <MyRequestsTable rows={rows} total={total} page={params.page} pageSize={params.pageSize} />
