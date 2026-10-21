@@ -3,7 +3,7 @@
 export const FEEDBACK_COPY = {
   title: "Marketing Design Request Feedback",
   intro:
-    "We'd love to know how we did! Your feedback helps us improve our design process and the outputs we deliver. Please submit a separate feedback form for each design output you received.",
+    "We'd love to know how we did! Your feedback helps us improve our design process and the outputs we deliver.",
   process: {
     heading: "Design Request Process",
     question:
