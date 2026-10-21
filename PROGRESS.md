@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 21, 2026 · version 0.22.1_
+_Last updated: Oct 21, 2026 · version 0.22.3_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -38,6 +38,7 @@ _Last updated: Oct 21, 2026 · version 0.22.1_
 - v0.21.0 (owner list, Oct 21, seventh round): Inactive Requests shows who cancelled or returned each request; Requester's Email column removed from the staff tables; view switch restyled as one rounded bar with a filled pill.
 - v0.22.0 (owner, Oct 21): Team and Type filters grey out options with no requests in the current tab/view (Pipeline, Deal Requests, My Requests), like Status.
 - v0.22.1: the deal question and request pages say "None" instead of "No" (owner, Oct 21).
+- v0.22.3: search boxes just say "Search" (owner, Oct 21).
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql` and `0013_requester_cancel.sql` are applied to staging only. **Owner:** add `CRON_SECRET` (any long random text) to Vercel's Production environment so the daily reminder can run; Vercel only runs scheduled jobs on Production. At release also: create a public `brand` storage bucket with `logo.png` in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates.
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 

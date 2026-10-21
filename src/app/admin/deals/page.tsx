@@ -64,7 +64,6 @@ export default async function DealRequestsPage({
       </div>
       <DataTableToolbar
         leading={<ViewSwitch />}
-        searchPlaceholder="Search ID, title, deal, requester, type, output or designer"
         filters={[
           {
             key: "status",

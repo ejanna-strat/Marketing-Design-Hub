@@ -23,7 +23,8 @@ const split = (v: string) => (v ? v.split(",").filter(Boolean) : []);
 // kept in the URL.
 export function DataTableToolbar({
   filters,
-  searchPlaceholder = "Search ID, title, type, output or designer",
+  // Just "Search": it matches anything shown in the table (owner, Oct 21).
+  searchPlaceholder = "Search",
   showSearch = true,
   showDates = true,
   leading,

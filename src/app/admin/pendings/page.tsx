@@ -41,7 +41,7 @@ export default async function PendingsPage({
       </div>
       <RememberList label="Pendings" />
       <PendingTabs tabs={tabs} current={current} />
-      <DataTableToolbar searchPlaceholder="Search ID, title, requester, type, output or designer" showDates={false} filters={[]} />
+      <DataTableToolbar showDates={false} filters={[]} />
       <PipelineTable
         rows={rows}
         total={total}
