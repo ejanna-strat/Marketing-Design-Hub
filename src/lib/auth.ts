@@ -2,6 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { isTheme, type Theme } from "@/lib/theme/shared";
 import type { Enums } from "@/lib/supabase/database.types";
 
 export type CurrentUser = {
@@ -9,6 +10,7 @@ export type CurrentUser = {
   email: string;
   fullName: string;
   teamId: string | null;
+  theme: Theme;
   roles: Enums<"app_role">[];
   isAdmin: boolean;
   isLeadDesigner: boolean;
@@ -34,7 +36,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, team_id, user_roles(role), designers(id)")
+    .select("full_name, email, team_id, theme, user_roles(role), designers(id)")
     .eq("id", userId)
     .maybeSingle();
 
@@ -48,6 +50,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
     fullName: profile?.full_name ?? "",
     teamId: profile?.team_id ?? null,
+    theme: isTheme(profile?.theme) ? profile.theme : "light",
     roles,
     isAdmin,
     isLeadDesigner,

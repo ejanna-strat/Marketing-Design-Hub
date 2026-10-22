@@ -174,7 +174,7 @@ export default async function DashboardPage() {
                       "flex items-center justify-between rounded-lg border px-4 py-3 transition-colors",
                       // Categories with requests waiting stand out (owner, Oct 21).
                       t.count > 0
-                        ? "border-amber-300 bg-amber-50 text-amber-950 hover:border-amber-400 hover:bg-amber-100"
+                        ? "border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-950 dark:text-amber-300 hover:border-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20"
                         : "text-muted-foreground hover:border-brand hover:bg-brand-soft/50",
                     )}
                   >

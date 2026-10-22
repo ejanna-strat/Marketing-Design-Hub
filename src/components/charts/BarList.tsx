@@ -41,7 +41,7 @@ export function BarList({
             {d.value > 0 && (
               <span className="h-[18px] rounded-r bg-brand" style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />
             )}
-            <span className="shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 tabular-nums">
+            <span className="shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 dark:text-gray-300 tabular-nums">
               {d.value}
               {pct(d.value)}
               <span className="sr-only"> {unit}</span>

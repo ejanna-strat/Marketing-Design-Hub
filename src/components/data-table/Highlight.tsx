@@ -14,7 +14,7 @@ export function Highlight({ text }: { text: string | null | undefined }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === q.toLowerCase() ? (
-          <mark key={i} className="rounded-sm bg-amber-200 px-0.5 text-inherit">
+          <mark key={i} className="rounded-sm bg-amber-200 dark:bg-amber-500/40 px-0.5 text-inherit">
             {part}
           </mark>
         ) : (
