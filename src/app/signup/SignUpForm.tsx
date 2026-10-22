@@ -1,10 +1,20 @@
 "use client";
 
+import { MailWarningIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { signUp } from "@/app/login/actions";
 import { FormError, FormNotice } from "@/components/shell/AuthShell";
+import { EMAIL_SENDER, EMAIL_SENDER_NAME } from "@/components/SpamNotice";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +24,8 @@ export function SignUpForm() {
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState<string>();
   const [done, setDone] = useState<string>();
+  // Pop-up after signing up: check spam and mark "Not spam" (owner, Oct 22).
+  const [spamTip, setSpamTip] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent) {
@@ -34,7 +46,10 @@ export function SignUpForm() {
     startTransition(async () => {
       const result = await signUp({ fullName: form.fullName, email: form.email, password: form.password });
       if (!result) return; // signed in straight away (redirected)
-      if (result.ok) setDone(result.message);
+      if (result.ok) {
+        setDone(result.message);
+        setSpamTip(true);
+      }
       else setError(result.error);
     });
   }
@@ -46,6 +61,40 @@ export function SignUpForm() {
         <Button asChild className="w-full" size="lg" variant="outline">
           <Link href="/login">Back to sign in</Link>
         </Button>
+        <Dialog open={spamTip} onOpenChange={setSpamTip}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MailWarningIcon className="size-5 text-amber-600" aria-hidden />
+                Check your email to finish signing up
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    We sent a confirmation link to <span className="font-medium text-foreground">{form.email.trim()}</span>.
+                  </p>
+                  <p>
+                    It may land in your <span className="font-medium text-foreground">Spam or Junk</span> folder. If so,
+                    open it and mark it as <span className="font-medium text-foreground">&ldquo;Not spam&rdquo;</span> so
+                    our future emails (like request updates) reach your inbox.
+                  </p>
+                  <p>
+                    Emails come from{" "}
+                    <span className="font-medium text-foreground">
+                      {EMAIL_SENDER_NAME} ({EMAIL_SENDER})
+                    </span>
+                    .
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" onClick={() => setSpamTip(false)} autoFocus>
+                Got it
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
