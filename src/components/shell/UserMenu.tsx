@@ -47,6 +47,7 @@ export function UserMenu({
   theme: Theme;
 }) {
   const [editing, setEditing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [theme, setTheme] = useState<Theme>(savedTheme);
 
   // The account's saved choice wins: if this browser's cookie differs (e.g.
@@ -120,13 +121,15 @@ export function UserMenu({
             <UserPenIcon />
             Change my name
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => signOut()}>
+          {/* Asks first, in case it was clicked by accident (owner, Oct 22). */}
+          <DropdownMenuItem onSelect={() => setSigningOut(true)}>
             <LogOutIcon />
             Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {editing && <NameDialog current={name} onClose={() => setEditing(false)} />}
+      {signingOut && <SignOutDialog onClose={() => setSigningOut(false)} />}
     </>
   );
 }
@@ -178,6 +181,29 @@ function NameDialog({ current, onClose }: { current: string; onClose: () => void
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SignOutDialog({ onClose }: { onClose: () => void }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Sign out?</DialogTitle>
+          <DialogDescription>You&apos;ll need to sign in again with your email and password to come back.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} autoFocus>
+            Stay signed in
+          </Button>
+          <Button type="button" disabled={pending} onClick={() => startTransition(() => signOut())}>
+            <LogOutIcon />
+            {pending ? "Signing out…" : "Sign out"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
