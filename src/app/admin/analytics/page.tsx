@@ -110,28 +110,9 @@ export default async function AnalyticsPage({
         to={to}
         years={years}
         year={year}
+        sections={JUMPS}
       />
 
-      {/* Stays at the top while scrolling, so any section is one click away
-          (owner, Oct 22). The band behind it is the page's own colour with no
-          border, and fades into the page at the bottom, so it reads as pinned
-          without looking like a box (owner, Oct 23). The colour matches the
-          admin layout's bg-muted/30 over the page background. */}
-      <nav
-        aria-label="Sections"
-        className="sticky top-14 z-30 -mx-1 flex flex-wrap items-center gap-x-1 gap-y-2 bg-(--page-bg) px-1 py-2 text-sm [--page-bg:color-mix(in_srgb,var(--muted)_30%,var(--background))] after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-5 after:bg-linear-to-b after:from-(--page-bg) after:to-transparent"
-      >
-        <span className="mr-1 text-muted-foreground">Jump to:</span>
-        {JUMPS.map((j) => (
-          <a
-            key={j.id}
-            href={`#${j.id}`}
-            className="rounded-full border bg-background px-3 py-1 font-medium text-brand transition-colors hover:border-brand/60 hover:bg-brand-soft"
-          >
-            {j.label}
-          </a>
-        ))}
-      </nav>
 
       <section id="overview" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={LayoutDashboardIcon} title="Overview" description="The period at a glance" />
