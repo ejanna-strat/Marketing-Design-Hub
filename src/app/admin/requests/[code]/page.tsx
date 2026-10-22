@@ -146,6 +146,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                   teams={teams ?? []}
                   value={{
                     title: request.title,
+                    projectOverview: request.project_overview ?? "",
                     requesterName: request.requester_name,
                     teamId: request.team_id,
                     approverName: request.final_approver_name,
@@ -198,6 +199,7 @@ const SENTENCES: Record<string, string> = {
   reassign_requested: "asked to reassign the request",
   returned: "returned the request",
   cancelled: "cancelled the request",
+  project_overview: "changed Project Overview and Objective",
 };
 
 function showValue(action: string, value: string | null) {

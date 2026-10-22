@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -301,6 +302,7 @@ export function DateNeededEditor({ requestId, value }: { requestId: string; valu
 
 export type GeneralInfo = {
   title: string;
+  projectOverview: string;
   requesterName: string;
   teamId: string;
   approverName: string;
@@ -329,6 +331,7 @@ export function GeneralInfoEditor({
   const [form, setForm] = useState(value);
   const changed =
     form.title.trim() !== value.title ||
+    form.projectOverview.trim() !== value.projectOverview ||
     form.requesterName.trim() !== value.requesterName ||
     form.teamId !== value.teamId ||
     form.approverName.trim() !== value.approverName ||
@@ -340,6 +343,13 @@ export function GeneralInfoEditor({
     e.preventDefault();
     const patch: RequestPatch = {};
     if (form.title.trim() !== value.title) patch.title = form.title;
+    if (form.projectOverview.trim() !== value.projectOverview) {
+      if (!form.projectOverview.trim()) {
+        toast.error("Please answer: Project Overview and Objective");
+        return;
+      }
+      patch.project_overview = form.projectOverview;
+    }
     if (form.requesterName.trim() !== value.requesterName) patch.requester_name = form.requesterName;
     if (form.teamId !== value.teamId) patch.team_id = form.teamId;
     if (form.approverName.trim() !== value.approverName) patch.final_approver_name = form.approverName;
@@ -361,7 +371,7 @@ export function GeneralInfoEditor({
     setOpen(false);
   }
 
-  const set = (key: keyof GeneralInfo) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (key: keyof GeneralInfo) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [key]: e.target.value });
 
   return (
@@ -410,6 +420,10 @@ export function GeneralInfoEditor({
             <div className="space-y-2">
               <Label htmlFor="gi-title">Request Title</Label>
               <Input id="gi-title" value={form.title} onChange={set("title")} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gi-overview">Project Overview and Objective</Label>
+              <Textarea id="gi-overview" rows={4} value={form.projectOverview} onChange={set("projectOverview")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gi-name">Requester&apos;s Name</Label>

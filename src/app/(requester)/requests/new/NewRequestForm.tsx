@@ -17,8 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { links } from "@/config/links";
+import { PROJECT_OVERVIEW_HELP } from "@/lib/requests/schema";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { digitsOnly } from "@/lib/money";
 import {
@@ -85,6 +87,7 @@ export function NewRequestForm({
     defaultValues: edit?.values ?? {
       requester_name: user.name,
       title: "",
+      project_overview: "",
       team_id: teams.some((t) => t.id === user.teamId) ? user.teamId! : "",
       request_type_id: "",
       date_needed: "",
@@ -226,6 +229,22 @@ export function NewRequestForm({
             error={errors.title?.message}
           >
             <Input id="title" aria-invalid={!!errors.title || undefined} {...register("title")} />
+          </Field>
+
+          {/* Moved here from the specifications so every type asks it (owner, Oct 22). */}
+          <Field
+            label="Project Overview and Objective"
+            htmlFor="project_overview"
+            required
+            help={PROJECT_OVERVIEW_HELP}
+            error={errors.project_overview?.message}
+          >
+            <Textarea
+              id="project_overview"
+              rows={4}
+              aria-invalid={!!errors.project_overview || undefined}
+              {...register("project_overview")}
+            />
           </Field>
 
           <Field
