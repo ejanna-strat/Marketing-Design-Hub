@@ -6,7 +6,10 @@ import { cn } from "@/lib/utils";
 export const EMAIL_SENDER = "marketingdesignhub@ejoo.site";
 export const EMAIL_SENDER_NAME = "Marketing Design Hub";
 
-export function SpamNotice({ className }: { className?: string }) {
+// `senderOnOwnLine`: in narrow boxes (sign in / sign up) the sender name and
+// email go on their own line, so there's no big gap before the email
+// (owner, Oct 22).
+export function SpamNotice({ className, senderOnOwnLine = false }: { className?: string; senderOnOwnLine?: boolean }) {
   return (
     <div
       role="note"
@@ -18,10 +21,9 @@ export function SpamNotice({ className }: { className?: string }) {
       <MailWarningIcon className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
       <p>
         <span className="font-semibold">Check your spam folder.</span> Our emails will appear under the sender name{" "}
-        <span className="font-medium">
-          {EMAIL_SENDER_NAME} (<span className="whitespace-nowrap">{EMAIL_SENDER}</span>)
-        </span>
-        .{" "}
+        <span className={cn("font-medium", senderOnOwnLine && "sm:block")}>
+          {EMAIL_SENDER_NAME} (<span className="whitespace-nowrap">{EMAIL_SENDER}</span>).
+        </span>{" "}
         {/* The second sentence starts on its own line on wider screens (owner, Oct 21). */}
         <span className="sm:block">
           If you don&apos;t see them in your inbox, check your Spam or Junk folder and mark the email as &ldquo;Not

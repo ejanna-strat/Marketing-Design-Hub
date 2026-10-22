@@ -5,7 +5,7 @@ import { theme } from "@/config/theme";
 export function AuthShell({ subtitle, children }: { subtitle: string; children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-brand-soft/40 p-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-background p-6 shadow-sm">
+      <div className="w-full max-w-xl space-y-6 rounded-xl border bg-background p-6 shadow-sm">
         <div className="space-y-1 text-center">
           <Image src="/brand/logo.png" alt="" width={56} height={56} priority className="mx-auto mb-2" />
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Stratpoint Marketing</p>
