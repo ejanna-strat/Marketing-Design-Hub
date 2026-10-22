@@ -11,7 +11,7 @@ const activeClass = "bg-brand-soft font-medium text-brand hover:bg-brand-soft ho
 
 function roleLabel(user: CurrentUser) {
   const tags = [
-    user.isAdmin && "Admin",
+    user.isSuperAdmin ? "Super Admin" : user.isAdmin && "Admin",
     user.isLeadDesigner && "Lead Designer",
     user.roles.includes("designer") && "Designer",
   ].filter(Boolean);

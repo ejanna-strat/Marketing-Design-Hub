@@ -1,9 +1,9 @@
-import { requireManager } from "@/lib/auth";
+import { requireMembersManager } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MembersManager } from "./MembersManager";
 
 export default async function MembersPage() {
-  const user = await requireManager();
+  const user = await requireMembersManager();
   const supabase = await createClient();
 
   const [{ data: members, error }, { data: profiles }] = await Promise.all([
@@ -29,6 +29,7 @@ export default async function MembersPage() {
       <MembersManager
         currentEmail={user.email}
         canGrantAdmin={user.isAdmin}
+        canGrantSuper={user.isSuperAdmin}
         members={(members ?? []).map((m) => ({
           email: m.email,
           fullName: m.full_name,

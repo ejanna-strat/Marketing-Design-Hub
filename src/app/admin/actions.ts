@@ -54,7 +54,7 @@ const patchSchema = z
 export type RequestPatch = z.input<typeof patchSchema>;
 
 // Changes pipeline fields and General Information on one request. Every
-// Marketing team member can; only Admins and Lead Designers can assign the
+// Marketing team member can; only Super Admins and Lead Designers can assign the
 // designer. Picking or removing a designer also updates the status
 // automatically (in the database).
 // The database enforces the same rules (RLS + column guard) and writes the
@@ -76,14 +76,15 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     .eq("id", requestId)
     .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
-  // Designers (owner, Oct 22): take an unassigned request for themselves, or
-  // change the designer to anyone once it has one. The database checks too.
+  // Designers and Admins (owner, Oct 22): take an unassigned request for
+  // yourself, or change the designer to anyone once it has one. The database
+  // checks too.
   if (!user.isManager && "assigned_designer_id" in changes) {
-    if (!user.designerId) return { ok: false, error: "Only the Design team can assign designers." };
+    if (!user.designerId && !user.isAdmin) return { ok: false, error: "Only the Design team can assign designers." };
     if (changes.assigned_designer_id === null) {
-      return { ok: false, error: "Only Admins and Lead Designers can remove the designer." };
+      return { ok: false, error: "Only Super Admins and Lead Designers can remove the designer." };
     }
-    if (!before.assigned_designer_id && changes.assigned_designer_id !== user.designerId) {
+    if (!before.assigned_designer_id && (!user.designerId || changes.assigned_designer_id !== user.designerId)) {
       return { ok: false, error: "You can take this request for yourself; a Lead Designer assigns it to someone else." };
     }
   }
@@ -173,10 +174,10 @@ function rpcError(error: { code?: string; message: string }, fallback: string) {
   return error.code === "P0001" || error.code === "42501" ? error.message : fallback;
 }
 
-// Reviewer (Admin / Lead Designer): return a new request with a reason.
+// Reviewer (Super Admin / Lead Designer): return a new request with a reason.
 export async function returnRequest(requestId: string, reason: string): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.isManager) return { ok: false, error: "Only Admins and Lead Designers can return requests." };
+  if (!user?.isManager) return { ok: false, error: "Only Super Admins and Lead Designers can return requests." };
   if (!reason.trim()) return { ok: false, error: "Please give the reason for returning the request." };
   if (reason.length > 2000) return { ok: false, error: "Please keep the reason under 2,000 characters." };
 

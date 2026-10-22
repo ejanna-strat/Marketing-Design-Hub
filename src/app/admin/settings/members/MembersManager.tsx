@@ -31,6 +31,7 @@ export type Member = {
 };
 
 const TAG_STYLES: Record<string, string> = {
+  super_admin: "bg-slate-900 text-white dark:bg-white dark:text-slate-900",
   admin: "bg-brand text-white",
   lead_designer: "bg-brand-soft text-brand",
   designer: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300",
@@ -42,11 +43,14 @@ export function MembersManager({
   members,
   currentEmail,
   canGrantAdmin,
+  canGrantSuper,
 }: {
   members: Member[];
   currentEmail: string;
-  // Only Admins can give or remove the Admin tag.
+  // Super Admins and Admins give or remove the Admin tag.
   canGrantAdmin: boolean;
+  // Only Super Admins give, remove or change the Super Admin tag.
+  canGrantSuper: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<{ member: Member; isNew: boolean } | null>(null);
@@ -97,7 +101,10 @@ export function MembersManager({
             ) : (
               members.map((m) => {
                 const isMe = m.email === currentEmail.toLowerCase();
-                const protectedAdmin = m.roles.includes("admin") && !canGrantAdmin;
+                const protectedAdmin =
+                  (m.roles.includes("admin") && !canGrantAdmin) || (m.roles.includes("super_admin") && !canGrantSuper);
+                const who = m.roles.includes("super_admin") ? "a Super Admin" : "an Admin";
+                const onlyWho = m.roles.includes("super_admin") ? "Only Super Admins" : "Only Admins";
                 return (
                   <TableRow key={m.email}>
                     <TableCell>
@@ -137,7 +144,7 @@ export function MembersManager({
                           size="icon-sm"
                           aria-label={`Edit ${m.fullName}`}
                           disabled={protectedAdmin}
-                          title={protectedAdmin ? "Only Admins can change an Admin" : undefined}
+                          title={protectedAdmin ? `${onlyWho} can change ${who}` : undefined}
                           onClick={() => setEditing({ member: m, isNew: false })}
                         >
                           <PencilIcon />
@@ -147,7 +154,7 @@ export function MembersManager({
                           size="icon-sm"
                           aria-label={`Remove ${m.fullName}`}
                           disabled={isMe || protectedAdmin}
-                          title={isMe ? "You can't remove yourself" : protectedAdmin ? "Only Admins can remove an Admin" : undefined}
+                          title={isMe ? "You can't remove yourself" : protectedAdmin ? `${onlyWho} can remove ${who}` : undefined}
                           onClick={() => setRemoving(m)}
                           className="text-destructive hover:text-destructive"
                         >
@@ -179,6 +186,7 @@ export function MembersManager({
           isNew={editing.isNew}
           isMe={editing.member.email === currentEmail.toLowerCase()}
           canGrantAdmin={canGrantAdmin}
+          canGrantSuper={canGrantSuper}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -215,6 +223,7 @@ function MemberDialog({
   isNew,
   isMe,
   canGrantAdmin,
+  canGrantSuper,
   onClose,
   onSaved,
 }: {
@@ -222,6 +231,7 @@ function MemberDialog({
   isNew: boolean;
   isMe: boolean;
   canGrantAdmin: boolean;
+  canGrantSuper: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -297,7 +307,18 @@ function MemberDialog({
             <legend className="mb-2 text-sm font-medium">Tags</legend>
             {MEMBER_ROLES.map((r) => {
               const locked =
-                r.value === "admin" && (!canGrantAdmin || (isMe && member.roles.includes("admin")));
+                (r.value === "admin" && (!canGrantAdmin || (isMe && member.roles.includes("admin")))) ||
+                (r.value === "super_admin" && !canGrantSuper);
+              const note =
+                r.value === "admin" && !canGrantAdmin
+                  ? " Only Super Admins and Admins can give this tag."
+                  : r.value === "admin" && isMe && member.roles.includes("admin")
+                    ? " You can't remove your own Admin tag."
+                    : r.value === "super_admin" && !canGrantSuper
+                      ? " Only Super Admins can give this tag."
+                      : r.value === "super_admin" && isMe && member.roles.includes("super_admin")
+                        ? " You can step down once someone else is a Super Admin."
+                        : "";
               return (
                 <div key={r.value} className="flex items-start gap-2.5">
                   <Checkbox
@@ -311,9 +332,7 @@ function MemberDialog({
                     <span className="font-medium">{r.label}</span>
                     <span className="block text-xs text-muted-foreground">
                       {r.description}
-                      {r.value === "admin" && !canGrantAdmin && " Only Admins can give this tag."}
-                      {r.value === "admin" && canGrantAdmin && isMe && member.roles.includes("admin") &&
-                        " You can't remove your own Admin tag."}
+                      {note}
                     </span>
                   </Label>
                 </div>
