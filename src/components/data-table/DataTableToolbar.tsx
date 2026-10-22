@@ -288,7 +288,7 @@ function DateFilter({ from, to, onChange }: { from: string; to: string; onChange
               onChange("", "");
               setOpen(false);
             }}
-            className="mx-2 mb-2 w-[calc(100%-1rem)] rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
+            className="mx-3 mb-3 -mt-1 w-[calc(100%-1.5rem)] rounded-md px-2 py-1.5 text-center text-xs font-medium text-brand hover:bg-brand-soft"
           >
             Clear dates
           </button>
