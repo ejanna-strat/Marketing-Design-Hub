@@ -14,7 +14,7 @@ const memberSchema = z.object({
     .toLowerCase()
     .regex(/^[^@\s]+@stratpoint\.com$/, "Please enter a @stratpoint.com email address."),
   fullName: z.string().trim().min(1, "Please enter the member's name.").max(200),
-  roles: z.array(z.enum(["admin", "lead_designer", "designer"])).min(1, "Please choose at least one tag."),
+  roles: z.array(z.enum(["super_admin", "admin", "lead_designer", "designer"])).min(1, "Please choose at least one tag."),
   designerName: z.string().trim().max(60),
   getsTeamEmails: z.boolean(),
 });
@@ -30,10 +30,12 @@ function friendly(error: { code?: string; message: string }) {
     : "We couldn't save the change. Please try again.";
 }
 
-// Adds a member or changes their tags. Admins and Lead Designers only.
+// Adds a member or changes their tags. Super Admins, Admins and Lead Designers only.
 export async function saveMember(input: MemberInput): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.isManager) return { ok: false, error: "Only Admins and Lead Designers can manage members." };
+  if (!user?.canManageMembers) {
+    return { ok: false, error: "Only Super Admins, Admins and Lead Designers can manage members." };
+  }
 
   const parsed = memberSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the form." };
@@ -56,7 +58,9 @@ export async function saveMember(input: MemberInput): Promise<Result> {
 // Removes a member; they become a Requester again.
 export async function removeMember(email: string): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.isManager) return { ok: false, error: "Only Admins and Lead Designers can manage members." };
+  if (!user?.canManageMembers) {
+    return { ok: false, error: "Only Super Admins, Admins and Lead Designers can manage members." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_team_member", { p_email: email });

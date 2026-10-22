@@ -19,7 +19,14 @@ export const MEMBER_ROLES: { value: MemberRole; label: string; description: stri
   {
     value: "admin",
     label: "Admin",
-    description: "Full access: every request field, members, and (later) dashboards, reports and settings.",
+    description:
+      "Sees everything and manages members. Works on requests like a Designer, but can't accept, assign or return new requests.",
+  },
+  {
+    value: "super_admin",
+    label: "Super Admin",
+    description:
+      "Full access: reviews new requests (Accept & assign, Return), assigns and removes designers, manages members and gives the Super Admin tag.",
   },
 ];
 

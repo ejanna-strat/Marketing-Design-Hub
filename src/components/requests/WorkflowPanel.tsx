@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 // Phase 2 workflow (CLAUDE.md §8.1), top right of the staff Request Details:
 // a tag showing where the request stands, and the buttons for whoever's turn
-// it is. Reviewer (Admin / Lead Designer): Accept & assign, or Return.
+// it is. Reviewer (Super Admin / Lead Designer): Accept & assign, or Return.
 // Assigned designer: Accept, or Ask to reassign.
 export type WorkflowState = {
   requestId: string;
