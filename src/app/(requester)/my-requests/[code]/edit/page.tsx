@@ -60,6 +60,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
           is_deal: request.is_deal ? "yes" : "no",
           deal_name: request.deal_name ?? "",
           deal_size: request.deal_size === null ? "" : String(request.deal_size),
+          project_overview: request.project_overview ?? "",
           answers,
         },
       }}

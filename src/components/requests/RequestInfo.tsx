@@ -30,6 +30,12 @@ export function RequestInfo({
     </span>
   );
 
+  // Older requests also have the overview among their specification answers;
+  // it now shows under General Information instead (owner, Oct 22).
+  const specAnswers = request.answers.filter(
+    (a) => !(request.project_overview && a.question_label_snapshot === "Project Overview and Objective"),
+  );
+
   return (
     <>
       <Card>
@@ -53,6 +59,11 @@ export function RequestInfo({
             />
             <Item label="Business Unit" value={request.team?.name} wide />
             <Item label="Request Title" value={request.title} wide />
+            <Item
+              label="Project Overview and Objective"
+              value={request.project_overview && <LinkifiedText text={request.project_overview} />}
+              wide
+            />
             <Item label="Date Needed" value={formatDate(request.date_needed)} />
             <Item label="Final Approver of the Design" value={approver} wide />
             <Item
@@ -73,11 +84,11 @@ export function RequestInfo({
           {specsActions && <CardAction>{specsActions}</CardAction>}
         </CardHeader>
         <CardContent>
-          {request.answers.length === 0 ? (
+          {specAnswers.length === 0 ? (
             <p className="text-sm text-muted-foreground">No specifications were given.</p>
           ) : (
             <dl className="space-y-4">
-              {request.answers.map((a) => (
+              {specAnswers.map((a) => (
                 <Item key={a.id} label={a.question_label_snapshot} value={<LinkifiedText text={answerText(a.value)} />} wide />
               ))}
             </dl>

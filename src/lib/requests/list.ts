@@ -36,7 +36,8 @@ export type ListParams = {
   status: string[];
   type: string[];
   team: string[];
-  designer: string; // a designer id, or "none" for unassigned
+  designer: string; // a designer id, or "none" for unassigned (pipeline tabs)
+  assignee: string[]; // Designer filter: designer ids and/or "none" (owner, Oct 22)
   from: string;
   to: string;
   view: View;
@@ -73,6 +74,7 @@ export function parseListParams(sp: SearchParams): ListParams {
     type: many(sp, "type", (v) => UUID.test(v)),
     team: many(sp, "team", (v) => UUID.test(v)),
     designer: designer === "none" || UUID.test(designer) ? designer : "",
+    assignee: many(sp, "assignee", (v) => v === "none" || UUID.test(v)),
     from: DAY.test(one(sp, "from")) ? one(sp, "from") : "",
     to: DAY.test(one(sp, "to")) ? one(sp, "to") : "",
     view: view === "on_hold" || view === "completed" || view === "inactive" || view === "all" ? view : "open",
@@ -164,6 +166,13 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
   if (params.team.length) query = query.in("team_id", params.team);
   if (params.designer === "none") query = query.is("assigned_designer_id", null);
   else if (params.designer) query = query.eq("assigned_designer_id", params.designer);
+  if (params.assignee.length) {
+    const ids = params.assignee.filter((v) => v !== "none");
+    const unassigned = params.assignee.includes("none");
+    if (unassigned && ids.length) query = query.or(`assigned_designer_id.is.null,assigned_designer_id.in.(${ids.join(",")})`);
+    else if (unassigned) query = query.is("assigned_designer_id", null);
+    else query = query.in("assigned_designer_id", ids);
+  }
   // Date range on the request date, in Manila days (both ends included).
   if (params.from) query = query.gte("created_at", manilaDayStart(params.from));
   if (params.to) query = query.lt("created_at", manilaDayStart(format(addDays(parseISO(params.to), 1), "yyyy-MM-dd")));
@@ -188,12 +197,15 @@ export async function listRequests(supabase: Supabase, params: ListParams, optio
 // the other choices in that same filter.
 export async function facetsInView(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
   const search = await searchCondition(supabase, params, options);
-  const values = async (p: ListParams, pick: (r: { status: string; team_id: string; request_type_id: string }) => string) => {
+  const values = async (
+    p: ListParams,
+    pick: (r: { status: string; team_id: string; request_type_id: string; assigned_designer_id: string | null }) => string,
+  ) => {
     // Read in pages of 1,000 (the most the database returns at once).
     const found = new Set<string>();
     for (let from = 0; ; from += 1000) {
       const { data, error } = await applyFilters(
-        supabase.from("requests").select("status, team_id, request_type_id"),
+        supabase.from("requests").select("status, team_id, request_type_id, assigned_designer_id"),
         p,
         options,
         search,
@@ -203,12 +215,31 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
       if (!data || data.length < 1000) return found;
     }
   };
-  const [status, team, type] = await Promise.all([
+  const [status, team, type, assignee] = await Promise.all([
     values({ ...params, status: [] }, (r) => r.status),
     values({ ...params, team: [] }, (r) => r.team_id),
     values({ ...params, type: [] }, (r) => r.request_type_id),
+    values({ ...params, assignee: [] }, (r) => r.assigned_designer_id ?? "none"),
   ]);
-  return { status, team, type };
+  return { status, team, type, assignee };
+}
+
+// Designer filter options: Unassigned, then active designers, then former
+// designers only if they have requests in view (marked "(former)" so names
+// don't repeat). Designers with nothing in view are greyed out.
+export function designerFilterOptions(
+  designers: { id: string; display_name: string; active: boolean }[],
+  present: Set<string>,
+  { unassigned = true }: { unassigned?: boolean } = {},
+) {
+  const opts = [
+    ...(unassigned ? [{ value: "none", label: "Unassigned" }] : []),
+    ...designers.filter((d) => d.active).map((d) => ({ value: d.id, label: d.display_name })),
+    ...designers
+      .filter((d) => !d.active && present.has(d.id))
+      .map((d) => ({ value: d.id, label: `${d.display_name} (former)` })),
+  ];
+  return markAvailable(opts, present);
 }
 
 // Marks the options with no requests as greyed out.

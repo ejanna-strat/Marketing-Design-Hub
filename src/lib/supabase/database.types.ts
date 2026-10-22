@@ -241,6 +241,7 @@ export type Database = {
           id: string
           team_id: string | null
           theme: string
+          hidden_approvers: Json
         }
         Insert: {
           created_at?: string
@@ -249,6 +250,7 @@ export type Database = {
           id: string
           team_id?: string | null
           theme?: string
+          hidden_approvers?: Json
         }
         Update: {
           created_at?: string
@@ -257,6 +259,7 @@ export type Database = {
           id?: string
           team_id?: string | null
           theme?: string
+          hidden_approvers?: Json
         }
         Relationships: [
           {
@@ -348,6 +351,7 @@ export type Database = {
           assigned_designer_id: string | null
           cancel_reason: string | null
           cancelled_by: string | null
+          project_overview: string | null
           created_at: string
           date_completed: string | null
           date_needed: string
@@ -379,6 +383,7 @@ export type Database = {
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
+          project_overview?: string | null
           created_at?: string
           date_completed?: string | null
           date_needed: string
@@ -410,6 +415,7 @@ export type Database = {
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
+          project_overview?: string | null
           created_at?: string
           date_completed?: string | null
           date_needed?: string
