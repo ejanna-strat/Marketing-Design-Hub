@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkRow } from "@/components/data-table/LinkRow";
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { Pagination } from "@/components/data-table/Pagination";
 import { StarsDisplay } from "@/components/feedback/Stars";
@@ -12,6 +13,10 @@ import { createClient } from "@/lib/supabase/server";
 
 const STARS = ["1", "2", "3", "4", "5"].map((v) => ({ value: v, label: `${v} ★` }));
 const HALF_STARS = ["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"].map((v) => ({ value: v, label: `${v} ★` }));
+
+function greyUnused(options: { value: string; label: string }[], used: Set<string>) {
+  return options.map((o) => ({ ...o, disabled: !used.has(o.value) }));
+}
 
 // §7.2 #3: feedback received this year. Averages leave out requesters whose
 // team is Marketing (CLAUDE.md §2); their feedback is still listed.
@@ -79,6 +84,12 @@ export default async function FeedbackPage({
       )
       .map((f) => f.request?.assigned_designer_id ?? ""),
   );
+  // Ratings nobody gave this year are greyed out in the filters (owner, Oct 22).
+  const ratingsUsed = {
+    process: new Set((rows ?? []).map((f) => String(f.process_rating))),
+    output: new Set((rows ?? []).map((f) => String(f.output_rating))),
+    overall: new Set((rows ?? []).map((f) => String(overallRating(f)))),
+  };
   const counted = all.filter((f) => !f.request?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
     counted.length ? counted.reduce((sum, f) => sum + pick(f), 0) / counted.length : 0;
@@ -123,9 +134,9 @@ export default async function FeedbackPage({
             label: "Designer",
             options: designerFilterOptions(designers ?? [], designersWithFeedback, { unassigned: false }),
           },
-          { key: "process", label: "Process", options: STARS },
-          { key: "output", label: "Output", options: STARS },
-          { key: "overall", label: "Overall", options: HALF_STARS },
+          { key: "process", label: "Process", options: greyUnused(STARS, ratingsUsed.process) },
+          { key: "output", label: "Output", options: greyUnused(STARS, ratingsUsed.output) },
+          { key: "overall", label: "Overall", options: greyUnused(HALF_STARS, ratingsUsed.overall) },
         ]}
       />
 
@@ -151,10 +162,10 @@ export default async function FeedbackPage({
               </TableRow>
             ) : (
               all.slice((page - 1) * size, page * size).map((f) => (
-                <TableRow key={f.id}>
+                <LinkRow key={f.id} href={f.request ? `/admin/requests/${f.request.request_code}` : ""}>
                   <TableCell className="align-top">
                     {f.request && (
-                      <Link href={`/admin/requests/${f.request.request_code}`} className="font-mono font-medium text-brand hover:underline">
+                      <Link href={`/admin/requests/${f.request.request_code}`} className="font-mono font-medium text-foreground">
                         {f.request.request_code}
                       </Link>
                     )}
@@ -173,7 +184,7 @@ export default async function FeedbackPage({
                     {f.comments ?? "—"}
                   </TableCell>
                   <TableCell className="align-top">{formatDate(f.submitted_at)}</TableCell>
-                </TableRow>
+                </LinkRow>
               ))
             )}
           </TableBody>

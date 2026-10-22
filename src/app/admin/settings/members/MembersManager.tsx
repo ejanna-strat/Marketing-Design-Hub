@@ -82,7 +82,7 @@ export function MembersManager({
               <TableHead className="text-xs font-semibold">Member</TableHead>
               <TableHead className="text-xs font-semibold">Tags</TableHead>
               <TableHead className="text-xs font-semibold">Name in Designer list</TableHead>
-              <TableHead className="text-xs font-semibold">Team emails</TableHead>
+              <TableHead className="text-xs font-semibold">Copied on updates</TableHead>
               <TableHead className="text-xs font-semibold">Signed in</TableHead>
               <TableHead className="w-24" />
             </TableRow>
@@ -344,9 +344,9 @@ function MemberDialog({
               className="mt-0.5"
             />
             <Label htmlFor="member-team-emails" className="block font-normal leading-snug">
-              <span className="font-medium">Gets team emails</span>
+              <span className="font-medium">Copy me on request updates</span>
               <span className="block text-xs text-muted-foreground">
-                Also receives the New Design Request email, which always goes to Lead Designers.
+                Also gets the emails Lead Designers get: New Design Request, the daily New Request Reminder, designer assigned and designer accepted.
               </span>
             </Label>
           </div>

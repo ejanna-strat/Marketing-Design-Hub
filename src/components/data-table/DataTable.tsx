@@ -3,8 +3,8 @@
 import { type ColumnDef, createColumnHelper, type RowData, tableFeatures, useTable } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { LinkRow } from "./LinkRow";
 import { Pagination } from "./Pagination";
 import { useUrlParams } from "./use-url-params";
 
@@ -40,19 +40,8 @@ export function DataTable<T extends { id: string }>({
   // row's own links, buttons, dropdowns and pop-ups.
   rowHref?: (row: T) => string;
 }) {
-  const router = useRouter();
   const { get, setParams, pending } = useUrlParams();
 
-  function openRow(e: React.MouseEvent<HTMLTableRowElement>, href: string) {
-    const target = e.target as HTMLElement;
-    // Pop-ups (dropdown lists, link editor) live outside the row on the page
-    // but still pass their clicks up to it, so only clicks inside count.
-    if (!e.currentTarget.contains(target)) return;
-    if (target.closest("a, button, input, select, textarea, label, [role=combobox], [role=menu], [role=dialog]")) return;
-    if (window.getSelection()?.toString()) return; // selecting text, not opening
-    if (e.metaKey || e.ctrlKey) window.open(href, "_blank");
-    else router.push(href);
-  }
   const table = useTable({
     features: tableFeatureSet,
     columns,
@@ -113,18 +102,13 @@ export function DataTable<T extends { id: string }>({
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={rowHref ? (e) => openRow(e, rowHref(row.original)) : undefined}
-                  // Clickable rows show a light brand-blue tint on hover (owner, Oct 22).
-                  className={cn(rowHref && "cursor-pointer hover:bg-brand-soft")}
-                >
+                <RowWrap key={row.id} href={rowHref?.(row.original)}>
                   {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id} className={cn("align-top", columnClassNames[cell.column.id])}>
                       <table.FlexRender cell={cell} />
                     </TableCell>
                   ))}
-                </TableRow>
+                </RowWrap>
               ))
             )}
           </TableBody>
@@ -134,4 +118,8 @@ export function DataTable<T extends { id: string }>({
       <Pagination total={total} page={page} pageSize={pageSize} />
     </div>
   );
+}
+
+function RowWrap({ href, children }: { href?: string; children: React.ReactNode }) {
+  return href ? <LinkRow href={href}>{children}</LinkRow> : <TableRow>{children}</TableRow>;
 }
