@@ -1,7 +1,8 @@
-import { ArrowLeftIcon, CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon, XCircleIcon } from "lucide-react";
+import { CheckCircle2Icon, FilePlus2Icon, PencilIcon, UndoIcon, XCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/CopyButton";
+import { BackToList } from "@/components/data-table/ListMemory";
 import { FeedbackCard } from "@/components/feedback/FeedbackCard";
 import { OutputLink } from "@/components/LinkifiedText";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
@@ -44,10 +45,8 @@ export default async function MyRequestDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <Link href="/my-requests" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-4" />
-        My Design Requests
-      </Link>
+      {/* Back to the tab and filters the request was opened from (owner, Oct 22). */}
+      <BackToList fallbackHref="/my-requests" fallbackLabel="My Design Requests" within="/my-requests" />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="font-mono text-sm text-muted-foreground">{request.request_code}</p>

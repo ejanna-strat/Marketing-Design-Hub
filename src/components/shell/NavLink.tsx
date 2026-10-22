@@ -10,18 +10,21 @@ export function NavLink({
   exact = false,
   className,
   activeClassName,
+  title,
   children,
 }: {
   href: string;
   exact?: boolean;
   className?: string;
   activeClassName?: string;
+  // Shown on hover (e.g. when the menu is shrunk to icons).
+  title?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={cn(className, active && activeClassName)}>
+    <Link href={href} title={title} aria-current={active ? "page" : undefined} className={cn(className, active && activeClassName)}>
       {children}
     </Link>
   );

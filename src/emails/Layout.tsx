@@ -56,7 +56,7 @@ export function EmailLayout({
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#ffffff", borderRadius: 14, overflow: "hidden" }}>
           <Section style={{ padding: "28px 32px 20px", borderBottom: "1px solid #e6ecf5", textAlign: "center" }}>
             <Img src={logoUrl()} width="56" height="56" alt="" style={{ margin: "0 auto 10px", borderRadius: 12 }} />
-            <Text style={{ margin: 0, fontSize: 24, lineHeight: "30px", fontWeight: 700, color: theme.brand, fontFamily: FONT }}>
+            <Text style={{ margin: 0, fontSize: 24, lineHeight: "30px", fontWeight: 700, color: theme.brandInk, fontFamily: FONT }}>
               {theme.appName}
             </Text>
           </Section>
@@ -68,7 +68,7 @@ export function EmailLayout({
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: theme.brand,
+                color: theme.brandInk,
               }}
             >
               {label}
@@ -142,7 +142,7 @@ export function EmailLayout({
 function buttonStyle(primary: boolean): React.CSSProperties {
   return {
     backgroundColor: primary ? theme.brand : "#ffffff",
-    color: primary ? "#ffffff" : theme.brand,
+    color: primary ? "#ffffff" : theme.brandInk,
     border: `2px solid ${theme.brand}`,
     fontSize: 14,
     fontWeight: 600,

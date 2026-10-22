@@ -53,8 +53,9 @@
 
 :root {
   /* THEME — brand accent lives here (keep in sync with src/config/theme.ts, used by emails) */
-  --brand: #0046bf;
-  --brand-soft: #e8f0fc;
+  --brand: #3b94e4;
+  --brand-ink: #1f6fbf; /* small blue text (links, IDs, titles) — readable on white */
+  --brand-soft: #e7f2fc;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -89,11 +90,12 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Dark mode (owner, Oct 22): a lighter brand blue so buttons and links stay
-   readable on dark backgrounds; the soft brand tint becomes a deep navy. */
+/* Dark mode: the same brand blue; the soft tint becomes a deep navy and
+   small blue text uses a lighter ink so it reads on dark backgrounds. */
 .dark {
-  --brand: #3b72dc;
-  --brand-soft: #172540;
+  --brand: #3b94e4;
+  --brand-ink: #8cc4f5;
+  --brand-soft: #13283f;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -144,9 +146,9 @@ input::-ms-clear {
   display: none;
 }
 
-/* Dark mode: brand-coloured text (links, Request IDs, active tabs) uses a
-   lighter blue than buttons so small text stays readable. */
-.dark .text-brand,
-.dark .hover\:text-brand:hover {
-  color: #8fb3f8;
+/* Brand-coloured text (links, Request IDs, active tabs, titles) uses the
+   "ink" shade of the brand blue so small text stays readable (owner, Oct 22). */
+.text-brand,
+.hover\:text-brand:hover {
+  color: var(--brand-ink);
 }

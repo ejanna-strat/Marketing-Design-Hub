@@ -36,7 +36,7 @@ export function N8FinalOutput({
         {
           label: "Link to Final Output",
           value: outputUrl ? (
-            <Link href={outputUrl} style={{ color: theme.brand }}>
+            <Link href={outputUrl} style={{ color: theme.brandInk }}>
               Open Link ↗
             </Link>
           ) : (

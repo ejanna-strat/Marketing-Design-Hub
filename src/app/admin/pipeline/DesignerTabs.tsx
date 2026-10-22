@@ -23,7 +23,8 @@ export function DesignerTabs({
   const tabs = [
     { value: "all", label: "All", active: current === "" },
     { value: "none", label: "Unassigned", active: current === "none" },
-    ...designers.map((d) => ({
+    // Your own tab comes right after Unassigned (owner, Oct 22).
+    ...[...designers.filter((d) => d.id === myDesignerId), ...designers.filter((d) => d.id !== myDesignerId)].map((d) => ({
       value: d.id,
       label: d.id === myDesignerId ? `${d.name} (me)` : d.name,
       active: current === d.id,
