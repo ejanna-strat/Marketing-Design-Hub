@@ -35,6 +35,11 @@ const patchSchema = z
       .nullable(),
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
     title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
+    project_overview: z
+      .string()
+      .trim()
+      .min(1, "Please answer: Project Overview and Objective")
+      .max(5000, "Please keep the Project Overview and Objective under 5,000 characters."),
     requester_name: z.string().trim().min(1, "Please enter the requester's name.").max(200),
     team_id: z.uuid("Please choose a business unit."),
     final_approver_name: z.string().trim().min(1, "Please enter the approver's name.").max(200),

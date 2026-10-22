@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, RotateCcwIcon, UndoIcon, UserCheckIcon } from "lucide-react";
+import { CheckIcon, HourglassIcon, RotateCcwIcon, UndoIcon, UserCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -54,17 +54,44 @@ export function WorkflowPanel({
   const canRespond = isAssignedDesigner && s.designerResponse === "pending";
   const showButtons = (canReview && !s.designer) || canRespond;
 
-  return (
-    <div className="flex flex-col items-start gap-2 sm:items-end">
-      <Tag state={s} />
-      {showButtons && (
-        <div className="flex flex-wrap gap-2 sm:justify-end">
+  // When it's someone's turn, a highlighted bar spans the page under the
+  // title with larger buttons, so the next step is hard to miss (owner,
+  // Oct 22). Otherwise just the status tag sits top-right.
+  if (showButtons) {
+    const message = canRespond
+      ? { title: "This request is waiting for you to accept it", hint: "Accept to take it on, or ask to reassign it if you can't." }
+      : {
+          title: s.reassignReason ? "Reassignment requested: pick another designer" : "New request waiting for review",
+          hint: s.reassignReason ?? "Accept and assign a designer, or return it to the requester with a reason.",
+        };
+    return (
+      <div
+        role="region"
+        aria-label="Action needed"
+        className="flex basis-full flex-wrap items-center justify-between gap-4 rounded-xl border-2 border-brand/40 bg-brand-soft p-4"
+      >
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+            <HourglassIcon className="size-5" aria-hidden />
+          </span>
+          <div>
+            <p className="font-semibold">{message.title}</p>
+            <p className="text-sm text-muted-foreground">{message.hint}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {canRespond && <DesignerButtons requestId={s.requestId} />}
           {canReview && !s.designer && <AssignButton requestId={s.requestId} designers={designers} />}
           {/* Return only before a designer is assigned (owner, Oct 20). */}
           {canReview && !s.designer && <ReturnButton requestId={s.requestId} />}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-2 sm:items-end">
+      <Tag state={s} />
     </div>
   );
 }
@@ -125,7 +152,7 @@ function AssignButton({ requestId, designers }: { requestId: string; designers: 
   const [designer, setDesigner] = useState("");
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
+      <Button size="lg" onClick={() => setOpen(true)}>
         <UserCheckIcon />
         Accept & assign
       </Button>
@@ -175,7 +202,7 @@ function ReturnButton({ requestId }: { requestId: string }) {
   const [reason, setReason] = useState("");
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+      <Button size="lg" variant="outline" onClick={() => setOpen(true)}>
         <UndoIcon />
         Return
       </Button>
@@ -223,11 +250,11 @@ function DesignerButtons({ requestId }: { requestId: string }) {
   const [note, setNote] = useState("");
   return (
     <>
-      <Button size="sm" disabled={pending} onClick={() => run(() => respondAsDesigner(requestId, true, null), "Accepted")}>
+      <Button size="lg" disabled={pending} onClick={() => run(() => respondAsDesigner(requestId, true, null), "Accepted")}>
         <CheckIcon />
         Accept
       </Button>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+      <Button size="lg" variant="outline" onClick={() => setOpen(true)}>
         <RotateCcwIcon />
         Ask to reassign
       </Button>

@@ -1,6 +1,9 @@
 "use client";
 
+import { XIcon } from "lucide-react";
 import { useId, useState } from "react";
+import { toast } from "sonner";
+import { hideApprover } from "@/app/account/actions";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -9,13 +12,14 @@ export type Approver = { name: string; email: string };
 // Approver Name with a dropdown of the requester's last 5 approvers (owner,
 // Oct 22): it opens on click or while typing, narrows as they type, and
 // picking one fills both Approver Name and Approver Email. Arrow keys and
-// Enter work too.
+// Enter work too. The × on a suggestion removes it (it comes back if that
+// approver is used again).
 export function ApproverNameInput({
   id,
   value,
   onChange,
   onPick,
-  recent,
+  recent: initialRecent,
   invalid,
 }: {
   id: string;
@@ -26,11 +30,23 @@ export function ApproverNameInput({
   invalid?: boolean;
 }) {
   const listId = useId();
+  const [recent, setRecent] = useState(initialRecent);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const q = value.trim().toLowerCase();
   const matches = recent.filter((a) => !q || a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q));
   const show = open && matches.length > 0 && !recent.some((a) => a.name === value && matches.length === 1);
+
+  function remove(a: Approver) {
+    setRecent((list) => list.filter((x) => x.email !== a.email));
+    setActive(-1);
+    hideApprover(a.email).then((result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        setRecent(initialRecent);
+      }
+    });
+  }
 
   function pick(a: Approver) {
     onPick(a);
@@ -69,6 +85,9 @@ export function ApproverNameInput({
           } else if (e.key === "Enter" && active >= 0) {
             e.preventDefault();
             pick(matches[active]!);
+          } else if (e.key === "Delete" && active >= 0) {
+            e.preventDefault();
+            remove(matches[active]!);
           } else if (e.key === "Escape") {
             setOpen(false);
           }
@@ -96,10 +115,29 @@ export function ApproverNameInput({
                 pick(a);
               }}
               onMouseEnter={() => setActive(i)}
-              className={cn("cursor-pointer rounded-md px-2 py-1.5", i === active && "bg-brand-soft")}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-md py-1 pr-1 pl-2",
+                i === active && "bg-brand-soft",
+              )}
             >
-              <span className="font-medium">{a.name}</span>
-              <span className="text-muted-foreground"> · {a.email}</span>
+              <span className="min-w-0 flex-1 truncate">
+                <span className="font-medium">{a.name}</span>
+                <span className="text-muted-foreground"> · {a.email}</span>
+              </span>
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={`Remove ${a.name} from suggestions`}
+                title="Remove from suggestions"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  remove(a);
+                }}
+                className="shrink-0 cursor-pointer rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <XIcon className="size-3.5" />
+              </button>
             </li>
           ))}
         </ul>

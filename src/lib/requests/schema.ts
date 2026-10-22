@@ -62,6 +62,12 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
     .object({
       requester_name: z.string().trim().min(1, "Please enter your name.").max(200),
       title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
+      // General Information for every type (owner, Oct 22).
+      project_overview: z
+        .string()
+        .trim()
+        .min(1, "Please answer: Project Overview and Objective")
+        .max(5000, "Please keep the Project Overview and Objective under 5,000 characters."),
       team_id: z.string().min(1, "Please choose your business unit."),
       request_type_id: z.string().min(1, "Please choose a type of design request."),
       date_needed: z
@@ -148,6 +154,7 @@ export function toSubmitPayload(values: RequestFormValues, questions: FormQuesti
   return {
     requester_name: values.requester_name.trim(),
     title: values.title.trim(),
+    project_overview: values.project_overview.trim(),
     team_id: values.team_id,
     request_type_id: values.request_type_id,
     date_needed: values.date_needed,
@@ -174,3 +181,6 @@ export function toAnswersPayload(
   }
   return answers;
 }
+
+export const PROJECT_OVERVIEW_HELP =
+  "Please provide a brief background of the project, its purpose, and the objective you want to achieve. This will help the Designers better understand the context and direction of your request.";

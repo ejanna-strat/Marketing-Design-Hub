@@ -41,3 +41,21 @@ export async function updateMyTheme(theme: string): Promise<{ ok: true } | { ok:
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+// Removes a past approver from the signed-in person's Approver Name
+// suggestions (owner, Oct 22). It comes back if they use that approver again.
+export async function hideApprover(rawEmail: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || email.length > 320) return { ok: false, error: "That approver couldn't be removed." };
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from("profiles").select("hidden_approvers").eq("id", user.id).maybeSingle();
+  const hidden = { ...((profile?.hidden_approvers ?? {}) as Record<string, string>), [email]: new Date().toISOString() };
+  const { error } = await supabase.from("profiles").update({ hidden_approvers: hidden }).eq("id", user.id);
+  if (error) {
+    console.error("hideApprover failed", error);
+    return { ok: false, error: "We couldn't remove that approver. Please try again." };
+  }
+  return { ok: true };
+}

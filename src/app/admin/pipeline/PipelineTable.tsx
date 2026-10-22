@@ -156,7 +156,7 @@ export function PipelineTable({
               requestId={info.row.original.id}
               value={info.getValue()}
               designers={designers}
-              locked={lockedFor(info.row.original.status)}
+              locked={lockedFor(info.row.original.status, !!info.getValue())}
             />
           ) : info.row.original.designer?.display_name ? (
             <Highlight text={info.row.original.designer.display_name} />
