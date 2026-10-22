@@ -589,7 +589,7 @@ export type Database = {
       sync_user_roles: { Args: { uid: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "lead_designer" | "designer" | "requester"
+      app_role: "super_admin" | "admin" | "lead_designer" | "designer" | "requester"
       field_type:
         | "short_text"
         | "long_text"
@@ -624,7 +624,7 @@ export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"]
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "lead_designer", "designer", "requester"],
+      app_role: ["super_admin", "admin", "lead_designer", "designer", "requester"],
       field_type: [
         "short_text",
         "long_text",

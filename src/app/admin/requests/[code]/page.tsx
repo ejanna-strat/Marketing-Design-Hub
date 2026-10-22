@@ -23,8 +23,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
 // Request Details window for the Marketing team. Everyone on the team can edit
-// Status, Link, Date Needed and General Information; Admins and Lead Designers
-// also assign the designer.
+// Status, Link, Date Needed and General Information; Super Admins and Lead
+// Designers also review new requests and assign or remove the designer.
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await requireStaff();
@@ -48,7 +48,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
   const closed = request.status === "cancelled" || request.status === "rejected";
-  const viewer = { designerId: user.designerId, isManager: user.isManager };
+  const viewer = { designerId: user.designerId, isManager: user.isManager, isAdmin: user.isAdmin };
 
   return (
     <div className="space-y-6">
@@ -100,7 +100,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 <Item
                   label="Assigned Designer"
                   value={
-                    user.isManager || user.designerId ? (
+                    user.isManager || user.isAdmin || user.designerId ? (
                       <DesignerSelect
                         requestId={request.id}
                         value={request.assigned_designer_id}

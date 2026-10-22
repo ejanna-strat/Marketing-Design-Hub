@@ -37,7 +37,7 @@ export function PipelineTable({
   page: number;
   pageSize: number;
   designers: DesignerOption[];
-  // Admins and Lead Designers can assign designers; Designers see the name.
+  // Who may change the designer (see designerChoice in statuses.ts).
   viewer: DesignerViewer;
   extra?: "deal" | "inactive";
   // Deal Requests (owner, Oct 21): nothing editable in the table; changes are
@@ -151,7 +151,7 @@ export function PipelineTable({
         id: "designer",
         header: "Assigned Designer",
         cell: (info) =>
-          !readOnly && (viewer.designerId || viewer.isManager) ? (
+          !readOnly && (viewer.designerId || viewer.isManager || viewer.isAdmin) ? (
             <DesignerSelect
               requestId={info.row.original.id}
               value={info.getValue()}

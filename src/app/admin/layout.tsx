@@ -22,8 +22,8 @@ import { createClient } from "@/lib/supabase/server";
 type MenuItem = { title: string; icon: typeof ClipboardListIcon; href?: string } | "pipeline" | "pendings";
 
 // Later phases show as disabled "Coming soon" items. Settings (Members) is
-// for Admins and Lead Designers only.
-function menuFor(isManager: boolean): MenuItem[] {
+// for Super Admins, Admins and Lead Designers only.
+function menuFor(canManageMembers: boolean): MenuItem[] {
   return [
     { title: "Dashboard", icon: LayoutDashboardIcon, href: "/admin/dashboard" },
     "pipeline",
@@ -32,7 +32,7 @@ function menuFor(isManager: boolean): MenuItem[] {
     { title: "Inactive Requests", icon: ArchiveIcon, href: "/admin/inactive" },
     { title: "Feedback", icon: MessageSquareHeartIcon, href: "/admin/feedback" },
     { title: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
-    ...(isManager ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
+    ...(canManageMembers ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
   ];
 }
 
@@ -69,7 +69,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AppHeader user={user} />
       <div className="flex gap-6 px-4 py-6 sm:px-6">
         <Sidebar initialCollapsed={collapsed}>
-            {menuFor(user.isManager).map((item) =>
+            {menuFor(user.canManageMembers).map((item) =>
               item === "pipeline" ? (
                 <Suspense key="pipeline">
                   <PipelineMenu items={pipelineItems} />

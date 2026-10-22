@@ -78,7 +78,7 @@ export default async function InactiveRequestsPage({
         page={params.page}
         pageSize={params.pageSize}
         designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
-        viewer={{ designerId: user.designerId, isManager: user.isManager }}
+        viewer={{ designerId: user.designerId, isManager: user.isManager, isAdmin: user.isAdmin }}
         extra="inactive"
         closedBy={closedBy}
       />

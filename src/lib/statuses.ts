@@ -95,10 +95,11 @@ export function statusFilterOptions(include: readonly string[] | null, present: 
 // - a fresh New request with no designer: people in the Designer list can
 //   take it for themselves; putting someone else on it is the Lead's
 //   Accept & assign.
-// - once it has a designer: anyone in the Designer list (or a Lead / Admin)
-//   can change it to anyone; only Leads / Admins can set it back to Unassigned.
+// - once it has a designer: anyone in the Designer list (or a Super Admin,
+//   Admin or Lead) can change it to anyone; only Super Admins and Leads can
+//   set it back to Unassigned.
 // - Completed, Cancelled and Returned stay locked.
-export type DesignerViewer = { designerId: string | null; isManager: boolean };
+export type DesignerViewer = { designerId: string | null; isManager: boolean; isAdmin: boolean };
 export function designerChoice(status: string, current: string | null, viewer: DesignerViewer) {
   const closed = lockedFor(status, true);
   if (closed) return { locked: closed, selfOnly: false, canRemove: false };
@@ -106,7 +107,7 @@ export function designerChoice(status: string, current: string | null, viewer: D
     if (!viewer.designerId) return { locked: lockedFor(status, false), selfOnly: false, canRemove: false };
     return { locked: undefined, selfOnly: true, canRemove: false };
   }
-  if (!viewer.designerId && !viewer.isManager) {
+  if (!viewer.designerId && !viewer.isManager && !viewer.isAdmin) {
     return { locked: "Only the Design team can change the designer", selfOnly: false, canRemove: false };
   }
   return { locked: undefined, selfOnly: false, canRemove: viewer.isManager };

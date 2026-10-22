@@ -83,7 +83,7 @@ export default async function PipelinePage({
         page={params.page}
         pageSize={params.pageSize}
         designers={designerOptions}
-        viewer={{ designerId: user.designerId, isManager: user.isManager }}
+        viewer={{ designerId: user.designerId, isManager: user.isManager, isAdmin: user.isAdmin }}
       />
     </div>
   );
