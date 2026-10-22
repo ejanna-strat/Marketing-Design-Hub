@@ -112,7 +112,11 @@ export default async function AnalyticsPage({
         year={year}
       />
 
-      <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-1 gap-y-2 text-sm">
+      {/* Stays at the top while scrolling, so any section is one click away (owner, Oct 22). */}
+      <nav
+        aria-label="Sections"
+        className="sticky top-14 z-30 -mx-1 flex flex-wrap items-center gap-x-1 gap-y-2 border-b bg-background/95 px-1 py-2 text-sm backdrop-blur"
+      >
         <span className="mr-1 text-muted-foreground">Jump to:</span>
         {JUMPS.map((j) => (
           <a
@@ -125,7 +129,7 @@ export default async function AnalyticsPage({
         ))}
       </nav>
 
-      <section id="overview" className="scroll-mt-20 space-y-4">
+      <section id="overview" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={LayoutDashboardIcon} title="Overview" description="The period at a glance" />
         {/* Three grouped cards instead of six boxes (owner, Oct 21). */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -151,7 +155,7 @@ export default async function AnalyticsPage({
         </div>
       </section>
 
-      <section id="brand" className="scroll-mt-20 space-y-4">
+      <section id="brand" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={BarChart3Icon} title="Brand Team Productivity" description="How many requests came in, were accepted, finished and still open" />
         {/* Month-by-month view: Month on Month only. */}
         {mom && (
@@ -291,7 +295,7 @@ export default async function AnalyticsPage({
         </Card>
       </section>
 
-      <section id="designers" className="scroll-mt-20 space-y-4">
+      <section id="designers" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={UsersIcon} title="Designer Productivity" description="Work each designer completed, with turnaround and feedback" />
         {mom ? (
           <Card>
@@ -390,7 +394,7 @@ export default async function AnalyticsPage({
         )}
       </section>
 
-      <section id="deals" className="scroll-mt-20 space-y-4">
+      <section id="deals" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={BriefcaseBusinessIcon} title="Deal Requests" description="Requests tied to a deal, and the deal value behind them" />
         <div className="grid gap-4 sm:grid-cols-2">
           <SummaryBox title="Requests with associated deals" value={t.dealRequests} rate={shareOf(t.dealRequests, t.requestsIn)} />
@@ -438,7 +442,7 @@ export default async function AnalyticsPage({
         </Card>
       </section>
 
-      <section id="inactive" className="scroll-mt-20 space-y-4">
+      <section id="inactive" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
         <div className="grid gap-4 sm:grid-cols-3">
           <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />

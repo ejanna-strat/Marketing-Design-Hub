@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { type Approver, ApproverNameInput } from "@/components/form/ApproverNameInput";
 import { DynamicQuestion } from "@/components/form/DynamicQuestion";
 import { UnsavedChangesGuard } from "@/components/form/UnsavedChangesGuard";
 import { Button } from "@/components/ui/button";
@@ -39,12 +40,15 @@ export function NewRequestForm({
   requestTypes,
   questions,
   edit,
+  recentApprovers = [],
 }: {
   user: { name: string; email: string; teamId: string | null };
   teams: Option[];
   requestTypes: Option[];
   questions: FormQuestion[];
   edit?: { requestId: string; code: string; values: RequestFormValues };
+  // The requester's last 5 approvers, suggested under Approver Name.
+  recentApprovers?: Approver[];
 }) {
   const today = useMemo(() => todayInManila(), []);
   const [dateOpen, setDateOpen] = useState(false);
@@ -73,6 +77,7 @@ export function NewRequestForm({
     register,
     handleSubmit,
     watch,
+    setValue,
     clearErrors,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<RequestFormValues>({
@@ -290,7 +295,24 @@ export function NewRequestForm({
           {approver === "other" && (
             <div className="grid gap-5 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
               <Field label="Approver Name" htmlFor="approver_name" required error={errors.approver_name?.message}>
-                <Input id="approver_name" aria-invalid={!!errors.approver_name || undefined} {...register("approver_name")} />
+                <Controller
+                  control={control}
+                  name="approver_name"
+                  render={({ field }) => (
+                    <ApproverNameInput
+                      id="approver_name"
+                      value={field.value}
+                      onChange={field.onChange}
+                      recent={recentApprovers}
+                      invalid={!!errors.approver_name}
+                      onPick={(a) => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        setValue("approver_name", a.name, opts);
+                        setValue("approver_email", a.email, opts);
+                      }}
+                    />
+                  )}
+                />
               </Field>
               <Field label="Approver Email" htmlFor="approver_email" required error={errors.approver_email?.message}>
                 <Input

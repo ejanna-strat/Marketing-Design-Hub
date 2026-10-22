@@ -16,7 +16,7 @@ const columns = col.columns([
   col.accessor("request_code", {
     header: "Request ID",
     cell: (info) => (
-      <Link href={`/my-requests/${info.getValue()}`} className="font-mono font-medium text-brand hover:underline">
+      <Link href={`/my-requests/${info.getValue()}`} className="font-mono font-medium text-foreground">
         <Highlight text={info.getValue()} />
       </Link>
     ),

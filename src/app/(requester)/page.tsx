@@ -1,4 +1,4 @@
-import { ArrowRightIcon, ClockIcon, ExternalLinkIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
+import { ClockIcon, ExternalLinkIcon, FilePlus2Icon, ListChecksIcon, MessageSquareHeartIcon } from "lucide-react";
 import Link from "next/link";
 import { SpamNotice } from "@/components/SpamNotice";
 import { Badge } from "@/components/ui/badge";
@@ -96,15 +96,6 @@ export default async function HomePage() {
 
       <SpamNotice />
 
-      {user.isStaff && (
-        <p className="text-center text-sm text-muted-foreground">
-          Marketing team?{" "}
-          <Link href="/admin/pipeline" className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
-            Go to Design Pipeline
-            <ArrowRightIcon className="size-3.5" />
-          </Link>
-        </p>
-      )}
     </div>
   );
 }
