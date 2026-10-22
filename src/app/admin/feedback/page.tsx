@@ -11,8 +11,9 @@ import { formatRating, one, overallRating } from "@/lib/feedback";
 import { designerFilterOptions } from "@/lib/requests/list";
 import { createClient } from "@/lib/supabase/server";
 
-const STARS = ["1", "2", "3", "4", "5"].map((v) => ({ value: v, label: `${v} ★` }));
-const HALF_STARS = ["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"].map((v) => ({ value: v, label: `${v} ★` }));
+// Highest rating first (owner, Oct 22).
+const STARS = ["5", "4", "3", "2", "1"].map((v) => ({ value: v, label: `${v} ★` }));
+const HALF_STARS = ["5", "4.5", "4", "3.5", "3", "2.5", "2", "1.5", "1"].map((v) => ({ value: v, label: `${v} ★` }));
 
 function greyUnused(options: { value: string; label: string }[], used: Set<string>) {
   return options.map((o) => ({ ...o, disabled: !used.has(o.value) }));

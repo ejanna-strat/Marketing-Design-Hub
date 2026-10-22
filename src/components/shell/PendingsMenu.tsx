@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { MenuTip } from "./MenuTip";
 
 // Pendings in the left menu, with a dropdown of each pending category and
 // its count (owner, Oct 20).
@@ -25,11 +26,11 @@ export function PendingsMenu({ tabs }: { tabs: { status: string; label: string; 
       >
         <Link
           href="/admin/pendings"
-          title={`Pendings (${total})`}
-          className="relative flex flex-1 items-center gap-2.5 px-3 py-2 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0"
+          className="group/item relative flex flex-1 items-center gap-2.5 px-3 py-2 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0"
         >
           <HourglassIcon className="size-4 shrink-0" />
           <span className="flex-1 group-data-[collapsed=true]/side:sr-only">Pendings</span>
+          <MenuTip>Pendings ({total})</MenuTip>
           <span className="text-xs group-data-[collapsed=true]/side:hidden">{total}</span>
           {/* Shrunk menu: the count sits on the icon (owner's mock-up, Oct 22). */}
           {total > 0 && (

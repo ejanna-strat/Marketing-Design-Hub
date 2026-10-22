@@ -34,8 +34,10 @@ export type WorkflowState = {
   returnReason: string | null;
   returnedByName: string | null;
   reassignReason: string | null;
-  // Set when the requester cancelled it themselves (owner, Oct 21).
+  // The note given when cancelling (by the requester, Oct 21, or the team,
+  // Oct 22) and who cancelled it ("the requester" or a team member's name).
   cancelReason: string | null;
+  cancelledByName: string | null;
 };
 
 export function WorkflowPanel({
@@ -117,7 +119,7 @@ function Tag({ state: s }: { state: WorkflowState }) {
     detail = s.returnReason;
   } else if (s.status === "cancelled") {
     tone = "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
-    text = s.cancelReason ? "Cancelled by the requester" : "Cancelled";
+    text = s.cancelledByName ? `Cancelled by ${s.cancelledByName}` : "Cancelled";
     detail = s.cancelReason;
   } else if (s.designer && s.designerResponse === "pending") {
     tone = "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300";

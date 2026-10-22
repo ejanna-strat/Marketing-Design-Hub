@@ -42,9 +42,14 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
   ]);
   if (!request) notFound();
-  const { data: returnedBy } = request.returned_by
-    ? await supabase.from("profiles").select("full_name").eq("id", request.returned_by).maybeSingle()
-    : { data: null };
+  const [{ data: returnedBy }, { data: cancelledBy }] = await Promise.all([
+    request.returned_by
+      ? supabase.from("profiles").select("full_name").eq("id", request.returned_by).maybeSingle()
+      : { data: null },
+    request.cancelled_by && request.cancelled_by !== request.requester_id
+      ? supabase.from("profiles").select("full_name").eq("id", request.cancelled_by).maybeSingle()
+      : { data: null },
+  ]);
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
   const closed = request.status === "cancelled" || request.status === "rejected";
@@ -78,6 +83,10 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             returnedByName: returnedBy?.full_name ?? null,
             reassignReason: request.reassign_reason,
             cancelReason: request.cancel_reason,
+            cancelledByName:
+              request.cancelled_by && request.cancelled_by === request.requester_id
+                ? "the requester"
+                : (cancelledBy?.full_name ?? null),
           }}
         />
       </div>
@@ -152,6 +161,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                     projectOverview: request.project_overview ?? "",
                     requesterName: request.requester_name,
                     teamId: request.team_id,
+                    dateNeeded: request.date_needed,
                     approverName: request.final_approver_name,
                     approverEmail: request.final_approver_email,
                     isDeal: request.is_deal,
