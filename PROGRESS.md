@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.27.0_
+_Last updated: Oct 22, 2026 · version 0.28.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -45,7 +45,8 @@ _Last updated: Oct 22, 2026 · version 0.27.0_
 - v0.25.1 (owner, Oct 22): theme choice stays consistent across every page; wider sign-in / sign-up box without the gap in the spam note.
 - v0.26.0 (owner, Oct 22): new brand blue #3b94e4 (deeper #1f6fbf for small text) in the app, emails and recoloured icon; hide / show the Marketing team menu; My Requests back link returns to the tab you came from; sign-up spam pop-up; your own designer tab right after Unassigned.
 - v0.27.0 (owner, Oct 22): recent approvers suggested on the request form; sticky Jump to on Analytics; menu hide/show as a small icon by the heading; tinted row hover with plain Request IDs; home no longer links to the Design Pipeline.
-- **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql` and `0014_theme.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
+- v0.28.0 (owner, Oct 22): designer must accept before work statuses; first designer only via Accept & assign; highlighted action bar; Design Pipeline designer dropdown in the menu; Designer filters on Pendings and My Requests; Feedback designer filter fixed; remove a past approver from suggestions; Project Overview and Objective moved to General Information (required for every type); Accepted email line removed; emails load the new logo.
+- **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql`, `0014_theme.sql`, `0015_require_acceptance.sql`, `0016_hidden_approvers.sql` and `0017_project_overview.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
 ## Next (owner)
