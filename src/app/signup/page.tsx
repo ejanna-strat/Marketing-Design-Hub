@@ -12,7 +12,7 @@ export default async function SignUpPage() {
   return (
     <AuthShell subtitle="Create your account with your @stratpoint.com email.">
       <SignUpForm />
-      <SpamNotice />
+      <SpamNotice senderOnOwnLine />
     </AuthShell>
   );
 }

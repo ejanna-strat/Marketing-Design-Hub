@@ -29,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyTheme, isTheme, type Theme, THEME_COOKIE, writeThemeCookie } from "@/lib/theme/shared";
 
+const SYNCED_KEY = "mdh-theme-synced";
+
 const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: SunIcon },
   { value: "dark", label: "Dark", icon: MoonIcon },
@@ -50,15 +52,26 @@ export function UserMenu({
   const [signingOut, setSigningOut] = useState(false);
   const [theme, setTheme] = useState<Theme>(savedTheme);
 
-  // The account's saved choice wins: if this browser's cookie differs (e.g.
-  // a new device), switch to the saved theme. For System, follow the
-  // computer when it changes between light and dark.
+  // Once per browser visit (e.g. right after signing in on a new device),
+  // take the account's saved choice. After that this browser's choice wins,
+  // so a page the app kept from earlier can't switch the theme back
+  // (owner, Oct 22: the Pipeline stayed Light after choosing Dark).
   useEffect(() => {
-    const cookie = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=(\\w+)`))?.[1];
-    if (cookie !== savedTheme) {
-      writeThemeCookie(savedTheme);
-      applyTheme(savedTheme);
+    let synced = false;
+    try {
+      synced = sessionStorage.getItem(SYNCED_KEY) === "1";
+      sessionStorage.setItem(SYNCED_KEY, "1");
+    } catch {
+      // Private browsing etc.: fall back to the cookie as it is.
+      synced = true;
     }
+    if (synced) {
+      const cookie = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=(\\w+)`))?.[1];
+      if (isTheme(cookie)) setTheme(cookie);
+      return;
+    }
+    writeThemeCookie(savedTheme);
+    applyTheme(savedTheme);
   }, [savedTheme]);
   useEffect(() => {
     if (theme !== "system") return;
@@ -199,7 +212,15 @@ function SignOutDialog({ onClose }: { onClose: () => void }) {
           <Button type="button" variant="outline" onClick={onClose} autoFocus>
             Stay signed in
           </Button>
-          <Button type="button" disabled={pending} onClick={() => startTransition(() => signOut())}>
+          <Button type="button" disabled={pending} onClick={() =>
+              startTransition(() => {
+                // The next person to sign in on this browser gets their own saved theme.
+                try {
+                  sessionStorage.removeItem(SYNCED_KEY);
+                } catch {}
+                return signOut();
+              })
+            }>
             <LogOutIcon />
             {pending ? "Signing out…" : "Sign out"}
           </Button>

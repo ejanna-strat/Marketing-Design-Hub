@@ -37,5 +37,7 @@ export async function updateMyTheme(theme: string): Promise<{ ok: true } | { ok:
     console.error("updateMyTheme failed", error);
     return { ok: false, error: "We couldn't save your appearance setting. Please try again." };
   }
+  // Refresh pages the app kept from earlier so they carry the new choice.
+  revalidatePath("/", "layout");
   return { ok: true };
 }

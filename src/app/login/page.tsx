@@ -21,7 +21,7 @@ export default async function LoginPage({
         next={next}
         initialError={error === "link" ? "That link is invalid or has expired. Please try again." : undefined}
       />
-      <SpamNotice />
+      <SpamNotice senderOnOwnLine />
     </AuthShell>
   );
 }
