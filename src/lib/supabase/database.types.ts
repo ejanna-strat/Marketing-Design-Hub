@@ -241,6 +241,7 @@ export type Database = {
           id: string
           team_id: string | null
           theme: string
+          hidden_approvers: Json
         }
         Insert: {
           created_at?: string
@@ -249,6 +250,7 @@ export type Database = {
           id: string
           team_id?: string | null
           theme?: string
+          hidden_approvers?: Json
         }
         Update: {
           created_at?: string
@@ -257,6 +259,7 @@ export type Database = {
           id?: string
           team_id?: string | null
           theme?: string
+          hidden_approvers?: Json
         }
         Relationships: [
           {
