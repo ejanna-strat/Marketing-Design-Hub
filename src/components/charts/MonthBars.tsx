@@ -13,14 +13,14 @@ export function MonthBars({ data, series }: { data: Record<string, string | numb
     <div className="h-72" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }} barGap={2} barCategoryGap="22%">
-          <CartesianGrid vertical={false} stroke="#eef0f3" />
-          <XAxis dataKey="short" tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} />
-          <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} />
+          <CartesianGrid vertical={false} stroke="var(--border)" />
+          <XAxis dataKey="short" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
           <Tooltip
-            cursor={{ fill: "#f3f6fb" }}
+            cursor={{ fill: "var(--muted)" }}
             labelFormatter={(_, payload) => String(payload?.[0]?.payload?.label ?? "")}
-            contentStyle={{ borderRadius: 8, borderColor: "#e5e7eb", fontSize: 13 }}
-            labelStyle={{ fontWeight: 600, color: "#111827" }}
+            contentStyle={{ borderRadius: 8, borderColor: "var(--border)", backgroundColor: "var(--popover)", color: "var(--popover-foreground)", fontSize: 13 }}
+            labelStyle={{ fontWeight: 600, color: "var(--popover-foreground)" }}
           />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} itemSorter={null} />
           {series.map((s, i) => (

@@ -31,7 +31,7 @@ export function ShareDonut({ data, unit = "requests" }: { data: (Share & { color
           </Pie>
           <Tooltip
             formatter={(v, name) => [`${v} ${unit} (${Math.round((Number(v) / total) * 100)}%)`, name]}
-            contentStyle={{ borderRadius: 8, borderColor: "#e5e7eb", fontSize: 13, whiteSpace: "nowrap" }}
+            contentStyle={{ borderRadius: 8, borderColor: "var(--border)", backgroundColor: "var(--popover)", color: "var(--popover-foreground)", fontSize: 13, whiteSpace: "nowrap" }}
             wrapperStyle={{ zIndex: 10 }}
             allowEscapeViewBox={{ x: true, y: true }}
           />

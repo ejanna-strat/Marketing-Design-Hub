@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronDownIcon, LogOutIcon, UserPenIcon } from "lucide-react";
+import { ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserPenIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { updateMyName } from "@/app/account/actions";
+import { updateMyName, updateMyTheme } from "@/app/account/actions";
 import { signOut } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,14 +20,68 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { applyTheme, isTheme, type Theme, THEME_COOKIE, writeThemeCookie } from "@/lib/theme/shared";
 
-export function UserMenu({ name, email, roleLabel }: { name: string; email: string; roleLabel: string }) {
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: SunIcon },
+  { value: "dark", label: "Dark", icon: MoonIcon },
+  { value: "system", label: "System", icon: MonitorIcon },
+] as const;
+
+export function UserMenu({
+  name,
+  email,
+  roleLabel,
+  theme: savedTheme,
+}: {
+  name: string;
+  email: string;
+  roleLabel: string;
+  theme: Theme;
+}) {
   const [editing, setEditing] = useState(false);
+  const [theme, setTheme] = useState<Theme>(savedTheme);
+
+  // The account's saved choice wins: if this browser's cookie differs (e.g.
+  // a new device), switch to the saved theme. For System, follow the
+  // computer when it changes between light and dark.
+  useEffect(() => {
+    const cookie = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=(\\w+)`))?.[1];
+    if (cookie !== savedTheme) {
+      writeThemeCookie(savedTheme);
+      applyTheme(savedTheme);
+    }
+  }, [savedTheme]);
+  useEffect(() => {
+    if (theme !== "system") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const follow = () => applyTheme("system");
+    media.addEventListener("change", follow);
+    return () => media.removeEventListener("change", follow);
+  }, [theme]);
+
+  function chooseTheme(value: string) {
+    if (!isTheme(value) || value === theme) return;
+    const previous = theme;
+    setTheme(value);
+    writeThemeCookie(value);
+    applyTheme(value);
+    updateMyTheme(value).then((result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        setTheme(previous);
+        writeThemeCookie(previous);
+        applyTheme(previous);
+      }
+    });
+  }
   const initials = (name || email)
     .split(/[\s.@]+/)
     .filter(Boolean)
@@ -51,6 +105,16 @@ export function UserMenu({ name, email, roleLabel }: { name: string; email: stri
             <div className="truncate text-xs text-muted-foreground">{email}</div>
             <div className="mt-1 text-xs text-brand">{roleLabel}</div>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Appearance</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={theme} onValueChange={chooseTheme}>
+            {THEME_OPTIONS.map((o) => (
+              <DropdownMenuRadioItem key={o.value} value={o.value} onSelect={(e) => e.preventDefault()}>
+                <o.icon />
+                {o.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setEditing(true)}>
             <UserPenIcon />

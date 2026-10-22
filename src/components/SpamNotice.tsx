@@ -11,7 +11,7 @@ export function SpamNotice({ className }: { className?: string }) {
     <div
       role="note"
       className={cn(
-        "flex gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm leading-relaxed text-amber-950",
+        "flex gap-2.5 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 text-left text-sm leading-relaxed text-amber-950 dark:text-amber-300",
         className,
       )}
     >

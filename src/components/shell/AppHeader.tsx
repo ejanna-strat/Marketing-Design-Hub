@@ -41,7 +41,7 @@ export function AppHeader({ user }: { user: CurrentUser }) {
             </NavLink>
           )}
         </nav>
-        <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} />
+        <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
       </div>
     </header>
   );

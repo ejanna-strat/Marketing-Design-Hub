@@ -224,7 +224,7 @@ export default async function AnalyticsPage({
                             {m.requestsIn}
                             {change !== 0 && (
                               <span
-                                className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700" : "text-red-700"}`}
+                                className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}
                                 title={`${change > 0 ? "+" : ""}${change} vs ${a.months[i - 1].label}`}
                               >
                                 {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}

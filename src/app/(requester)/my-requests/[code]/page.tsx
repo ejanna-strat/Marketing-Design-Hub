@@ -70,13 +70,13 @@ export default async function MyRequestDetailPage({
       </div>
 
       {saved && (
-        <p className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <p className="flex items-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-3 text-sm text-emerald-900 dark:text-emerald-300">
           <CheckCircle2Icon className="size-4 shrink-0" />
           Your changes were saved.
         </p>
       )}
       {request.status === "rejected" && (
-        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-950">
+        <div className="space-y-3 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5 text-sm text-red-950 dark:text-red-300">
           <p className="flex items-center gap-2 text-base font-semibold">
             <UndoIcon className="size-5" />
             Your request was returned
@@ -105,7 +105,7 @@ export default async function MyRequestDetailPage({
         </div>
       )}
       {request.status === "cancelled" && (
-        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-950">
+        <div className="space-y-3 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5 text-sm text-red-950 dark:text-red-300">
           <p className="flex items-center gap-2 text-base font-semibold">
             <XCircleIcon className="size-5" />
             This request was cancelled

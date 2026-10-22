@@ -240,6 +240,7 @@ export type Database = {
           full_name: string
           id: string
           team_id: string | null
+          theme: string
         }
         Insert: {
           created_at?: string
@@ -247,6 +248,7 @@ export type Database = {
           full_name?: string
           id: string
           team_id?: string | null
+          theme?: string
         }
         Update: {
           created_at?: string
@@ -254,6 +256,7 @@ export type Database = {
           full_name?: string
           id?: string
           team_id?: string | null
+          theme?: string
         }
         Relationships: [
           {
