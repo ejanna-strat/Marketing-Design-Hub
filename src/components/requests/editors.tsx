@@ -5,7 +5,7 @@ import { CalendarIcon, PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { type RequestPatch, updateRequest } from "@/app/admin/actions";
+import { cancelRequest, type RequestPatch, updateRequest } from "@/app/admin/actions";
 import { ConfirmLeaveDialog } from "@/components/form/UnsavedChangesGuard";
 import { OutputLink } from "@/components/LinkifiedText";
 import { Button } from "@/components/ui/button";
@@ -104,12 +104,28 @@ export function StatusSelect({
     setCurrent(value);
   }
   useStatusUpdates(requestId, setCurrent);
+  // Cancelling asks for a note first (owner, Oct 22).
+  const [cancelling, setCancelling] = useState(false);
 
   return (
+    <>
+    <CancelDialog
+      requestId={requestId}
+      open={cancelling}
+      onClose={() => setCancelling(false)}
+      onCancelled={() => {
+        setCancelling(false);
+        setCurrent("cancelled");
+      }}
+    />
     <Select
       value={current}
       disabled={pending}
       onValueChange={(next) => {
+        if (next === "cancelled") {
+          setCancelling(true);
+          return;
+        }
         const previous = current;
         setCurrent(next);
         save({ status: next as RequestPatch["status"] }, "Status updated", () => setCurrent(previous));
@@ -134,6 +150,69 @@ export function StatusSelect({
         })}
       </SelectContent>
     </Select>
+    </>
+  );
+}
+
+function CancelDialog({
+  requestId,
+  open,
+  onClose,
+  onCancelled,
+}: {
+  requestId: string;
+  open: boolean;
+  onClose: () => void;
+  onCancelled: () => void;
+}) {
+  const router = useRouter();
+  const [note, setNote] = useState("");
+  const [pending, startTransition] = useTransition();
+  function confirm() {
+    startTransition(async () => {
+      const result = await cancelRequest(requestId, note);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Request cancelled");
+      setNote("");
+      onCancelled();
+      router.refresh();
+    });
+  }
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cancel this request</DialogTitle>
+          <DialogDescription>
+            The requester sees &ldquo;Cancelled&rdquo; with your note on their request page. Nobody is emailed.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor={`cancel-note-${requestId}`}>
+            Note <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id={`cancel-note-${requestId}`}
+            rows={4}
+            maxLength={1000}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. The event was moved to next year."
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Keep request
+          </Button>
+          <Button variant="destructive" disabled={!note.trim() || pending} onClick={confirm}>
+            Cancel request
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -308,6 +387,32 @@ export function DateNeededEditor({ requestId, value }: { requestId: string; valu
   );
 }
 
+function DatePickerField({ id, value, onChange }: { id: string; value: string; onChange: (date: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button id={id} type="button" variant="outline" className="w-full justify-start font-normal">
+          <CalendarIcon className="text-muted-foreground" />
+          {formatDate(value)}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={parseISO(value)}
+          defaultMonth={parseISO(value)}
+          onSelect={(d) => {
+            if (!d) return;
+            setOpen(false);
+            onChange(format(d, "yyyy-MM-dd"));
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export type GeneralInfo = {
   title: string;
   projectOverview: string;
@@ -319,10 +424,13 @@ export type GeneralInfo = {
   dealName: string;
   // whole pesos as digits ("" when none)
   dealSize: string;
+  // yyyy-MM-dd
+  dateNeeded: string;
 };
 
 // Edit the request's title and General Information (any Marketing team
-// member). Date Needed has its own editor next to it.
+// member), including Date Needed (owner, Oct 22; it also keeps its own quick
+// editor in the Pipeline section).
 export function GeneralInfoEditor({
   requestId,
   value,
@@ -342,6 +450,7 @@ export function GeneralInfoEditor({
     form.projectOverview.trim() !== value.projectOverview ||
     form.requesterName.trim() !== value.requesterName ||
     form.teamId !== value.teamId ||
+    form.dateNeeded !== value.dateNeeded ||
     form.approverName.trim() !== value.approverName ||
     form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase() ||
     form.isDeal !== value.isDeal ||
@@ -360,6 +469,7 @@ export function GeneralInfoEditor({
     }
     if (form.requesterName.trim() !== value.requesterName) patch.requester_name = form.requesterName;
     if (form.teamId !== value.teamId) patch.team_id = form.teamId;
+    if (form.dateNeeded !== value.dateNeeded) patch.date_needed = form.dateNeeded;
     if (form.approverName.trim() !== value.approverName) patch.final_approver_name = form.approverName;
     if (form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase()) {
       patch.final_approver_email = form.approverEmail;
@@ -451,6 +561,14 @@ export function GeneralInfoEditor({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gi-date">Date Needed</Label>
+              <DatePickerField
+                id="gi-date"
+                value={form.dateNeeded}
+                onChange={(dateNeeded) => setForm({ ...form, dateNeeded })}
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

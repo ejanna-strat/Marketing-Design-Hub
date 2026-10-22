@@ -13,6 +13,7 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { NavLink } from "@/components/shell/NavLink";
 import { PendingsMenu } from "@/components/shell/PendingsMenu";
 import { PipelineMenu } from "@/components/shell/PipelineMenu";
+import { MenuTip } from "@/components/shell/MenuTip";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SIDEBAR_COOKIE } from "@/components/shell/sidebar-cookie";
 import { requireStaff } from "@/lib/auth";
@@ -38,7 +39,7 @@ function menuFor(canManageMembers: boolean): MenuItem[] {
 
 // Collapsed menu (icons only): labels hide, icons centre.
 const itemClass =
-  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0";
+  "group/item relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0";
 const labelClass = "group-data-[collapsed=true]/side:sr-only";
 
 // Admin and designer screens. Checked on the server: anyone else is sent home.
@@ -84,18 +85,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   href={item.href}
                   className={`${itemClass} text-muted-foreground hover:bg-muted hover:text-foreground`}
                   activeClassName="bg-brand-soft font-medium text-brand hover:bg-brand-soft hover:text-brand"
-                  title={item.title}
                 >
                   <item.icon className="size-4 shrink-0" />
                   <span className={labelClass}>{item.title}</span>
+                  <MenuTip>{item.title}</MenuTip>
                 </NavLink>
               ) : (
                 <div
                   key={item.title}
                   aria-disabled
-                  title={`${item.title} (coming soon)`}
                   className={`${itemClass} cursor-not-allowed text-muted-foreground/60`}
                 >
+                  <MenuTip>{item.title} (coming soon)</MenuTip>
                   <item.icon className="size-4 shrink-0" />
                   <span className={`flex-1 ${labelClass}`}>{item.title}</span>
                   <span className={`text-[10px] uppercase tracking-wide ${labelClass}`}>Soon</span>
