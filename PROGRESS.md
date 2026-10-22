@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.26.0_
+_Last updated: Oct 22, 2026 · version 0.27.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -44,6 +44,7 @@ _Last updated: Oct 22, 2026 · version 0.26.0_
 - v0.25.0 (owner, Oct 22): Sign out asks for confirmation first.
 - v0.25.1 (owner, Oct 22): theme choice stays consistent across every page; wider sign-in / sign-up box without the gap in the spam note.
 - v0.26.0 (owner, Oct 22): new brand blue #3b94e4 (deeper #1f6fbf for small text) in the app, emails and recoloured icon; hide / show the Marketing team menu; My Requests back link returns to the tab you came from; sign-up spam pop-up; your own designer tab right after Unassigned.
+- v0.27.0 (owner, Oct 22): recent approvers suggested on the request form; sticky Jump to on Analytics; menu hide/show as a small icon by the heading; tinted row hover with plain Request IDs; home no longer links to the Design Pipeline.
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql` and `0014_theme.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
