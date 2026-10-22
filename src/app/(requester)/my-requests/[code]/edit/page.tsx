@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canRequesterEdit, getRequestByCode } from "@/lib/requests/detail";
 import { type AnswerValue, QUESTION_COLUMNS, toFormQuestion } from "@/lib/requests/schema";
+import { recentApprovers } from "@/lib/requests/recent-approvers";
 import { createClient } from "@/lib/supabase/server";
 import { NewRequestForm } from "../../../requests/new/NewRequestForm";
 
@@ -14,7 +15,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
   if (!request) notFound();
   if (!canRequesterEdit(request)) redirect(`/my-requests/${request.request_code}`);
 
-  const [teams, types, questions] = await Promise.all([
+  const [teams, types, questions, approvers] = await Promise.all([
     supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
     supabase
@@ -23,6 +24,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
       .eq("request_type_id", request.request_type_id)
       .eq("active", true)
       .order("sort_order"),
+    recentApprovers(supabase, user.id, user.email),
   ]);
   const error = teams.error ?? types.error ?? questions.error;
   if (error) throw new Error(error.message);
@@ -42,6 +44,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
       teams={teams.data ?? []}
       requestTypes={(types.data ?? []).filter((t) => t.id === request.request_type_id)}
       questions={(questions.data ?? []).map(toFormQuestion)}
+      recentApprovers={approvers}
       edit={{
         requestId: request.id,
         code: request.request_code,
