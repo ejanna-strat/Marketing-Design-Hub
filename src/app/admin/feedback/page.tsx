@@ -8,16 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireStaff } from "@/lib/auth";
 import { formatDate, manilaDayStart, todayInManila } from "@/lib/dates";
 import { formatRating, one, overallRating } from "@/lib/feedback";
-import { designerFilterOptions } from "@/lib/requests/list";
+import { designerFilterOptions, markAvailable } from "@/lib/requests/list";
 import { createClient } from "@/lib/supabase/server";
 
 // Highest rating first (owner, Oct 22).
 const STARS = ["5", "4", "3", "2", "1"].map((v) => ({ value: v, label: `${v} ★` }));
 const HALF_STARS = ["5", "4.5", "4", "3.5", "3", "2.5", "2", "1.5", "1"].map((v) => ({ value: v, label: `${v} ★` }));
-
-function greyUnused(options: { value: string; label: string }[], used: Set<string>) {
-  return options.map((o) => ({ ...o, disabled: !used.has(o.value) }));
-}
 
 // §7.2 #3: feedback received this year. Averages leave out requesters whose
 // team is Marketing (CLAUDE.md §2); their feedback is still listed.
@@ -33,6 +29,8 @@ export default async function FeedbackPage({
   const f1 = (k: string) => (Array.isArray(sp[k]) ? sp[k][0] : sp[k]) ?? "";
   // Tick-box filters: several values each, comma-separated in the URL.
   const fs = (k: string) => f1(k).split(",").filter(Boolean);
+  // "Has comments" chip (owner, Oct 22).
+  const hasComments = f1("comments") === "1";
   const filter = { team: fs("team"), designer: fs("designer"), process: fs("process").map(Number), output: fs("output").map(Number), overall: fs("overall").map(Number) };
   const size = [10, 25, 50, 100].includes(Number(f1("size"))) ? Number(f1("size")) : 25;
   const page = Math.max(1, Number.parseInt(f1("page"), 10) || 1);
@@ -61,38 +59,33 @@ export default async function FeedbackPage({
   const byTeamDesigner = (r: { team_id: string; assigned_designer_id: string | null } | null) =>
     (!filter.team.length || filter.team.includes(r?.team_id ?? "")) &&
     (!filter.designer.length || filter.designer.includes(r?.assigned_designer_id ?? ""));
-  const all = (rows ?? [])
-    .map((f) => ({ ...f, request: one(f.request) }))
-    .filter(
-      (f) =>
-        byTeamDesigner(f.request) &&
-        (!filter.process.length || filter.process.includes(f.process_rating)) &&
-        (!filter.output.length || filter.output.includes(f.output_rating)) &&
-        (!filter.overall.length || filter.overall.includes(overallRating(f))),
-    );
-  // Designers with feedback under the other filters (ignoring the Designer
-  // filter itself): the rest are greyed out, and former designers without
-  // feedback are left out (owner, Oct 22).
-  const designersWithFeedback = new Set(
-    (rows ?? [])
-      .map((f) => ({ ...f, request: one(f.request) }))
-      .filter(
-        (f) =>
-          (!filter.team.length || filter.team.includes(f.request?.team_id ?? "")) &&
-          (!filter.process.length || filter.process.includes(f.process_rating)) &&
-          (!filter.output.length || filter.output.includes(f.output_rating)) &&
-          (!filter.overall.length || filter.overall.includes(overallRating(f))),
-      )
-      .map((f) => f.request?.assigned_designer_id ?? ""),
-  );
-  // Teams and ratings with no feedback this year are greyed out in the
-  // filters (owner, Oct 22).
-  const teamsWithFeedback = new Set((rows ?? []).map((f) => one(f.request)?.team_id ?? ""));
-  const ratingsUsed = {
-    process: new Set((rows ?? []).map((f) => String(f.process_rating))),
-    output: new Set((rows ?? []).map((f) => String(f.output_rating))),
-    overall: new Set((rows ?? []).map((f) => String(overallRating(f)))),
+  const feedback = (rows ?? []).map((f) => ({ ...f, request: one(f.request) }));
+  type Row = (typeof feedback)[number];
+  type Key = "team" | "designer" | "process" | "output" | "overall" | "comments";
+  // Every filter except `skip` (so each filter's counts ignore its own picks).
+  const matches = (f: Row, skip?: Key) =>
+    (skip === "team" || !filter.team.length || filter.team.includes(f.request?.team_id ?? "")) &&
+    (skip === "designer" || !filter.designer.length || filter.designer.includes(f.request?.assigned_designer_id ?? "")) &&
+    (skip === "process" || !filter.process.length || filter.process.includes(f.process_rating)) &&
+    (skip === "output" || !filter.output.length || filter.output.includes(f.output_rating)) &&
+    (skip === "overall" || !filter.overall.length || filter.overall.includes(overallRating(f))) &&
+    (skip === "comments" || !hasComments || !!f.comments?.trim());
+  const all = feedback.filter((f) => matches(f));
+  // How much feedback each filter value would show: beside each option, and
+  // values with none are hidden (owner, Oct 22).
+  const countBy = (skip: Key, value: (f: Row) => string) => {
+    const counts = new Map<string, number>();
+    for (const f of feedback) if (matches(f, skip)) counts.set(value(f), (counts.get(value(f)) ?? 0) + 1);
+    return counts;
   };
+  const counts = {
+    team: countBy("team", (f) => f.request?.team_id ?? ""),
+    designer: countBy("designer", (f) => f.request?.assigned_designer_id ?? ""),
+    process: countBy("process", (f) => String(f.process_rating)),
+    output: countBy("output", (f) => String(f.output_rating)),
+    overall: countBy("overall", (f) => String(overallRating(f))),
+  };
+  const withComments = feedback.filter((f) => matches(f, "comments") && !!f.comments?.trim()).length;
   const counted = all.filter((f) => !f.request?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
     counted.length ? counted.reduce((sum, f) => sum + pick(f), 0) / counted.length : 0;
@@ -130,16 +123,17 @@ export default async function FeedbackPage({
       <DataTableToolbar
         showSearch={false}
         showDates={false}
+        toggles={[{ key: "comments", label: "Has comments", count: withComments }]}
         filters={[
-          { key: "team", label: "Team", options: greyUnused((teams ?? []).map((t) => ({ value: t.id, label: t.name })), teamsWithFeedback) },
+          { key: "team", label: "Team", options: markAvailable((teams ?? []).map((t) => ({ value: t.id, label: t.name })), counts.team) },
           {
             key: "designer",
             label: "Designer",
-            options: designerFilterOptions(designers ?? [], designersWithFeedback, { unassigned: false }),
+            options: designerFilterOptions(designers ?? [], counts.designer, { unassigned: false }),
           },
-          { key: "process", label: "Process", options: greyUnused(STARS, ratingsUsed.process) },
-          { key: "output", label: "Output", options: greyUnused(STARS, ratingsUsed.output) },
-          { key: "overall", label: "Overall", options: greyUnused(HALF_STARS, ratingsUsed.overall) },
+          { key: "process", label: "Process", options: markAvailable(STARS, counts.process) },
+          { key: "output", label: "Output", options: markAvailable(STARS, counts.output) },
+          { key: "overall", label: "Overall", options: markAvailable(HALF_STARS, counts.overall) },
         ]}
       />
 

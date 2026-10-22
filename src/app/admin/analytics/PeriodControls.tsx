@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useUrlParams } from "@/components/data-table/use-url-params";
-import { Input } from "@/components/ui/input";
+import { CalendarIcon } from "lucide-react";
+import { RangeCalendar } from "@/components/data-table/RangeCalendar";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDate } from "@/lib/dates";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +33,8 @@ export function PeriodControls({
 }) {
   const { setParams, pending } = useUrlParams();
   const [custom, setCustom] = useState(month === null);
+  // Picking "Custom range…" opens the calendar straight away.
+  const [justPicked, setJustPicked] = useState(false);
 
   const tabs = [
     { value: "monthly", label: "Monthly report" },
@@ -65,6 +71,7 @@ export function PeriodControls({
             onValueChange={(v) => {
               if (v === CUSTOM) {
                 setCustom(true);
+                setJustPicked(true);
                 return;
               }
               setCustom(false);
@@ -83,27 +90,7 @@ export function PeriodControls({
               <SelectItem value={CUSTOM}>Custom range…</SelectItem>
             </SelectContent>
           </Select>
-          {custom && (
-            <>
-              <Input
-                type="date"
-                aria-label="From"
-                defaultValue={from}
-                max={to}
-                className="w-40 bg-background"
-                onChange={(e) => e.target.value && setParams({ month: null, from: e.target.value, to })}
-              />
-              <span className="text-muted-foreground">to</span>
-              <Input
-                type="date"
-                aria-label="To"
-                defaultValue={to}
-                min={from}
-                className="w-40 bg-background"
-                onChange={(e) => e.target.value && setParams({ month: null, from, to: e.target.value })}
-              />
-            </>
-          )}
+          {custom && <CustomRange autoOpen={justPicked} from={from} to={to} onPick={(a, b) => setParams({ month: null, from: a, to: b })} />}
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm">
@@ -123,5 +110,42 @@ export function PeriodControls({
         </div>
       )}
     </div>
+  );
+}
+
+// Custom range: one calendar, start date then end date (owner, Oct 22).
+function CustomRange({
+  autoOpen,
+  from,
+  to,
+  onPick,
+}: {
+  autoOpen: boolean;
+  from: string;
+  to: string;
+  onPick: (from: string, to: string) => void;
+}) {
+  const [open, setOpen] = useState(autoOpen);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" aria-label="Custom range" className="bg-background font-normal">
+          <CalendarIcon className="text-muted-foreground" />
+          {from && to ? `${formatDate(from)} – ${formatDate(to)}` : "Pick dates"}
+        </Button>
+      </PopoverTrigger>
+      {/* The month dropdown hands focus back as it closes; that mustn't
+          close the calendar it just opened (clicking outside still does). */}
+      <PopoverContent align="start" className="w-auto p-0" onFocusOutside={(e) => e.preventDefault()}>
+        <RangeCalendar
+          from={from}
+          to={to}
+          onPick={(a, b) => {
+            onPick(a, b);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

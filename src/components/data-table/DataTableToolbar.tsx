@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { formatDate } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
+import { RangeCalendar } from "./RangeCalendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -12,9 +13,14 @@ import { useUrlParams } from "./use-url-params";
 export type FilterConfig = {
   key: string;
   label: string;
-  // disabled: nothing matches it in the current tab or view (greyed out).
-  options: { value: string; label: string; disabled?: boolean }[];
+  // disabled: nothing matches it in the current view, so it's hidden (unless
+  // ticked). count: how many items you'd see with it ticked.
+  options: { value: string; label: string; disabled?: boolean; count?: number }[];
 };
+
+// An on/off chip, e.g. "Has comments" (?comments=1). count: how many items
+// it would show.
+export type ToggleConfig = { key: string; label: string; count?: number };
 
 // Comma-separated values in the URL (?status=in_progress,for_review).
 const split = (v: string) => (v ? v.split(",").filter(Boolean) : []);
@@ -28,8 +34,10 @@ export function DataTableToolbar({
   showSearch = true,
   showDates = true,
   leading,
+  toggles = [],
 }: {
   filters: FilterConfig[];
+  toggles?: ToggleConfig[];
   // Shown first on the same row (e.g. the Open / On Hold / Completed / All switch).
   leading?: React.ReactNode;
   searchPlaceholder?: string;
@@ -38,7 +46,7 @@ export function DataTableToolbar({
 }) {
   const { get, setParams } = useUrlParams();
   const [q, setQ] = useState(get("q"));
-  const keys = [...(showSearch ? ["q"] : []), ...(showDates ? ["from", "to"] : []), ...filters.map((f) => f.key)];
+  const keys = [...(showSearch ? ["q"] : []), ...(showDates ? ["from", "to"] : []), ...filters.map((f) => f.key), ...toggles.map((t) => t.key)];
 
   // One removable tag per active filter value.
   const chips: { id: string; label: string; value: string; remove: () => void }[] = [];
@@ -55,6 +63,9 @@ export function DataTableToolbar({
         remove: () => setParams({ [f.key]: selected.filter((x) => x !== v).join(",") || null }),
       });
     }
+  }
+  for (const t of toggles) {
+    if (get(t.key)) chips.push({ id: t.key, label: "Show", value: t.label, remove: () => setParams({ [t.key]: null }) });
   }
   if (get("from")) chips.push({ id: "from", label: "From", value: formatDate(get("from")), remove: () => setParams({ from: null }) });
   if (get("to")) chips.push({ id: "to", label: "To", value: formatDate(get("to")), remove: () => setParams({ to: null }) });
@@ -94,6 +105,28 @@ export function DataTableToolbar({
             onChange={(values) => setParams({ [f.key]: values.join(",") || null })}
           />
         ))}
+
+        {toggles.map((t) => {
+          const on = !!get(t.key);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setParams({ [t.key]: on ? null : "1" })}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                on ? "border-brand bg-brand text-white" : "border-input bg-background hover:bg-muted",
+              )}
+            >
+              {on && <CheckIcon className="size-3.5" />}
+              {t.label}
+              {t.count !== undefined && (
+                <span className={cn("text-xs tabular-nums", on ? "text-white/80" : "text-muted-foreground")}>{t.count}</span>
+              )}
+            </button>
+          );
+        })}
 
         {showDates && (
           <DateFilter
@@ -157,6 +190,7 @@ function MultiFilter({
       : selected.length === 1
         ? (filter.options.find((o) => o.value === selected[0])?.label ?? "1 selected")
         : `${selected.length} selected`;
+  const visible = filter.options.filter((o) => !o.disabled || selected.includes(o.value));
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -175,29 +209,28 @@ function MultiFilter({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-2">
         <ul className="max-h-72 space-y-0.5 overflow-y-auto" role="group" aria-label={filter.label}>
-          {filter.options.map((o) => {
+          {/* Options with nothing in view are hidden so the list stays short
+              (owner, Oct 22); a ticked one stays so it can be unticked. */}
+          {visible.length === 0 && (
+            <li className="px-2 py-1.5 text-sm text-muted-foreground">Nothing to filter in this view.</li>
+          )}
+          {visible.map((o) => {
             const id = `f-${filter.key}-${o.value}`;
             const on = selected.includes(o.value);
-            // A ticked option stays clickable so it can be unticked.
-            const off = o.disabled && !on;
             return (
               <li key={o.value}>
-                <label
-                  htmlFor={id}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm",
-                    off ? "cursor-not-allowed text-muted-foreground/60" : "cursor-pointer hover:bg-muted",
-                  )}
-                >
+                <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                   <Checkbox
                     id={id}
                     checked={on}
-                    disabled={off}
                     onCheckedChange={(next) =>
                       onChange(next === true ? [...selected, o.value] : selected.filter((v) => v !== o.value))
                     }
                   />
-                  {o.label}
+                  <span className="flex-1">{o.label}</span>
+                  {o.count !== undefined && (
+                    <span className="text-xs text-muted-foreground tabular-nums">{o.count}</span>
+                  )}
                 </label>
               </li>
             );
@@ -222,8 +255,9 @@ function MultiFilter({
 function DateFilter({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
   const summary =
     from && to ? `${formatDate(from)} – ${formatDate(to)}` : from ? `From ${formatDate(from)}` : to ? `Until ${formatDate(to)}` : "All";
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -238,32 +272,23 @@ function DateFilter({ from, to, onChange }: { from: string; to: string; onChange
           <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 space-y-3 p-3">
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted-foreground">From</span>
-          <Input
-            type="date"
-            aria-label="Request date from"
-            value={from}
-            max={to || undefined}
-            onChange={(e) => onChange(e.target.value, to)}
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted-foreground">To</span>
-          <Input
-            type="date"
-            aria-label="Request date to"
-            value={to}
-            min={from || undefined}
-            onChange={(e) => onChange(from, e.target.value)}
-          />
-        </label>
+      <PopoverContent align="start" className="w-auto p-0">
+        <RangeCalendar
+          from={from}
+          to={to}
+          onPick={(a, b) => {
+            onChange(a, b);
+            setOpen(false);
+          }}
+        />
         {(from || to) && (
           <button
             type="button"
-            onClick={() => onChange("", "")}
-            className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
+            onClick={() => {
+              onChange("", "");
+              setOpen(false);
+            }}
+            className="mx-2 mb-2 w-[calc(100%-1rem)] rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand hover:bg-brand-soft"
           >
             Clear dates
           </button>

@@ -85,10 +85,10 @@ export function lockedFor(status: string, hasDesigner = true): string | undefine
 
 // Status filter options for staff lists. Statuses with no requests in the
 // current tab / view are greyed out (owner, Oct 21).
-export function statusFilterOptions(include: readonly string[] | null, present: Set<string>) {
+export function statusFilterOptions(include: readonly string[] | null, present: Map<string, number>) {
   return statusOptions()
     .filter((o) => (include ? include.includes(o.value) : !(INACTIVE_STATUSES as readonly string[]).includes(o.value)))
-    .map((o) => ({ ...o, disabled: !present.has(o.value) }));
+    .map((o) => ({ ...o, count: present.get(o.value) ?? 0, disabled: !present.has(o.value) }));
 }
 
 // Who can pick what in the Assigned Designer dropdown (owner, Oct 22):

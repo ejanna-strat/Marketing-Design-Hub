@@ -21,7 +21,9 @@ export function Sidebar({ initialCollapsed, children }: { initialCollapsed: bool
       data-collapsed={collapsed}
       className={cn("group/side hidden shrink-0 transition-[width] duration-200 md:block", collapsed ? "w-11" : "w-56")}
     >
-      <div className="sticky top-20 space-y-1">
+      {/* z-30: the shrunk menu's name labels sit above the page content
+          (tables, search box) instead of behind it (owner, Oct 22). */}
+      <div className="sticky top-20 z-30 space-y-1">
         {/* Heading row with a small, separate hide/show icon, so it doesn't
             read as a menu item (owner, Oct 22). */}
         <div className={cn("flex items-center pb-2", collapsed ? "justify-center" : "justify-between pl-3")}>

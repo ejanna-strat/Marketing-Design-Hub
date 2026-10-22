@@ -191,10 +191,11 @@ export async function listRequests(supabase: Supabase, params: ListParams, optio
   return { rows: data ?? [], total: count ?? 0 };
 }
 
-// Which statuses, teams and types have requests under the current tab, view
-// and other filters, so each filter can grey out the rest (owner, Oct 21).
-// Each list ignores its own filter, so ticking one value never greys out
-// the other choices in that same filter.
+// How many requests each status, team, type and designer has under the
+// current tab, view, search and other filters: shown beside each filter
+// option, and options with none are hidden (owner, Oct 22). Each count
+// ignores its own filter, so ticking one value never hides the other choices
+// in that same filter.
 export async function facetsInView(supabase: Supabase, params: ListParams, options: ListOptions = {}) {
   const search = await searchCondition(supabase, params, options);
   const values = async (
@@ -202,7 +203,7 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
     pick: (r: { status: string; team_id: string; request_type_id: string; assigned_designer_id: string | null }) => string,
   ) => {
     // Read in pages of 1,000 (the most the database returns at once).
-    const found = new Set<string>();
+    const found = new Map<string, number>();
     for (let from = 0; ; from += 1000) {
       const { data, error } = await applyFilters(
         supabase.from("requests").select("status, team_id, request_type_id, assigned_designer_id"),
@@ -211,7 +212,7 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
         search,
       ).range(from, from + 999);
       if (error) throw new Error(error.message);
-      for (const r of data ?? []) found.add(pick(r));
+      for (const r of data ?? []) found.set(pick(r), (found.get(pick(r)) ?? 0) + 1);
       if (!data || data.length < 1000) return found;
     }
   };
@@ -226,10 +227,10 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
 
 // Designer filter options: Unassigned, then active designers, then former
 // designers only if they have requests in view (marked "(former)" so names
-// don't repeat). Designers with nothing in view are greyed out.
+// don't repeat). Designers with nothing in view are hidden.
 export function designerFilterOptions(
   designers: { id: string; display_name: string; active: boolean }[],
-  present: Set<string>,
+  present: Counts,
   { unassigned = true }: { unassigned?: boolean } = {},
 ) {
   const opts = [
@@ -242,9 +243,12 @@ export function designerFilterOptions(
   return markAvailable(opts, present);
 }
 
-// Marks the options with no requests as greyed out.
-export function markAvailable<T extends { value: string }>(options: T[], present: Set<string>) {
-  return options.map((o) => ({ ...o, disabled: !present.has(o.value) }));
+// How many items each filter value has (a value with none is missing).
+export type Counts = Map<string, number>;
+
+// Adds each option's count; options with none are hidden in the filter.
+export function markAvailable<T extends { value: string }>(options: T[], present: Counts) {
+  return options.map((o) => ({ ...o, count: present.get(o.value) ?? 0, disabled: !present.has(o.value) }));
 }
 
 export type RequestListRow = Awaited<ReturnType<typeof listRequests>>["rows"][number];
