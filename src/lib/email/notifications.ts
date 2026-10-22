@@ -1,5 +1,6 @@
 import "server-only";
 import { N1NewRequest, n1Subject } from "@/emails/N1NewRequest";
+import { N1Reminder, n1ReminderSubject } from "@/emails/N1Reminder";
 import { N2Returned, n2Subject } from "@/emails/N2Returned";
 import { N3Assigned, n3Subject } from "@/emails/N3Assigned";
 import { N4Accepted, n4Subject } from "@/emails/N4Accepted";
@@ -271,4 +272,65 @@ export async function notifyCancelled(requestId: string, appUrl: string) {
   } catch (e) {
     console.error("[email cancelled] failed", e);
   }
+}
+
+// New-request reminder — run every weekday at 8AM (Manila) with the deadline
+// reminder. For each New request with no designer that has waited 24 hours
+// or more (since it was filed, or since its designer was removed / asked to
+// reassign), emails Lead Designers + "Gets team emails" members once a day
+// until a designer is assigned (owner, Oct 22).
+export async function sendUnassignedReminders(appUrl: string) {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("requests")
+    .select("id, request_code, title, requester_name, date_needed, created_at, team:teams(name)")
+    .eq("status", "new_request")
+    .is("assigned_designer_id", null);
+  if (error) throw new Error(error.message);
+  const results: Record<string, string> = {};
+  if (!data?.length) return results;
+
+  // When each request last lost its designer, if ever.
+  const { data: unassigned } = await db
+    .from("activity_log")
+    .select("request_id, created_at")
+    .in("request_id", data.map((r) => r.id))
+    .or("action.eq.reassign_requested,and(action.eq.designer,to_value.is.null)");
+  const lastUnassigned = new Map<string, string>();
+  for (const u of unassigned ?? []) {
+    if (u.created_at > (lastUnassigned.get(u.request_id) ?? "")) lastUnassigned.set(u.request_id, u.created_at);
+  }
+
+  const { data: members, error: membersError } = await db
+    .from("team_members")
+    .select("email")
+    .or("roles.cs.{lead_designer},gets_team_emails.eq.true");
+  if (membersError) throw new Error(membersError.message);
+  const to = (members ?? []).map((m) => m.email);
+
+  const now = Date.now();
+  const today = todayInManila();
+  for (const r of data) {
+    const since = [r.created_at, lastUnassigned.get(r.id) ?? ""].sort().at(-1)!;
+    const hours = (now - new Date(since).getTime()) / 36e5;
+    if (hours < 24) continue;
+    results[r.request_code] = await sendEmail({
+      // One per request per day.
+      key: `N1_REMINDER:${today}`,
+      requestId: r.id,
+      to,
+      subject: n1ReminderSubject(r.title),
+      email: N1Reminder({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        team: r.team?.name ?? "—",
+        dateNeeded: formatDate(r.date_needed),
+        waitingSince: formatDate(since),
+        days: Math.floor(hours / 24),
+        url: `${appUrl}/admin/requests/${r.request_code}`,
+      }),
+    });
+  }
+  return results;
 }
