@@ -88,7 +88,7 @@ export default async function DealRequestsPage({
         page={params.page}
         pageSize={params.pageSize}
         designers={[]}
-        canAssign={false}
+        viewer={{ designerId: null, isManager: false }}
         readOnly
         extra="deal"
       />

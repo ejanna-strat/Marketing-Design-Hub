@@ -90,3 +90,24 @@ export function statusFilterOptions(include: readonly string[] | null, present: 
     .filter((o) => (include ? include.includes(o.value) : !(INACTIVE_STATUSES as readonly string[]).includes(o.value)))
     .map((o) => ({ ...o, disabled: !present.has(o.value) }));
 }
+
+// Who can pick what in the Assigned Designer dropdown (owner, Oct 22):
+// - a fresh New request with no designer: people in the Designer list can
+//   take it for themselves; putting someone else on it is the Lead's
+//   Accept & assign.
+// - once it has a designer: anyone in the Designer list (or a Lead / Admin)
+//   can change it to anyone; only Leads / Admins can set it back to Unassigned.
+// - Completed, Cancelled and Returned stay locked.
+export type DesignerViewer = { designerId: string | null; isManager: boolean };
+export function designerChoice(status: string, current: string | null, viewer: DesignerViewer) {
+  const closed = lockedFor(status, true);
+  if (closed) return { locked: closed, selfOnly: false, canRemove: false };
+  if (!current && status === "new_request") {
+    if (!viewer.designerId) return { locked: lockedFor(status, false), selfOnly: false, canRemove: false };
+    return { locked: undefined, selfOnly: true, canRemove: false };
+  }
+  if (!viewer.designerId && !viewer.isManager) {
+    return { locked: "Only the Design team can change the designer", selfOnly: false, canRemove: false };
+  }
+  return { locked: undefined, selfOnly: false, canRemove: viewer.isManager };
+}

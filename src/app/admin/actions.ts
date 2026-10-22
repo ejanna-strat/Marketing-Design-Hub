@@ -69,17 +69,24 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   const changes = parsed.data;
   const fields = Object.keys(changes);
   if (fields.length === 0) return { ok: true };
-  if (!user.isManager && "assigned_designer_id" in changes) {
-    return { ok: false, error: "Only Admins and Lead Designers can assign designers." };
-  }
-
   const supabase = await createClient();
   const { data: before } = await supabase
     .from("requests")
-    .select("status, assigned_designer_id")
+    .select("status, assigned_designer_id, requester_id")
     .eq("id", requestId)
     .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
+  // Designers (owner, Oct 22): take an unassigned request for themselves, or
+  // change the designer to anyone once it has one. The database checks too.
+  if (!user.isManager && "assigned_designer_id" in changes) {
+    if (!user.designerId) return { ok: false, error: "Only the Design team can assign designers." };
+    if (changes.assigned_designer_id === null) {
+      return { ok: false, error: "Only Admins and Lead Designers can remove the designer." };
+    }
+    if (!before.assigned_designer_id && changes.assigned_designer_id !== user.designerId) {
+      return { ok: false, error: "You can take this request for yourself; a Lead Designer assigns it to someone else." };
+    }
+  }
 
   const { data, error } = await supabase
     .from("requests")
@@ -93,13 +100,25 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   }
   if (!data) return { ok: false, error: "You can't change this request." };
 
-  // Emails (each once): N3 when a designer is first assigned (the
-  // reviewer's Accept), N6 when the designer is swapped, N7 on For
-  // requester's review, N8 on Completed.
+  // Emails (each once):
+  // - first designer: taken by themselves → "Accepted" to the requester (not
+  //   to themselves if it's their own request); picked by a Lead → N3.
+  // - designer changed → N6 to the requester; if someone else was picked,
+  //   N3 so they know to accept.
+  // - N7 on For requester's review, N8 on Completed.
   const appUrl = await getAppUrl();
   const designerChanged = data.assigned_designer_id !== before.assigned_designer_id && data.assigned_designer_id;
-  if (designerChanged && !before.assigned_designer_id) after(() => notifyAssigned(data.id, appUrl));
-  if (designerChanged && before.assigned_designer_id) after(() => notifyReassigned(data.id, appUrl));
+  const tookIt = !!designerChanged && data.assigned_designer_id === user.designerId;
+  if (designerChanged && !before.assigned_designer_id) {
+    if (tookIt) {
+      const own = before.requester_id === user.id;
+      after(() => notifyDesignerAccepted(data.id, appUrl, own ? user.email : undefined));
+    } else after(() => notifyAssigned(data.id, appUrl));
+  }
+  if (designerChanged && before.assigned_designer_id) {
+    after(() => notifyReassigned(data.id, appUrl));
+    if (!tookIt) after(() => notifyAssigned(data.id, appUrl));
+  }
   if (data.status === "for_review" && before.status !== "for_review") after(() => notifyForReview(data.id, appUrl));
   if (data.status === "completed" && before.status !== "completed") after(() => notifyFinalOutput(data.id, appUrl));
 
