@@ -112,17 +112,20 @@ export default async function AnalyticsPage({
         year={year}
       />
 
-      {/* Stays at the top while scrolling, so any section is one click away (owner, Oct 22). */}
+      {/* Stays at the top while scrolling, so any section is one click away
+          (owner, Oct 22). No band behind it (owner, Oct 23): only the buttons
+          are pinned, each with its own solid fill; the gaps let clicks
+          through to the page. */}
       <nav
         aria-label="Sections"
-        className="sticky top-14 z-30 -mx-1 flex flex-wrap items-center gap-x-1 gap-y-2 border-b bg-background/95 px-1 py-2 text-sm backdrop-blur"
+        className="pointer-events-none sticky top-14 z-30 -mx-1 flex flex-wrap items-center gap-x-1 gap-y-2 px-1 py-2 text-sm"
       >
-        <span className="mr-1 text-muted-foreground">Jump to:</span>
+        <span className="pointer-events-auto mr-1 rounded-full bg-background px-2 py-1 text-muted-foreground">Jump to:</span>
         {JUMPS.map((j) => (
           <a
             key={j.id}
             href={`#${j.id}`}
-            className="rounded-full border bg-background px-3 py-1 font-medium text-brand transition-colors hover:border-brand/60 hover:bg-brand-soft"
+            className="pointer-events-auto rounded-full border bg-background px-3 py-1 font-medium text-brand shadow-sm transition-colors hover:border-brand/60 hover:bg-brand-soft"
           >
             {j.label}
           </a>

@@ -2,12 +2,13 @@
 
 import { format, isBefore, parseISO } from "date-fns";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { formatDate } from "@/lib/dates";
 
 // One calendar for a date range (owner, Oct 22): click the start date, then
-// the end date (click the same day twice for a single day). The range is
-// applied once both ends are picked.
+// the end date (click the same day twice for a single day), then Apply
+// (owner, Oct 23). Nothing changes until Apply; closing keeps the old dates.
 export function RangeCalendar({
   from,
   to,
@@ -17,31 +18,38 @@ export function RangeCalendar({
   to: string;
   onPick: (from: string, to: string) => void;
 }) {
-  const [start, setStart] = useState<Date | null>(null);
-  const selected = start
-    ? { from: start, to: undefined }
-    : from
-      ? { from: parseISO(from), to: to ? parseISO(to) : undefined }
-      : undefined;
+  // The picked range, not yet applied. `end` is "" while waiting for it.
+  const [draft, setDraft] = useState({ start: from, end: to });
+  const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+  const ready = !!draft.start && !!draft.end;
   return (
     <div className="space-y-2">
       <Calendar
         mode="range"
-        selected={selected}
+        selected={draft.start ? { from: parseISO(draft.start), to: draft.end ? parseISO(draft.end) : undefined } : undefined}
         defaultMonth={from ? parseISO(from) : undefined}
         onSelect={(_, day) => {
-          if (!start) {
-            setStart(day);
+          if (!draft.start || draft.end) {
+            setDraft({ start: ymd(day), end: "" });
             return;
           }
+          const start = parseISO(draft.start);
           const [a, b] = isBefore(day, start) ? [day, start] : [start, day];
-          setStart(null);
-          onPick(format(a, "yyyy-MM-dd"), format(b, "yyyy-MM-dd"));
+          setDraft({ start: ymd(a), end: ymd(b) });
         }}
       />
-      <p className="px-3 pb-1 text-xs text-muted-foreground">
-        {start ? `From ${formatDate(format(start, "yyyy-MM-dd"))}: now click the end date.` : "Click the start date, then the end date."}
-      </p>
+      <div className="flex items-center justify-between gap-3 px-3 pb-3">
+        <p className="text-xs text-muted-foreground">
+          {!draft.start
+            ? "Click the start date, then the end date."
+            : !draft.end
+              ? `From ${formatDate(draft.start)}: now click the end date.`
+              : `${formatDate(draft.start)} – ${formatDate(draft.end)}`}
+        </p>
+        <Button size="sm" disabled={!ready} onClick={() => onPick(draft.start, draft.end)}>
+          Apply
+        </Button>
+      </div>
     </div>
   );
 }
