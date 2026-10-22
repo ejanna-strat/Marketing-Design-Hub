@@ -3,7 +3,10 @@
 export const theme = {
   appName: "Marketing Design Hub",
   company: "Stratpoint Technologies",
-  brand: "#0046bf",
-  brandSoft: "#e8f0fc",
+  // Owner, Oct 22: #3b94e4 for buttons, icons and highlights; the deeper
+  // brandInk keeps small blue text (links, titles) easy to read.
+  brand: "#3b94e4",
+  brandInk: "#1f6fbf",
+  brandSoft: "#e7f2fc",
   timeZone: "Asia/Manila",
 } as const;
