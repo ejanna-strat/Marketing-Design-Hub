@@ -33,7 +33,7 @@ export type Member = {
 const TAG_STYLES: Record<string, string> = {
   admin: "bg-brand text-white",
   lead_designer: "bg-brand-soft text-brand",
-  designer: "bg-sky-100 text-sky-800",
+  designer: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300",
 };
 
 const EMPTY: Member = { email: "", fullName: "", roles: [], designerName: "", getsTeamEmails: false, signedIn: false };

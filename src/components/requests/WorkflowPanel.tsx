@@ -70,25 +70,25 @@ export function WorkflowPanel({
 }
 
 function Tag({ state: s }: { state: WorkflowState }) {
-  let tone = "bg-sky-100 text-sky-800";
+  let tone = "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300";
   let text: React.ReactNode = "Waiting for review";
   let detail: string | null = null;
   if (s.status === "rejected") {
-    tone = "bg-red-100 text-red-800";
+    tone = "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
     text = `Returned${s.returnedByName ? ` by ${s.returnedByName}` : ""}`;
     detail = s.returnReason;
   } else if (s.status === "cancelled") {
-    tone = "bg-red-100 text-red-800";
+    tone = "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
     text = s.cancelReason ? "Cancelled by the requester" : "Cancelled";
     detail = s.cancelReason;
   } else if (s.designer && s.designerResponse === "pending") {
-    tone = "bg-amber-100 text-amber-900";
+    tone = "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300";
     text = `Waiting for ${s.designer.name} to accept`;
   } else if (s.designer && s.designerResponse === "accepted") {
-    tone = "bg-emerald-100 text-emerald-800";
+    tone = "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300";
     text = `Accepted by ${s.designer.name}${s.respondedAt ? ` · ${formatDate(s.respondedAt)}` : ""}`;
   } else if (!s.designer && s.status === "new_request" && s.reassignReason) {
-    tone = "bg-orange-100 text-orange-900";
+    tone = "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300";
     text = "Reassignment requested";
     detail = s.reassignReason;
   } else if (s.status !== "new_request") {

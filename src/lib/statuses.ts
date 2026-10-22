@@ -6,15 +6,15 @@ export type RequestStatus = Enums<"request_status">;
 // Use these everywhere: tables, filters, details pages and emails.
 // `requesterLabel` is what requesters see when it differs.
 export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: string; badge: string }[] = [
-  { value: "new_request", label: "New request", badge: "bg-sky-100 text-sky-800" },
-  { value: "designer_assigned", label: "Designer assigned (not yet started)", badge: "bg-indigo-100 text-indigo-800" },
-  { value: "in_progress", label: "In progress", badge: "bg-amber-100 text-amber-900" },
-  { value: "for_review", label: "For requester's review", badge: "bg-violet-100 text-violet-800" },
-  { value: "for_revision", label: "For revision", badge: "bg-orange-100 text-orange-900" },
-  { value: "completed", label: "Completed", badge: "bg-emerald-100 text-emerald-800" },
+  { value: "new_request", label: "New request", badge: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300" },
+  { value: "designer_assigned", label: "Designer assigned (not yet started)", badge: "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300" },
+  { value: "in_progress", label: "In progress", badge: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300" },
+  { value: "for_review", label: "For requester's review", badge: "bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300" },
+  { value: "for_revision", label: "For revision", badge: "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300" },
+  { value: "completed", label: "Completed", badge: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300" },
   // Stored as "rejected" in the database; shown as "Returned" to everyone (Oct 17).
-  { value: "rejected", label: "Returned", badge: "bg-red-100 text-red-800" },
-  { value: "cancelled", label: "Cancelled", badge: "bg-red-100 text-red-800" },
+  { value: "rejected", label: "Returned", badge: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300" },
+  { value: "cancelled", label: "Cancelled", badge: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300" },
   { value: "on_hold", label: "On hold", badge: "bg-slate-200 text-slate-700" },
 ];
 
