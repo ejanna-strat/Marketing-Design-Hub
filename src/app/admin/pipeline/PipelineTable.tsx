@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/dates";
 import { one, overallRating } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import type { RequestListRow } from "@/lib/requests/list";
-import { lockedFor } from "@/lib/statuses";
+import { designerChoice, type DesignerViewer } from "@/lib/statuses";
 
 const col = columnHelper<RequestListRow>();
 const INACTIVE = new Set(["cancelled", "rejected"]);
@@ -27,7 +27,7 @@ export function PipelineTable({
   page,
   pageSize,
   designers,
-  canAssign,
+  viewer,
   extra,
   readOnly = false,
   closedBy,
@@ -38,7 +38,7 @@ export function PipelineTable({
   pageSize: number;
   designers: DesignerOption[];
   // Admins and Lead Designers can assign designers; Designers see the name.
-  canAssign: boolean;
+  viewer: DesignerViewer;
   extra?: "deal" | "inactive";
   // Deal Requests (owner, Oct 21): nothing editable in the table; changes are
   // made on the request page.
@@ -151,12 +151,13 @@ export function PipelineTable({
         id: "designer",
         header: "Assigned Designer",
         cell: (info) =>
-          canAssign ? (
+          !readOnly && (viewer.designerId || viewer.isManager) ? (
             <DesignerSelect
               requestId={info.row.original.id}
               value={info.getValue()}
               designers={designers}
-              locked={lockedFor(info.row.original.status, !!info.getValue())}
+              selfId={viewer.designerId}
+              {...designerChoice(info.row.original.status, info.getValue(), viewer)}
             />
           ) : info.row.original.designer?.display_name ? (
             <Highlight text={info.row.original.designer.display_name} />
@@ -169,7 +170,7 @@ export function PipelineTable({
       // Requester's Email is on the request page, not in the tables (owner, Oct 21).
       ...closingColumns,
     ]);
-  }, [canAssign, designers, extra, readOnly, closedBy]);
+  }, [viewer, designers, extra, readOnly, closedBy]);
 
   return (
     <DataTable

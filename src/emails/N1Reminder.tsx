@@ -1,8 +1,8 @@
 import { EmailLayout, FOOTERS, Paragraph } from "./Layout";
 
-// Daily reminder (weekdays 8AM) while a new request has waited 24 hours or
-// more without a designer (owner, Oct 22). Same recipients as the
-// new-request email.
+// Daily reminder (weekdays 8AM) while a new request still has no designer,
+// from the second morning after filing (owner, Oct 22). To Lead Designers,
+// "Gets team emails" members and every designer.
 export const n1ReminderSubject = (title: string) => `Reminder: New Design Request Waiting: ${title}`;
 
 export function N1Reminder(p: {
@@ -39,6 +39,9 @@ export function N1Reminder(p: {
         .
       </Paragraph>
       <Paragraph>Please review it and assign a designer, or return it to the requester.</Paragraph>
+      <Paragraph>
+        Designers: if you can take this on, open the request and click <strong>Take this request</strong>.
+      </Paragraph>
     </EmailLayout>
   );
 }

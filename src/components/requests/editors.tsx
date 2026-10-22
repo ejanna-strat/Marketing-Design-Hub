@@ -157,12 +157,20 @@ export function DesignerSelect({
   value,
   designers,
   locked,
+  selfId = null,
+  selfOnly = false,
+  canRemove = true,
 }: {
   requestId: string;
   value: string | null;
   designers: DesignerOption[];
   // The reason it's locked, shown on hover.
   locked?: string;
+  // The viewer's own designer id; with selfOnly they can only pick themselves
+  // (taking a fresh request). canRemove: may set it back to Unassigned.
+  selfId?: string | null;
+  selfOnly?: boolean;
+  canRemove?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value ?? UNASSIGNED);
@@ -172,7 +180,7 @@ export function DesignerSelect({
     setCurrent(value ?? UNASSIGNED);
   }
   // Former designers stay listed only on requests they already have.
-  const options = designers.filter((d) => d.active || d.id === value);
+  const options = designers.filter((d) => (selfOnly ? d.id === selfId : d.active || d.id === value));
 
   return (
     <Select
@@ -183,7 +191,7 @@ export function DesignerSelect({
         setCurrent(next);
         save(
           { assigned_designer_id: next === UNASSIGNED ? null : next },
-          next === UNASSIGNED ? "Designer removed" : "Designer assigned",
+          next === UNASSIGNED ? "Designer removed" : next === selfId ? "You took this request" : "Designer assigned",
           () => setCurrent(previous),
         );
       }}
@@ -193,12 +201,12 @@ export function DesignerSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper">
-        <SelectItem value={UNASSIGNED}>
+        <SelectItem value={UNASSIGNED} disabled={!!value && !canRemove}>
           <span className="text-muted-foreground">— Unassigned</span>
         </SelectItem>
         {options.map((d) => (
           <SelectItem key={d.id} value={d.id}>
-            {d.name}
+            {d.id === selfId ? `${d.name} (me)` : d.name}
           </SelectItem>
         ))}
       </SelectContent>

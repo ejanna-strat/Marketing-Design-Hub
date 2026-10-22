@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, HourglassIcon, RotateCcwIcon, UndoIcon, UserCheckIcon } from "lucide-react";
+import { CheckIcon, HandIcon, HourglassIcon, RotateCcwIcon, UndoIcon, UserCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -41,18 +41,23 @@ export type WorkflowState = {
 export function WorkflowPanel({
   state,
   isManager,
+  myDesignerId = null,
   isAssignedDesigner,
   designers,
 }: {
   state: WorkflowState;
   isManager: boolean;
+  // The viewer's own designer id (anyone in the Designer list can take a
+  // fresh request for themselves, owner Oct 22).
+  myDesignerId?: string | null;
   isAssignedDesigner: boolean;
   designers: { id: string; name: string }[];
 }) {
   const s = state;
   const canReview = isManager && s.status === "new_request";
   const canRespond = isAssignedDesigner && s.designerResponse === "pending";
-  const showButtons = (canReview && !s.designer) || canRespond;
+  const canTake = !!myDesignerId && s.status === "new_request" && !s.designer;
+  const showButtons = (canReview && !s.designer) || canRespond || canTake;
 
   // When it's someone's turn, a highlighted bar spans the page under the
   // title with larger buttons, so the next step is hard to miss (owner,
@@ -60,7 +65,12 @@ export function WorkflowPanel({
   if (showButtons) {
     const message = canRespond
       ? { title: "This request is waiting for you to accept it", hint: "Accept to take it on, or ask to reassign it if you can't." }
-      : {
+      : !canReview
+        ? {
+            title: "New request waiting for a designer",
+            hint: "Take it if you can work on it. A Lead Designer can also assign it.",
+          }
+        : {
           title: s.reassignReason ? "Reassignment requested: pick another designer" : "New request waiting for review",
           hint: s.reassignReason ?? "Accept and assign a designer, or return it to the requester with a reason.",
         };
@@ -82,6 +92,7 @@ export function WorkflowPanel({
         <div className="flex flex-wrap gap-2">
           {canRespond && <DesignerButtons requestId={s.requestId} />}
           {canReview && !s.designer && <AssignButton requestId={s.requestId} designers={designers} />}
+          {canTake && <TakeButton requestId={s.requestId} designerId={myDesignerId!} primary={!canReview} />}
           {/* Return only before a designer is assigned (owner, Oct 20). */}
           {canReview && !s.designer && <ReturnButton requestId={s.requestId} />}
         </div>
@@ -298,5 +309,22 @@ function DesignerButtons({ requestId }: { requestId: string }) {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// Any designer can take a fresh request for themselves; it counts as
+// accepted straight away (owner, Oct 22).
+function TakeButton({ requestId, designerId, primary }: { requestId: string; designerId: string; primary: boolean }) {
+  const { run, pending } = useRun();
+  return (
+    <Button
+      size="lg"
+      variant={primary ? "default" : "outline"}
+      disabled={pending}
+      onClick={() => run(() => updateRequest(requestId, { assigned_designer_id: designerId }), "You took this request")}
+    >
+      <HandIcon />
+      Take this request
+    </Button>
   );
 }
