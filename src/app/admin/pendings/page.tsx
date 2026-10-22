@@ -1,7 +1,7 @@
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { requireStaff } from "@/lib/auth";
 import { RememberList } from "@/components/data-table/ListMemory";
-import { listRequests, parseListParams } from "@/lib/requests/list";
+import { designerFilterOptions, facetsInView, listRequests, parseListParams } from "@/lib/requests/list";
 import { PENDING_TABS } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
@@ -21,8 +21,10 @@ export default async function PendingsPage({
   params.status = [current];
   const supabase = await createClient();
 
-  const [{ rows, total }, counts, designers] = await Promise.all([
-    listRequests(supabase, params, { searchRequester: true }),
+  const options = { searchRequester: true } as const;
+  const [{ rows, total }, facets, counts, designers] = await Promise.all([
+    listRequests(supabase, params, options),
+    facetsInView(supabase, params, options),
     Promise.all(
       PENDING_TABS.map((t) =>
         supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", t.status).then((r) => r.count ?? 0),
@@ -41,7 +43,11 @@ export default async function PendingsPage({
       </div>
       <RememberList label="Pendings" />
       <PendingTabs tabs={tabs} current={current} />
-      <DataTableToolbar showDates={false} filters={[]} />
+      {/* Designer filter on every tab (owner, Oct 22). */}
+      <DataTableToolbar
+        showDates={false}
+        filters={[{ key: "assignee", label: "Designer", options: designerFilterOptions(designers.data ?? [], facets.assignee) }]}
+      />
       <PipelineTable
         rows={rows}
         total={total}

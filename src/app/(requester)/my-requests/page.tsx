@@ -5,7 +5,7 @@ import { RememberList } from "@/components/data-table/ListMemory";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { facetsInView, listRequests, markAvailable, parseListParams } from "@/lib/requests/list";
+import { designerFilterOptions, facetsInView, listRequests, markAvailable, parseListParams } from "@/lib/requests/list";
 import { statusOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MyRequestsTable } from "./MyRequestsTable";
@@ -20,10 +20,11 @@ export default async function MyRequestsPage({
   const supabase = await createClient();
 
   const options = { requesterId: user.id, scope: "requester" } as const;
-  const [{ rows, total }, facets, types] = await Promise.all([
+  const [{ rows, total }, facets, types, designers] = await Promise.all([
     listRequests(supabase, params, options),
     facetsInView(supabase, params, options),
     supabase.from("request_types").select("id, name").order("sort_order"),
+    supabase.from("designers").select("id, display_name, active").order("display_name"),
   ]);
 
   return (
@@ -50,6 +51,11 @@ export default async function MyRequestsPage({
             key: "type",
             label: "Type",
             options: markAvailable((types.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.type),
+          },
+          {
+            key: "assignee",
+            label: "Designer",
+            options: designerFilterOptions(designers.data ?? [], facets.assignee),
           },
         ]}
       />

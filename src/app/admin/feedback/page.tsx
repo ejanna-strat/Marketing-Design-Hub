@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireStaff } from "@/lib/auth";
 import { formatDate, manilaDayStart, todayInManila } from "@/lib/dates";
 import { formatRating, one, overallRating } from "@/lib/feedback";
+import { designerFilterOptions } from "@/lib/requests/list";
 import { createClient } from "@/lib/supabase/server";
 
 const STARS = ["1", "2", "3", "4", "5"].map((v) => ({ value: v, label: `${v} ★` }));
@@ -47,7 +48,7 @@ export default async function FeedbackPage({
       .eq("status", "completed")
       .gte("date_completed", yearStart),
     supabase.from("teams").select("id, name").order("sort_order"),
-    supabase.from("designers").select("id, display_name").order("display_name"),
+    supabase.from("designers").select("id, display_name, active").order("display_name"),
   ]);
   if (error) throw new Error(error.message);
 
@@ -63,6 +64,21 @@ export default async function FeedbackPage({
         (!filter.output.length || filter.output.includes(f.output_rating)) &&
         (!filter.overall.length || filter.overall.includes(overallRating(f))),
     );
+  // Designers with feedback under the other filters (ignoring the Designer
+  // filter itself): the rest are greyed out, and former designers without
+  // feedback are left out (owner, Oct 22).
+  const designersWithFeedback = new Set(
+    (rows ?? [])
+      .map((f) => ({ ...f, request: one(f.request) }))
+      .filter(
+        (f) =>
+          (!filter.team.length || filter.team.includes(f.request?.team_id ?? "")) &&
+          (!filter.process.length || filter.process.includes(f.process_rating)) &&
+          (!filter.output.length || filter.output.includes(f.output_rating)) &&
+          (!filter.overall.length || filter.overall.includes(overallRating(f))),
+      )
+      .map((f) => f.request?.assigned_designer_id ?? ""),
+  );
   const counted = all.filter((f) => !f.request?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
     counted.length ? counted.reduce((sum, f) => sum + pick(f), 0) / counted.length : 0;
@@ -102,7 +118,11 @@ export default async function FeedbackPage({
         showDates={false}
         filters={[
           { key: "team", label: "Team", options: (teams ?? []).map((t) => ({ value: t.id, label: t.name })) },
-          { key: "designer", label: "Designer", options: (designers ?? []).map((d) => ({ value: d.id, label: d.display_name })) },
+          {
+            key: "designer",
+            label: "Designer",
+            options: designerFilterOptions(designers ?? [], designersWithFeedback, { unassigned: false }),
+          },
           { key: "process", label: "Process", options: STARS },
           { key: "output", label: "Output", options: STARS },
           { key: "overall", label: "Overall", options: HALF_STARS },
