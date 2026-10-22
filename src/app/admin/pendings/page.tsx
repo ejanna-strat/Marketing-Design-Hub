@@ -54,7 +54,7 @@ export default async function PendingsPage({
         page={params.page}
         pageSize={params.pageSize}
         designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
-        canAssign={user.isManager}
+        viewer={{ designerId: user.designerId, isManager: user.isManager }}
       />
     </div>
   );

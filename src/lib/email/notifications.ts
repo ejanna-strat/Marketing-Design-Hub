@@ -1,4 +1,6 @@
 import "server-only";
+import { TZDate } from "@date-fns/tz";
+import { theme } from "@/config/theme";
 import { N1NewRequest, n1Subject } from "@/emails/N1NewRequest";
 import { N1Reminder, n1ReminderSubject } from "@/emails/N1Reminder";
 import { N2Returned, n2Subject } from "@/emails/N2Returned";
@@ -143,15 +145,20 @@ export async function notifyAssigned(requestId: string, appUrl: string) {
   }
 }
 
-// N4 — the requester (+ "Gets team emails") when the designer accepts.
-export async function notifyDesignerAccepted(requestId: string, appUrl: string) {
+// N4 — the requester (+ "Gets team emails") when the designer accepts, or
+// when a designer takes the request themselves. `skipEmail`: the person who
+// took their own request doesn't get an email about it (owner, Oct 22).
+export async function notifyDesignerAccepted(requestId: string, appUrl: string, skipEmail?: string) {
   try {
     const r = await loadRequest(requestId);
     if (!r.assigned_designer_id) return;
+    const skip = skipEmail?.toLowerCase();
+    const to = [r.requester_email, ...(await teamEmailRecipients())].filter((e) => e.toLowerCase() !== skip);
+    if (to.length === 0) return;
     await sendEmail({
       key: `N4_ACCEPTED:${r.assigned_designer_id}`,
       requestId,
-      to: [r.requester_email, ...(await teamEmailRecipients())],
+      to,
       subject: n4Subject(r.title),
       email: N4Accepted({
         title: r.title,
@@ -165,7 +172,8 @@ export async function notifyDesignerAccepted(requestId: string, appUrl: string) 
   }
 }
 
-// N6 — the requester + the new designer when the designer is swapped.
+// N6 — the requester when the designer is changed (owner, Oct 22: requester
+// only; a new designer picked by someone else gets the assigned email).
 export async function notifyReassigned(requestId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
@@ -173,7 +181,7 @@ export async function notifyReassigned(requestId: string, appUrl: string) {
     await sendEmail({
       key: `N6_REASSIGNED:${r.assigned_designer_id}`,
       requestId,
-      to: [r.requester_email, r.designer.email],
+      to: [r.requester_email],
       subject: n6Subject(r.title),
       email: N6Reassigned({
         title: r.title,
@@ -275,10 +283,11 @@ export async function notifyCancelled(requestId: string, appUrl: string) {
 }
 
 // New-request reminder — run every weekday at 8AM (Manila) with the deadline
-// reminder. For each New request with no designer that has waited 24 hours
-// or more (since it was filed, or since its designer was removed / asked to
-// reassign), emails Lead Designers + "Gets team emails" members once a day
-// until a designer is assigned (owner, Oct 22).
+// reminder. A New request with no designer gets its first reminder at the
+// SECOND weekday 8AM check after it started waiting (filed, or its designer
+// removed / asked to reassign) — e.g. filed Mon 10PM → Wed 8AM — then one
+// every weekday until a designer is assigned. Goes to Lead Designers, "Gets
+// team emails" members and every designer, who can take it (owner, Oct 22).
 export async function sendUnassignedReminders(appUrl: string) {
   const db = createAdminClient();
   const { data, error } = await db
@@ -301,19 +310,19 @@ export async function sendUnassignedReminders(appUrl: string) {
     if (u.created_at > (lastUnassigned.get(u.request_id) ?? "")) lastUnassigned.set(u.request_id, u.created_at);
   }
 
-  const { data: members, error: membersError } = await db
-    .from("team_members")
-    .select("email")
-    .or("roles.cs.{lead_designer},gets_team_emails.eq.true");
+  const [{ data: members, error: membersError }, { data: designers }] = await Promise.all([
+    db.from("team_members").select("email").or("roles.cs.{lead_designer},gets_team_emails.eq.true"),
+    db.from("designers").select("email").eq("active", true),
+  ]);
   if (membersError) throw new Error(membersError.message);
-  const to = (members ?? []).map((m) => m.email);
+  const to = [...(members ?? []).map((m) => m.email), ...(designers ?? []).map((d) => d.email)];
 
   const now = Date.now();
   const today = todayInManila();
   for (const r of data) {
     const since = [r.created_at, lastUnassigned.get(r.id) ?? ""].sort().at(-1)!;
+    if (today < secondCheckDay(since)) continue;
     const hours = (now - new Date(since).getTime()) / 36e5;
-    if (hours < 24) continue;
     results[r.request_code] = await sendEmail({
       // One per request per day.
       key: `N1_REMINDER:${today}`,
@@ -333,4 +342,23 @@ export async function sendUnassignedReminders(appUrl: string) {
     });
   }
   return results;
+}
+
+// The Manila date of the second weekday 8AM check after `since`: the first
+// check after filing is skipped so every request gets at least one full
+// working morning before anyone is reminded (owner, Oct 22).
+export function secondCheckDay(since: string) {
+  const start = new Date(since).getTime();
+  let day = format(new TZDate(start, theme.timeZone), "yyyy-MM-dd");
+  let found = 0;
+  for (let i = 0; i < 14; i++) {
+    const check = new TZDate(`${day}T08:00:00`, theme.timeZone);
+    const weekday = check.getDay();
+    if (weekday !== 0 && weekday !== 6 && check.getTime() > start) {
+      found += 1;
+      if (found === 2) return day;
+    }
+    day = format(addDays(parseISO(day), 1), "yyyy-MM-dd");
+  }
+  return day;
 }

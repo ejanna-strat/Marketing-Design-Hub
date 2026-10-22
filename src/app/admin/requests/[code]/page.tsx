@@ -18,7 +18,7 @@ import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
-import { lockedFor, statusLabel } from "@/lib/statuses";
+import { designerChoice, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -48,6 +48,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   const designerOptions = (designers ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
 
   const closed = request.status === "cancelled" || request.status === "rejected";
+  const viewer = { designerId: user.designerId, isManager: user.isManager };
 
   return (
     <div className="space-y-6">
@@ -62,6 +63,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
         </div>
         <WorkflowPanel
           isManager={user.isManager}
+          myDesignerId={user.designerId}
           isAssignedDesigner={!!user.designerId && user.designerId === request.assigned_designer_id}
           designers={designerOptions.filter((d) => d.active).map((d) => ({ id: d.id, name: d.name }))}
           state={{
@@ -98,12 +100,13 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 <Item
                   label="Assigned Designer"
                   value={
-                    user.isManager ? (
+                    user.isManager || user.designerId ? (
                       <DesignerSelect
                         requestId={request.id}
                         value={request.assigned_designer_id}
                         designers={designerOptions}
-                        locked={lockedFor(request.status, !!request.assigned_designer_id)}
+                        selfId={user.designerId}
+                        {...designerChoice(request.status, request.assigned_designer_id, viewer)}
                       />
                     ) : (
                       request.designer?.display_name
