@@ -18,7 +18,7 @@ export function N7ForReview(p: { title: string; code: string; designerName: stri
         {
           label: "Request ID",
           value: (
-            <Link href={p.url} style={{ color: theme.brand, textDecoration: "underline" }}>
+            <Link href={p.url} style={{ color: theme.brandInk, textDecoration: "underline" }}>
               {p.code}
             </Link>
           ),
@@ -27,7 +27,7 @@ export function N7ForReview(p: { title: string; code: string; designerName: stri
         {
           label: "Link to Output",
           value: p.outputUrl ? (
-            <Link href={p.outputUrl} style={{ color: theme.brand }}>
+            <Link href={p.outputUrl} style={{ color: theme.brandInk }}>
               Open Link ↗
             </Link>
           ) : (

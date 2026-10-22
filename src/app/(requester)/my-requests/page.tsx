@@ -1,6 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
+import { RememberList } from "@/components/data-table/ListMemory";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
@@ -39,6 +40,7 @@ export default async function MyRequestsPage({
           </Link>
         </Button>
       </div>
+      <RememberList label="My Design Requests" />
       <DataTableToolbar
         leading={<ViewSwitch requester />}
         filters={[

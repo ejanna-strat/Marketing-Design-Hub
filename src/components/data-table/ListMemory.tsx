@@ -22,16 +22,26 @@ export function RememberList({ label }: { label: string }) {
   return null;
 }
 
-export function BackToList({ fallbackHref, fallbackLabel }: { fallbackHref: string; fallbackLabel: string }) {
+// `within`: only lists in this part of the app count (staff pages vs My
+// Requests), so a list from the other side is never used.
+export function BackToList({
+  fallbackHref,
+  fallbackLabel,
+  within = "/admin",
+}: {
+  fallbackHref: string;
+  fallbackLabel: string;
+  within?: string;
+}) {
   const [target, setTarget] = useState({ href: fallbackHref, label: fallbackLabel });
   useEffect(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(KEY) ?? "null");
-      if (saved?.href?.startsWith("/admin")) setTarget(saved);
+      if (saved?.href?.startsWith(within)) setTarget(saved);
     } catch {
       // keep the fallback
     }
-  }, []);
+  }, [within]);
   return (
     <Link href={target.href} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
       <ArrowLeftIcon className="size-4" />

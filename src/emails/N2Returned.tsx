@@ -34,7 +34,7 @@ export function N2Returned(p: {
               <>
                 {" "}
                 (
-                <Link href={`mailto:${p.reviewerEmail}`} style={{ color: theme.brand }}>
+                <Link href={`mailto:${p.reviewerEmail}`} style={{ color: theme.brandInk }}>
                   {p.reviewerEmail}
                 </Link>
                 )
