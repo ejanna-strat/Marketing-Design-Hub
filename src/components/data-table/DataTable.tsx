@@ -116,7 +116,8 @@ export function DataTable<T extends { id: string }>({
                 <TableRow
                   key={row.id}
                   onClick={rowHref ? (e) => openRow(e, rowHref(row.original)) : undefined}
-                  className={cn(rowHref && "cursor-pointer")}
+                  // Clickable rows show a light brand-blue tint on hover (owner, Oct 22).
+                  className={cn(rowHref && "cursor-pointer hover:bg-brand-soft")}
                 >
                   {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id} className={cn("align-top", columnClassNames[cell.column.id])}>

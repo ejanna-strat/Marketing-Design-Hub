@@ -53,9 +53,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AppHeader user={user} />
       <div className="flex gap-6 px-4 py-6 sm:px-6">
         <Sidebar initialCollapsed={collapsed}>
-            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground group-data-[collapsed=true]/side:sr-only">
-              Marketing team
-            </p>
             {menuFor(user.isManager).map((item) =>
               item === "pendings" ? (
                 <Suspense key="pendings">

@@ -103,7 +103,7 @@ export function PipelineTable({
       col.accessor("request_code", {
         header: "Request ID",
         cell: (info) => (
-          <Link href={`/admin/requests/${info.getValue()}`} className="font-mono font-medium text-brand hover:underline">
+          <Link href={`/admin/requests/${info.getValue()}`} className="font-mono font-medium text-foreground">
             <Highlight text={info.getValue()} />
           </Link>
         ),
