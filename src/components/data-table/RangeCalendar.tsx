@@ -23,7 +23,9 @@ export function RangeCalendar({
   const ymd = (d: Date) => format(d, "yyyy-MM-dd");
   const ready = !!draft.start && !!draft.end;
   return (
-    <div className="space-y-2">
+    // As wide as the calendar: the hint wraps instead of widening the pop-up
+    // (w-0 min-w-full on the footer), and Apply sits full width below it.
+    <div className="inline-flex flex-col">
       <Calendar
         mode="range"
         selected={draft.start ? { from: parseISO(draft.start), to: draft.end ? parseISO(draft.end) : undefined } : undefined}
@@ -38,7 +40,7 @@ export function RangeCalendar({
           setDraft({ start: ymd(a), end: ymd(b) });
         }}
       />
-      <div className="flex items-center justify-between gap-3 px-3 pb-3">
+      <div className="flex w-0 min-w-full flex-col gap-2 px-3 pb-3">
         <p className="text-xs text-muted-foreground">
           {!draft.start
             ? "Click the start date, then the end date."
@@ -46,7 +48,7 @@ export function RangeCalendar({
               ? `From ${formatDate(draft.start)}: now click the end date.`
               : `${formatDate(draft.start)} – ${formatDate(draft.end)}`}
         </p>
-        <Button size="sm" disabled={!ready} onClick={() => onPick(draft.start, draft.end)}>
+        <Button size="sm" className="w-full" disabled={!ready} onClick={() => onPick(draft.start, draft.end)}>
           Apply
         </Button>
       </div>
