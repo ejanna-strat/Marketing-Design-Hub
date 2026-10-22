@@ -85,7 +85,9 @@ export default async function FeedbackPage({
       )
       .map((f) => f.request?.assigned_designer_id ?? ""),
   );
-  // Ratings nobody gave this year are greyed out in the filters (owner, Oct 22).
+  // Teams and ratings with no feedback this year are greyed out in the
+  // filters (owner, Oct 22).
+  const teamsWithFeedback = new Set((rows ?? []).map((f) => one(f.request)?.team_id ?? ""));
   const ratingsUsed = {
     process: new Set((rows ?? []).map((f) => String(f.process_rating))),
     output: new Set((rows ?? []).map((f) => String(f.output_rating))),
@@ -129,7 +131,7 @@ export default async function FeedbackPage({
         showSearch={false}
         showDates={false}
         filters={[
-          { key: "team", label: "Team", options: (teams ?? []).map((t) => ({ value: t.id, label: t.name })) },
+          { key: "team", label: "Team", options: greyUnused((teams ?? []).map((t) => ({ value: t.id, label: t.name })), teamsWithFeedback) },
           {
             key: "designer",
             label: "Designer",
