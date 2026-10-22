@@ -175,6 +175,7 @@ export function PipelineTable({
     <DataTable
       columns={columns}
       data={rows}
+      rowHref={(r) => `/admin/requests/${r.request_code}`}
       total={total}
       page={page}
       pageSize={pageSize}

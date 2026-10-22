@@ -74,6 +74,7 @@ export function MyRequestsTable({
     <DataTable
       columns={columns}
       data={rows}
+      rowHref={(r) => `/my-requests/${r.request_code}`}
       total={total}
       page={page}
       pageSize={pageSize}
