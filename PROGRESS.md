@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.25.0_
+_Last updated: Oct 22, 2026 · version 0.25.1_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -42,6 +42,7 @@ _Last updated: Oct 22, 2026 · version 0.25.0_
 - v0.23.0 (owner, Oct 22): daily "New Request Reminder" (pulled forward from Phase 3, the N1 daily repeat): weekdays 8AM to Lead Designers + "Gets team emails" for New requests waiting 24h+ with no designer, until one is assigned.
 - v0.24.0 (owner, Oct 22): Light / Dark / System appearance per person (menu under your name, saved to the account); clicking anywhere on a request table row opens the request.
 - v0.25.0 (owner, Oct 22): Sign out asks for confirmation first.
+- v0.25.1 (owner, Oct 22): theme choice stays consistent across every page; wider sign-in / sign-up box without the gap in the spam note.
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql` and `0014_theme.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with `logo.png` in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates.
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
