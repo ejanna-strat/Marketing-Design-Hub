@@ -14,9 +14,11 @@ export const FOOTERS = {
 } as const;
 
 // The logo is served from the project's public "brand" storage folder, so
-// email programs can load it (the app itself may sit behind a login).
+// email programs can load it (the app itself may sit behind a login). The
+// ?v= tag changes whenever the logo does, because email programs (Gmail)
+// keep their own copy of an image per address (new #3b94e4 logo, Oct 22).
 export function logoUrl() {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/logo.png`;
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/logo.png?v=3b94e4`;
 }
 
 const FONT = "Inter, 'Segoe UI', Helvetica, Arial, sans-serif";

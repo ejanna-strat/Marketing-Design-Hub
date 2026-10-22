@@ -74,7 +74,10 @@ export function statusOptions(audience: "staff" | "requester" = "staff") {
 
 // Why the designer / link can't change: Completed keeps its designer, and
 // Cancelled or Returned requests are closed (owner, Oct 21).
-export function lockedFor(status: string): string | undefined {
+// New requests get their first designer only through the reviewer's
+// Accept & assign (owner, Oct 22).
+export function lockedFor(status: string, hasDesigner = true): string | undefined {
+  if (status === "new_request" && !hasDesigner) return "Use Accept & assign on the request page to assign a designer";
   if (status === "completed") return "Completed requests keep their designer";
   if (status === "cancelled" || status === "rejected") return "Cancelled and Returned requests can't be changed";
   return undefined;

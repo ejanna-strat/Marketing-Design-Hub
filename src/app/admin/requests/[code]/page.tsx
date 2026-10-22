@@ -103,7 +103,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                         requestId={request.id}
                         value={request.assigned_designer_id}
                         designers={designerOptions}
-                        locked={lockedFor(request.status)}
+                        locked={lockedFor(request.status, !!request.assigned_designer_id)}
                       />
                     ) : (
                       request.designer?.display_name

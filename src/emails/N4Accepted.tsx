@@ -18,7 +18,6 @@ export function N4Accepted(p: { title: string; code: string; designerName: strin
       footer={FOOTERS.requester}
     >
       <Paragraph>Your design request has been accepted and assigned to {p.designerName}.</Paragraph>
-      <Paragraph>We will notify you once the designer starts working on your request.</Paragraph>
       <Paragraph>You can track the progress of your request through Track My Requests.</Paragraph>
     </EmailLayout>
   );

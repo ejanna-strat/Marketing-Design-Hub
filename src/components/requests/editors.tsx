@@ -140,6 +140,7 @@ function lockReason(status: string, hasDesigner: boolean, hasLink: boolean, acce
   if (status === "designer_assigned") return "set when the designer accepts";
   if (status === "rejected") return "use the Return button";
   if (!hasDesigner && NEEDS_DESIGNER.has(status as never)) return "assign a designer first";
+  if (hasDesigner && !accepted && NEEDS_DESIGNER.has(status as never)) return "the designer must accept first";
   if (!hasLink && LINK_REQUIRED.has(status)) return "add a Link to Output first";
   if (accepted && status === "new_request") return "the designer already accepted";
   return null;
