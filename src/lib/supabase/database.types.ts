@@ -579,6 +579,8 @@ export type Database = {
       }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
+      cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
+      can_manage_members: { Args: never; Returns: boolean }
       submit_feedback: {
         Args: { p_comments: string; p_output: number; p_process: number; p_request_code: string }
         Returns: Json

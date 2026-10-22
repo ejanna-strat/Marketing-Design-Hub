@@ -4,6 +4,7 @@ import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_COOKIE } from "./sidebar-cookie";
+import { MenuTip } from "./MenuTip";
 
 // The Marketing team's left menu. "Hide menu" shrinks it to a strip of icons
 // so tables get more room (owner, Oct 22); the choice is remembered in this
@@ -31,10 +32,11 @@ export function Sidebar({ initialCollapsed, children }: { initialCollapsed: bool
             type="button"
             onClick={toggle}
             aria-label={collapsed ? "Show menu" : "Hide menu"}
-            title={collapsed ? "Show menu" : "Hide menu"}
-            className="cursor-pointer rounded-md p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+            title={collapsed ? undefined : "Hide menu"}
+            className="group/item relative cursor-pointer rounded-md p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
           >
             {collapsed ? <PanelLeftOpenIcon className="size-4" /> : <PanelLeftCloseIcon className="size-4" />}
+            <MenuTip>Show menu</MenuTip>
           </button>
         </div>
         <nav aria-label="Marketing team" className="space-y-1">

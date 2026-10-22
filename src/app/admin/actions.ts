@@ -191,6 +191,22 @@ export async function returnRequest(requestId: string, reason: string): Promise<
   return { ok: true };
 }
 
+// Marketing team: cancel a request with a note (owner, Oct 22). Nobody is
+// emailed; the requester sees the note on their request page.
+export async function cancelRequest(requestId: string, note: string): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isStaff) return { ok: false, error: "Only the Marketing team can cancel requests here." };
+  if (!note.trim()) return { ok: false, error: "Please add a note on why the request is cancelled." };
+  if (note.length > 1000) return { ok: false, error: "Please keep the note under 1,000 characters." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cancel_request", { p_request_id: requestId, p_reason: note });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't cancel the request. Please try again.") };
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/my-requests/${(data as { request_code: string }).request_code}`);
+  return { ok: true };
+}
+
 // Assigned designer: accept the task, or ask to reassign with a reason.
 export async function respondAsDesigner(
   requestId: string,

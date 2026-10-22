@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { MenuTip } from "./MenuTip";
 
 // Design Pipeline in the left menu, with a dropdown of Unassigned and each
 // designer and their open requests (owner, Oct 22), like Pendings. Each
@@ -25,11 +26,11 @@ export function PipelineMenu({ items }: { items: { value: string; label: string;
       >
         <Link
           href="/admin/pipeline"
-          title="Design Pipeline"
-          className="flex flex-1 items-center gap-2.5 px-3 py-2 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0"
+          className="group/item relative flex flex-1 items-center gap-2.5 px-3 py-2 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0"
         >
           <ClipboardListIcon className="size-4 shrink-0" />
           <span className="flex-1 group-data-[collapsed=true]/side:sr-only">Design Pipeline</span>
+          <MenuTip>Design Pipeline</MenuTip>
         </Link>
         <button
           type="button"
