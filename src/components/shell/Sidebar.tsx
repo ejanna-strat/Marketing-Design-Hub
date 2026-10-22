@@ -20,23 +20,26 @@ export function Sidebar({ initialCollapsed, children }: { initialCollapsed: bool
       data-collapsed={collapsed}
       className={cn("group/side hidden shrink-0 transition-[width] duration-200 md:block", collapsed ? "w-11" : "w-56")}
     >
-      <div className="sticky top-20 flex flex-col gap-3">
+      <div className="sticky top-20 space-y-1">
+        {/* Heading row with a small, separate hide/show icon, so it doesn't
+            read as a menu item (owner, Oct 22). */}
+        <div className={cn("flex items-center pb-2", collapsed ? "justify-center" : "justify-between pl-3")}>
+          {!collapsed && (
+            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Marketing team</p>
+          )}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={collapsed ? "Show menu" : "Hide menu"}
+            title={collapsed ? "Show menu" : "Hide menu"}
+            className="cursor-pointer rounded-md p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
+          >
+            {collapsed ? <PanelLeftOpenIcon className="size-4" /> : <PanelLeftCloseIcon className="size-4" />}
+          </button>
+        </div>
         <nav aria-label="Marketing team" className="space-y-1">
           {children}
         </nav>
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? "Show menu" : "Hide menu"}
-          title={collapsed ? "Show menu" : "Hide menu"}
-          className={cn(
-            "flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          {collapsed ? <PanelLeftOpenIcon className="size-4" /> : <PanelLeftCloseIcon className="size-4" />}
-          {!collapsed && <span>Hide menu</span>}
-        </button>
       </div>
     </aside>
   );
