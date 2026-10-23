@@ -5,7 +5,9 @@ import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { facetsInView, listRequests, parseListParams } from "@/lib/requests/list";
 import { INACTIVE_STATUSES, statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
+import { formatPeso } from "@/lib/money";
 import { PipelineTable } from "../pipeline/PipelineTable";
+import { DealSwitch } from "./DealSwitch";
 
 // Cancelled and Returned requests, kept out of the pipeline (owner, Oct 20).
 export default async function InactiveRequestsPage({
@@ -22,7 +24,7 @@ export default async function InactiveRequestsPage({
     listRequests(supabase, params, options),
     facetsInView(supabase, params, options),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
-    supabase.from("requests").select("status").in("status", [...INACTIVE_STATUSES]),
+    supabase.from("requests").select("status, is_deal, deal_size").in("status", [...INACTIVE_STATUSES]),
   ]);
   // Who cancelled or returned each request on this page: the latest
   // Returned / Cancelled entry in its activity log (owner, Oct 21).
@@ -42,6 +44,8 @@ export default async function InactiveRequestsPage({
   const inactive = all.data ?? [];
   const returned = inactive.filter((r) => r.status === "rejected").length;
   const cancelled = inactive.filter((r) => r.status === "cancelled").length;
+  const withDeals = inactive.filter((r) => r.is_deal);
+  const dealSize = withDeals.reduce((n, r) => n + (r.deal_size ?? 0), 0);
 
   return (
     <div className="space-y-5">
@@ -50,25 +54,25 @@ export default async function InactiveRequestsPage({
         <p className="text-muted-foreground">Cancelled and returned requests.</p>
       </div>
       <RememberList label="Inactive Requests" />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryBox title="Total inactive" value={inactive.length} />
         <SummaryBox title="Returned" value={returned} rate={shareOf(returned, inactive.length)} />
         <SummaryBox title="Cancelled" value={cancelled} rate={shareOf(cancelled, inactive.length)} />
+        {/* Owner, Oct 23. */}
+        <SummaryBox
+          title="With deals"
+          value={withDeals.length}
+          rate={shareOf(withDeals.length, inactive.length)}
+          lines={[`Deal size: ${dealSize ? formatPeso(dealSize) : "—"}`]}
+        />
       </div>
       <DataTableToolbar
+        leading={<DealSwitch />}
         filters={[
           {
             key: "status",
             label: "Status",
             options: statusFilterOptions(INACTIVE_STATUSES, facets.status),
-          },
-          {
-            key: "deal",
-            label: "Deal Associated",
-            options: [
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ],
           },
         ]}
       />
@@ -80,6 +84,8 @@ export default async function InactiveRequestsPage({
         designers={(designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }))}
         viewer={{ designerId: user.designerId, isManager: user.isManager, isAdmin: user.isAdmin }}
         extra="inactive"
+        // With deals: Deal Name and Deal Size after Request Title (owner, Oct 23).
+        dealColumns={params.deal === "yes"}
         closedBy={closedBy}
       />
     </div>
