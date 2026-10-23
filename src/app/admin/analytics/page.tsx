@@ -134,11 +134,18 @@ export default async function AnalyticsPage({
               <CardDescription>Request flow</CardDescription>
             </CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
                 <Flow label="Requests in" value={t.requestsIn} />
                 <Flow label="Accepted" value={t.accepted} rate={shareOf(t.accepted, t.requestsIn)} />
                 <Flow label="Completed" value={t.completed} rate={shareOf(t.completed, t.requestsIn)} />
                 <Flow label="Open at the end" value={t.openAtEnd} note="New request to For revision" />
+                {/* Total inactive (owner, Oct 23). */}
+                <Flow
+                  label="Inactive"
+                  value={t.returned + t.cancelled}
+                  rate={shareOf(t.returned + t.cancelled, t.requestsIn)}
+                  note="Returned or cancelled"
+                />
               </dl>
             </CardContent>
           </Card>
@@ -591,6 +598,13 @@ export default async function AnalyticsPage({
         <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="grid gap-4">
+          {/* Total first, then its two parts (owner, Oct 23). */}
+          <SummaryBox
+            title="Total inactive"
+            value={t.returned + t.cancelled}
+            rate={shareOf(t.returned + t.cancelled, t.requestsIn)}
+            lines={["Returned and cancelled, of this period's requests"]}
+          />
           <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox title="Cancelled" value={t.cancelled} rate={shareOf(t.cancelled, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox
