@@ -627,28 +627,48 @@ export default async function AnalyticsPage({
         </div>
         <Card>
           <CardHeader>
-            {/* Deals only (owner, Oct 23); all inactive requests are in the Total box. */}
-            <CardTitle>Inactive requests with deals</CardTitle>
+            <CardTitle>{mom ? "Inactive requests by month" : "Inactive requests by type"}</CardTitle>
+            {/* Every inactive request; the wording makes clear that Deal size
+                only adds up the ones that had a deal (owner, Oct 23). */}
             <CardDescription>
-              Returned and cancelled requests that had a deal, filed in this period, with their deal size
-              {mom && ". Click a month for its breakdown by type of request."}
+              All returned and cancelled requests filed in this period, with or without a deal. Deal size adds up only
+              the ones that had a deal.
+              {mom && " Click a month for its breakdown by type of request."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {/* Month on Month: types open per month, like Deal requests (owner, Oct 23). */}
             {mom ? (
               <MonthBreakdown
-                headers={["Returned", "Cancelled", "Total", "Deal size"]}
+                headers={["Returned", "Cancelled", "Inactive rate", "With a deal", "Deal size"]}
                 months={a.months.map((m) => ({
                   month: m.month,
                   label: m.label,
-                  cells: inactiveDealCells(m.inactiveByType),
-                  details: m.inactiveByType.map((r) => ({ label: r.label, cells: inactiveDealCells([r]) })),
+                  cells: [
+                    String(m.returned),
+                    String(m.cancelled),
+                    m.requestsIn ? shareOf(m.returned + m.cancelled, m.requestsIn) : "—",
+                    String(m.inactiveDeals),
+                    m.inactiveDealSize ? formatPeso(m.inactiveDealSize) : "—",
+                  ],
+                  details: m.inactiveByType.map((r) => ({
+                    label: r.label,
+                    cells: [String(r.returned), String(r.cancelled), "", "", r.dealSize ? formatPeso(r.dealSize) : "—"],
+                  })),
                 }))}
-                total={{ label: `${year} total`, cells: inactiveDealCells(a.inactiveTypes) }}
+                total={{
+                  label: `${year} total`,
+                  cells: [
+                    String(t.returned),
+                    String(t.cancelled),
+                    t.requestsIn ? shareOf(t.returned + t.cancelled, t.requestsIn) : "—",
+                    String(t.inactiveDeals),
+                    t.inactiveDealSize ? formatPeso(t.inactiveDealSize) : "—",
+                  ],
+                }}
               />
             ) : a.inactiveTypes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests with a deal in this period.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests in this period.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="zebra w-full text-sm">
@@ -679,14 +699,6 @@ export default async function AnalyticsPage({
       </section>
     </div>
   );
-}
-
-// Returned · Cancelled · Total · Deal size for inactive requests with deals.
-function inactiveDealCells(rows: { returned: number; cancelled: number; dealSize: number }[]) {
-  const r = rows.reduce((n, x) => n + x.returned, 0);
-  const c = rows.reduce((n, x) => n + x.cancelled, 0);
-  const size = rows.reduce((n, x) => n + x.dealSize, 0);
-  return [String(r), String(c), String(r + c), size ? formatPeso(size) : "—"];
 }
 
 // A donut with a table beside it (the table is the legend).
