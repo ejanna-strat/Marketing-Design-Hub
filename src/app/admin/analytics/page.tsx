@@ -156,7 +156,8 @@ export default async function AnalyticsPage({
         {/* The three things to look at first (Hick's Law, owner Oct 23). */}
         <KeyTakeaways lines={keyTakeaways(a, mom, periodLabel)} />
         {/* Full width under the cards, so opening it doesn't stretch them. */}
-        <Insights label="feedback insights" lines={feedbackInsights(t, mom ? a.months : [])} />
+        {/* Insights are on Month on Month only (owner, Oct 23). */}
+        {mom && <Insights label="feedback insights" lines={feedbackInsights(t, a.months)} />}
         {mom && (
           <Card>
             <CardHeader>
@@ -463,7 +464,7 @@ export default async function AnalyticsPage({
                     content: (
                   <>
               <div className="overflow-x-auto">
-              <table className="zebra w-full text-sm">
+              <table className="zebra w-auto text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left align-bottom font-medium">Designer</th>
@@ -504,9 +505,7 @@ export default async function AnalyticsPage({
                   },
                 ]}
               />
-              <div className="mt-3">
-                <Insights lines={designerInsights(a, t)} />
-              </div>
+
             </CardContent>
           </Card>
         )}
@@ -514,7 +513,10 @@ export default async function AnalyticsPage({
 
       <section id="deals" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={BriefcaseBusinessIcon} title="Deal Requests" description="Requests tied to a deal, and the deal value behind them" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Month on Month: totals stacked on the left, the monthly table on
+            the right (owner, Oct 23). */}
+        <div className={mom ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : "space-y-4"}>
+        <div className={mom ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
           <SummaryBox title="Requests with associated deals" value={t.dealRequests} rate={shareOf(t.dealRequests, t.requestsIn)} />
           <SummaryBox title="Total deal size" value={formatPeso(t.dealSize)} />
         </div>
@@ -529,7 +531,6 @@ export default async function AnalyticsPage({
             </CardHeader>
             <CardContent>
               <MonthBreakdown
-                narrow
                 headers={["Requests with deals", "Total deal size"]}
                 months={a.months.map((m) => ({
                   month: m.month,
@@ -583,11 +584,13 @@ export default async function AnalyticsPage({
           </CardContent>
         </Card>
         )}
+        </div>
       </section>
 
       <section id="inactive" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className={mom ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : "space-y-4"}>
+        <div className={mom ? "grid gap-4" : "grid gap-4 sm:grid-cols-3"}>
           <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox title="Cancelled" value={t.cancelled} rate={shareOf(t.cancelled, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox
@@ -663,6 +666,7 @@ export default async function AnalyticsPage({
             )}
           </CardContent>
         </Card>
+        </div>
       </section>
     </div>
   );
@@ -687,22 +691,22 @@ function ShareCard({ title, data, total, column }: { title: string; data: Share[
             <table className="zebra w-full max-w-md text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 font-medium">{column}</th>
-                  <th className="py-2 pl-3 text-right font-medium">Requests</th>
-                  <th className="py-2 pl-3 text-right font-medium">Rate</th>
+                  <th className="px-3 py-2 font-medium">{column}</th>
+                  <th className="px-3 py-2 text-right font-medium">Requests</th>
+                  <th className="px-3 py-2 text-right font-medium">Rate</th>
                 </tr>
               </thead>
               <tbody>
                 {slices.map((s) => (
                   <tr key={s.label} className="border-b last:border-0">
-                    <td className="py-2">
+                    <td className="px-3 py-2">
                       <span className="flex items-center gap-2">
                         <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                         {s.label}
                       </span>
                     </td>
-                    <td className="py-2 pl-3 text-right tabular-nums">{s.value}</td>
-                    <td className="py-2 pl-3 text-right tabular-nums">{shareOf(s.value, total)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{s.value}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{shareOf(s.value, total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1074,7 +1078,7 @@ function feedbackInsights(t: PeriodTotals, months: Analytics["months"]): string[
   const o = t.feedbackOutput!;
   if (o - p >= 0.3) {
     out.push(
-      `Requesters rate the output (${o.toFixed(1)} ★) higher than the process (${p.toFixed(1)} ★). The Process rating covers the whole request experience (submitting, working with the team, getting the output); the written comments can show which part.`,
+      `Requesters rate the output (${o.toFixed(1)} ★) higher than the process (${p.toFixed(1)} ★). The Process rating covers the whole request experience (e.g. submitting, working with the team, getting the output); the written comments can show which part.`,
     );
   } else if (p - o >= 0.3) {
     out.push(
