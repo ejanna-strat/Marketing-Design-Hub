@@ -8,7 +8,6 @@ import {
   type LucideIcon,
   UsersIcon,
 } from "lucide-react";
-import { BarList } from "@/components/charts/BarList";
 import { MonthBars } from "@/components/charts/MonthBars";
 import { foldShares, type Share } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
@@ -26,6 +25,7 @@ import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
+import { SectionViews, ShortOrFull, StatusGroups } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
@@ -55,8 +55,14 @@ export default async function AnalyticsPage({
   const tab = param("tab") === "mom" ? "mom" : "monthly";
 
   // Months from the first request to this month (newest first), and years.
+  // The Period list shows the last 6 months; older periods use Custom range
+  // (Hick's Law, owner Oct 23).
   const monthOptions: { value: string; label: string }[] = [];
-  for (let m = parseISO(`${today.slice(0, 7)}-01`); format(m, "yyyy-MM") >= first.slice(0, 7); m = subMonths(m, 1)) {
+  for (
+    let m = parseISO(`${today.slice(0, 7)}-01`);
+    format(m, "yyyy-MM") >= first.slice(0, 7) && monthOptions.length < 6;
+    m = subMonths(m, 1)
+  ) {
     monthOptions.push({ value: format(m, "yyyy-MM"), label: format(m, "MMMM yyyy") });
   }
   const years: string[] = [];
@@ -147,6 +153,8 @@ export default async function AnalyticsPage({
             completed={t.completedOutside}
           />
         </div>
+        {/* The three things to look at first (Hick's Law, owner Oct 23). */}
+        <KeyTakeaways lines={keyTakeaways(a, mom, periodLabel)} />
         {/* Full width under the cards, so opening it doesn't stretch them. */}
         <Insights label="feedback insights" lines={feedbackInsights(t, mom ? a.months : [])} />
         {mom && (
@@ -158,6 +166,8 @@ export default async function AnalyticsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Opens on request (Hick's Law, owner Oct 23). */}
+              <ShowTable label="feedback by month">
               <div className="overflow-x-auto">
                 <table className="zebra w-full text-sm">
                   <thead>
@@ -195,6 +205,7 @@ export default async function AnalyticsPage({
                   </tbody>
                 </table>
               </div>
+              </ShowTable>
             </CardContent>
           </Card>
         )}
@@ -202,145 +213,154 @@ export default async function AnalyticsPage({
 
       <section id="brand" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={BarChart3Icon} title="Brand Team Productivity" description="How many requests came in, were accepted, finished and still open" />
-        {/* Month-by-month view: Month on Month only. */}
-        {mom && (
-          <>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Total requests vs total accepted</CardTitle>
-                <CardDescription>Requests filed each month, and how many of them a designer accepted</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MonthBars
-                  data={chartData}
-                  series={[
-                    { key: "requestsIn", label: "Requests in" },
-                    { key: "accepted", label: "Accepted" },
-                  ]}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Requests in vs completed vs open at month-end</CardTitle>
-                <CardDescription>Open = New request, Not started, In progress, For review and For revision at month-end</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <MonthBars
-                  data={chartData}
-                  series={[
-                    { key: "requestsIn", label: "Requests in" },
-                    { key: "completed", label: "Completed" },
-                    { key: "openAtEnd", label: "Open at month-end" },
-                  ]}
-                />
-                <div className="mt-3">
-                  <Insights lines={flowInsights(a, year)} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Pipeline Summary</CardTitle>
-              <CardDescription>
-                Arrows compare Requests In with the month before. Turnaround counts working days (Mon–Fri) for requests
-                completed that month; feedback leaves out Marketing team requesters.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="overflow-x-auto">
-              <table className="zebra w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-medium">Month</th>
-                    <th className={th}>Requests In</th>
-                    <th className={th}>Accepted</th>
-                    <th className={th}>Completed</th>
-                    <th className={th}>Open at Month-End</th>
-                    <th className={th}>Avg. Turnaround</th>
-                    <th className={th}>Deal Requests</th>
-                    <th className={th}>Deal Size</th>
-                    <th className={th}>Feedback</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {a.months.map((m, i) => {
-                    const change = i === 0 ? 0 : m.requestsIn - a.months[i - 1].requestsIn;
-                    return (
-                      <tr key={m.month} className="border-b last:border-0">
-                        <td className="px-3 py-2">{m.label}</td>
-                        <td className={td}>
-                          <span className="inline-flex items-center gap-1">
-                            {m.requestsIn}
-                            {change !== 0 && (
-                              <span
-                                className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}
-                                title={`${change > 0 ? "+" : ""}${change} vs ${a.months[i - 1].label}`}
-                              >
-                                {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}
-                                {Math.abs(change)}
-                              </span>
-                            )}
-                          </span>
-                        </td>
-                        <td className={td}>{m.accepted}</td>
-                        <td className={td}>{m.completed}</td>
-                        <td className={td}>{m.openAtEnd}</td>
-                        <td className={td}>{days(m.avgTurnaround)}</td>
-                        <td className={td}>{m.dealRequests}</td>
-                        <td className={td}>{m.dealSize ? formatPeso(m.dealSize) : "—"}</td>
-                        <td className={td}>{m.feedbackRating === null ? "—" : `${stars(m.feedbackRating)} ★ (${m.feedbackCount})`}</td>
-                      </tr>
-                    );
-                  })}
-                  <tr className="border-t-2 font-semibold">
-                    <td className="px-3 py-2">{year} total</td>
-                    <td className={td}>{t.requestsIn}</td>
-                    <td className={td}>{t.accepted}</td>
-                    <td className={td}>{t.completed}</td>
-                    <td className={td}>—</td>
-                    <td className={td}>{days(t.avgTurnaround)}</td>
-                    <td className={td}>{t.dealRequests}</td>
-                    <td className={td}>{t.dealSize ? formatPeso(t.dealSize) : "—"}</td>
-                    <td className={td}>{t.feedbackRating === null ? "—" : `${stars(t.feedbackRating)} ★ (${t.feedbackCount})`}</td>
-                  </tr>
-                </tbody>
-              </table>
-              </div>
-              <Insights lines={insights(a, year)} />
-            </CardContent>
-          </Card>
-          </>
-        )}
-
-        {/* Month on Month: requests per team and per type as monthly bars
-            (owner, Oct 23); the Monthly report keeps the donuts. */}
-        {mom ? (
-          <div className="grid gap-6 2xl:grid-cols-2">
-            <MonthCountsCard title="Requests per team" column="Team" rows={a.teamMonths} months={a.months} year={year} />
-            <MonthCountsCard title="Request type breakdown" column="Type of request" rows={a.typeMonths} months={a.months} year={year} />
-          </div>
-        ) : (
-          <div className="grid gap-6 xl:grid-cols-2">
-            <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
-            <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" />
-          </div>
-        )}
-
-        <TurnaroundByType a={a} mom={mom} year={year} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Requests by status</CardTitle>
-            <CardDescription>Where this period&apos;s {t.requestsIn} requests are now</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BarList data={STATUSES.map((st) => ({ label: st.label, value: a.byStatus.get(st.value) ?? 0 }))} total={t.requestsIn} />
-          </CardContent>
-        </Card>
+        {/* One view at a time (Hick's Law, owner Oct 23). Month on Month opens
+            on Volume: one chart of requests in, accepted, completed and open
+            (the two monthly charts merged), and the Monthly Pipeline Summary. */}
+        <SectionViews
+          label="Brand Team view"
+          views={[
+            ...(mom
+              ? [
+                  {
+                    key: "volume",
+                    label: "Volume",
+                    content: (
+                      <div className="space-y-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Requests in, accepted, completed and open at month-end</CardTitle>
+                            <CardDescription>
+                              Accepted = a designer accepted it. Open = New request, Not started, In progress, For review and
+                              For revision at month-end.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <MonthBars
+                              data={chartData}
+                              series={[
+                                { key: "requestsIn", label: "Requests in" },
+                                { key: "accepted", label: "Accepted" },
+                                { key: "completed", label: "Completed" },
+                                { key: "openAtEnd", label: "Open at month-end" },
+                              ]}
+                            />
+                            <Insights lines={flowInsights(a, year)} />
+                          </CardContent>
+                        </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Monthly Pipeline Summary</CardTitle>
+                          <CardDescription>
+                            Arrows compare Requests In with the month before. Turnaround counts working days (Mon–Fri) for requests
+                            completed that month; feedback leaves out Marketing team requesters.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="overflow-x-auto">
+                          <table className="zebra w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-muted-foreground">
+                                <th className="px-3 py-2 text-left font-medium">Month</th>
+                                <th className={th}>Requests In</th>
+                                <th className={th}>Accepted</th>
+                                <th className={th}>Completed</th>
+                                <th className={th}>Open at Month-End</th>
+                                <th className={th}>Avg. Turnaround</th>
+                                <th className={th}>Deal Requests</th>
+                                <th className={th}>Deal Size</th>
+                                <th className={th}>Feedback</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {a.months.map((m, i) => {
+                                const change = i === 0 ? 0 : m.requestsIn - a.months[i - 1].requestsIn;
+                                return (
+                                  <tr key={m.month} className="border-b last:border-0">
+                                    <td className="px-3 py-2">{m.label}</td>
+                                    <td className={td}>
+                                      <span className="inline-flex items-center gap-1">
+                                        {m.requestsIn}
+                                        {change !== 0 && (
+                                          <span
+                                            className={`inline-flex items-center text-xs ${change > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}
+                                            title={`${change > 0 ? "+" : ""}${change} vs ${a.months[i - 1].label}`}
+                                          >
+                                            {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}
+                                            {Math.abs(change)}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </td>
+                                    <td className={td}>{m.accepted}</td>
+                                    <td className={td}>{m.completed}</td>
+                                    <td className={td}>{m.openAtEnd}</td>
+                                    <td className={td}>{days(m.avgTurnaround)}</td>
+                                    <td className={td}>{m.dealRequests}</td>
+                                    <td className={td}>{m.dealSize ? formatPeso(m.dealSize) : "—"}</td>
+                                    <td className={td}>{m.feedbackRating === null ? "—" : `${stars(m.feedbackRating)} ★ (${m.feedbackCount})`}</td>
+                                  </tr>
+                                );
+                              })}
+                              <tr className="border-t-2 font-semibold">
+                                <td className="px-3 py-2">{year} total</td>
+                                <td className={td}>{t.requestsIn}</td>
+                                <td className={td}>{t.accepted}</td>
+                                <td className={td}>{t.completed}</td>
+                                <td className={td}>—</td>
+                                <td className={td}>{days(t.avgTurnaround)}</td>
+                                <td className={td}>{t.dealRequests}</td>
+                                <td className={td}>{t.dealSize ? formatPeso(t.dealSize) : "—"}</td>
+                                <td className={td}>{t.feedbackRating === null ? "—" : `${stars(t.feedbackRating)} ★ (${t.feedbackCount})`}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          </div>
+                          <Insights lines={insights(a, year)} />
+                        </CardContent>
+                      </Card>
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              key: "teams",
+              label: "Teams",
+              content: mom ? (
+                <MonthCountsCard title="Requests per team" column="Team" rows={a.teamMonths} months={a.months} year={year} />
+              ) : (
+                <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
+              ),
+            },
+            {
+              key: "types",
+              label: "Types",
+              content: mom ? (
+                <MonthCountsCard title="Request type breakdown" column="Type of request" rows={a.typeMonths} months={a.months} year={year} />
+              ) : (
+                <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" />
+              ),
+            },
+            { key: "turnaround", label: "Turnaround", content: <TurnaroundByType a={a} mom={mom} year={year} /> },
+            {
+              key: "status",
+              label: "Status",
+              content: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Requests by status</CardTitle>
+                    <CardDescription>
+                      Where this period&apos;s {t.requestsIn} requests are now. Click a group to see its statuses.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <StatusGroups total={t.requestsIn} groups={statusGroups(a)} />
+                  </CardContent>
+                </Card>
+              ),
+            },
+          ]}
+        />
       </section>
 
       <section id="designers" className="scroll-mt-32 space-y-4">
@@ -401,6 +421,39 @@ export default async function AnalyticsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* The per-type columns open on request (Hick's Law, owner Oct 23). */}
+              <ShortOrFull
+                label="breakdown by type of request"
+                short={
+                  <>
+              <div className="overflow-x-auto">
+              <table className="zebra w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
+                    <th className={th}>Total completed</th>
+                    <th className={th}>{month ? "Open at month-end" : "Open at end of range"}</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Feedback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.designerPeriod.map((d) => (
+                    <tr key={d.name} className="border-b last:border-0">
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className={`${td} font-semibold`}>{d.total}</td>
+                      <td className={td}>{d.openAtEnd}</td>
+                      <td className={td}>{days(d.avgTurnaround)}</td>
+                      <td className={td}>{designerFeedback(d)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+                  </>
+                }
+                full={
+                  <>
               <div className="overflow-x-auto">
               <table className="zebra w-full text-sm">
                 <thead>
@@ -432,18 +485,15 @@ export default async function AnalyticsPage({
                       <td className={`${td} font-semibold`}>{d.total}</td>
                       <td className={td}>{d.openAtEnd}</td>
                       <td className={td}>{days(d.avgTurnaround)}</td>
-                      <td className={td}>
-                        {d.feedbackRating === null
-                          ? d.feedbackOutOf
-                            ? `— (0 of ${d.feedbackOutOf})`
-                            : "—"
-                          : `${stars(d.feedbackRating)} ★ (${d.feedbackCount} of ${d.feedbackOutOf})`}
-                      </td>
+                      <td className={td}>{designerFeedback(d)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               </div>
+                  </>
+                }
+              />
             </CardContent>
           </Card>
         )}
@@ -721,6 +771,73 @@ function insights(a: Analytics, year: string): string[] {
     );
   }
   return out;
+}
+
+// Requests by status in 4 groups (Hick's Law, owner Oct 23).
+const STATUS_GROUPS = [
+  { label: "Open", statuses: ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"] },
+  { label: "Completed", statuses: ["completed"] },
+  { label: "On hold", statuses: ["on_hold"] },
+  { label: "Inactive", statuses: ["rejected", "cancelled"] },
+];
+function statusGroups(a: Analytics) {
+  return STATUS_GROUPS.map((g) => {
+    const items = g.statuses.map((st) => ({
+      label: STATUSES.find((x) => x.value === st)?.label ?? st,
+      value: a.byStatus.get(st) ?? 0,
+    }));
+    return { label: g.label, value: items.reduce((n, i) => n + i.value, 0), items };
+  });
+}
+
+// "4.8 ★ (2 of 3)": feedback on the designer's completed requests.
+function designerFeedback(d: Analytics["designerPeriod"][number]) {
+  if (d.feedbackRating === null) return d.feedbackOutOf ? `— (0 of ${d.feedbackOutOf})` : "—";
+  return `${stars(d.feedbackRating)} ★ (${d.feedbackCount} of ${d.feedbackOutOf})`;
+}
+
+// Key takeaways: requests in vs done, feedback, and the slowest type of work.
+function keyTakeaways(a: Analytics, mom: boolean, period: string): string[] {
+  const t = a.totals;
+  const out: string[] = [];
+  if (t.requestsIn === 0 && t.completed === 0) return [`No requests in ${mom ? "this year" : "this period"} yet.`];
+  out.push(
+    `${t.requestsIn} request${t.requestsIn === 1 ? "" : "s"} came in and ${t.completed} ${t.completed === 1 ? "was" : "were"} completed (${shareOf(t.completed, t.requestsIn)}); ${t.openAtEnd} ${t.openAtEnd === 1 ? "is" : "are"} still open${mom ? "" : ` at the end of ${period}`}.`,
+  );
+  if (t.feedbackRating !== null) {
+    const lower =
+      t.feedbackProcess! < t.feedbackOutput! - 0.2 ? "Process" : t.feedbackOutput! < t.feedbackProcess! - 0.2 ? "Output" : null;
+    out.push(
+      `Feedback is ${t.feedbackRating.toFixed(1)} ★ from ${t.feedbackCount} response${t.feedbackCount === 1 ? "" : "s"}${lower ? `; ${lower} is the lower score` : ""}.`,
+    );
+  } else if (t.completedOutside) {
+    out.push(`No feedback yet on the ${t.completedOutside} completed request${t.completedOutside === 1 ? "" : "s"}.`);
+  }
+  const timed = a.typeTurnaround.filter((r) => r.avg !== null);
+  if (timed.length > 1) {
+    const slow = [...timed].sort((x, y) => y.avg! - x.avg!)[0];
+    out.push(`${slow.label} takes the longest: ${slow.avg!.toFixed(1)} working days on average.`);
+  } else if (a.byType[0]) {
+    out.push(`${a.byType[0].label} is the most requested type (${a.byType[0].value}).`);
+  }
+  return out;
+}
+
+function KeyTakeaways({ lines }: { lines: string[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Key takeaways</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+          {lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
 }
 
 const starText = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} ★`);
