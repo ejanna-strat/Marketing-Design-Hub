@@ -19,10 +19,7 @@ export function MonthBreakdown({
   headers,
   months,
   total,
-  narrow = false,
 }: {
-  // Two number columns: keep the table narrower so numbers sit near the month.
-  narrow?: boolean;
   headers: string[];
   months: BreakdownMonth[];
   total?: { label: string; cells: string[] };
@@ -38,7 +35,7 @@ export function MonthBreakdown({
   const td = "px-3 py-1.5 text-right tabular-nums whitespace-nowrap";
   return (
     <div className="overflow-x-auto">
-      <table className={cn("zebra w-full text-sm", narrow ? "max-w-xl" : "max-w-3xl")}>
+      <table className="zebra w-full text-sm">
         <thead>
           <tr className="border-b text-muted-foreground">
             <th className="px-3 py-1.5 text-left font-medium">Month</th>
