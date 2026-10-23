@@ -106,23 +106,3 @@ export function StatusGroups({
     </ul>
   );
 }
-
-// A short version first; the full one opens with a button (e.g. a table's
-// extra columns).
-export function ShortOrFull({ label, short, full }: { label: string; short: React.ReactNode; full: React.ReactNode }) {
-  const [showFull, setShowFull] = useState(false);
-  return (
-    <div className="space-y-3">
-      {showFull ? full : short}
-      <button
-        type="button"
-        aria-expanded={showFull}
-        onClick={() => setShowFull((s) => !s)}
-        className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1 text-sm font-medium text-brand transition-colors hover:border-brand/60 hover:bg-brand-soft"
-      >
-        {showFull ? `Hide ${label}` : `Show ${label}`}
-        <ChevronRightIcon className={cn("size-4 transition-transform", showFull && "rotate-90")} aria-hidden />
-      </button>
-    </div>
-  );
-}

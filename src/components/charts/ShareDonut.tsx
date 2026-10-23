@@ -20,7 +20,8 @@ export function ShareDonut({ data, unit = "requests" }: { data: (Share & { color
             dataKey="value"
             nameKey="label"
             innerRadius="62%"
-            outerRadius="100%"
+            // A little inside the box so the edge isn't clipped.
+            outerRadius="94%"
             paddingAngle={data.length > 1 ? 2 : 0}
             stroke="none"
             isAnimationActive={false}
