@@ -513,10 +513,10 @@ export default async function AnalyticsPage({
 
       <section id="deals" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={BriefcaseBusinessIcon} title="Deal Requests" description="Requests tied to a deal, and the deal value behind them" />
-        {/* Month on Month: totals stacked on the left, the monthly table on
-            the right (owner, Oct 23). */}
-        <div className={mom ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : "space-y-4"}>
-        <div className={mom ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
+        {/* Totals stacked on the left, the table on the right (owner, Oct 23;
+            both tabs). */}
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="grid gap-4">
           <SummaryBox title="Requests with associated deals" value={t.dealRequests} rate={shareOf(t.dealRequests, t.requestsIn)} />
           <SummaryBox title="Total deal size" value={formatPeso(t.dealSize)} />
         </div>
@@ -589,8 +589,8 @@ export default async function AnalyticsPage({
 
       <section id="inactive" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
-        <div className={mom ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : "space-y-4"}>
-        <div className={mom ? "grid gap-4" : "grid gap-4 sm:grid-cols-3"}>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="grid gap-4">
           <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox title="Cancelled" value={t.cancelled} rate={shareOf(t.cancelled, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.39.2_
+_Last updated: Oct 22, 2026 · version 0.39.3_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -63,6 +63,7 @@ _Last updated: Oct 22, 2026 · version 0.39.2_
 - v0.39.0 (owner, Oct 23): Hick's Law on Analytics: Key takeaways (3 lines) under the Overview cards; Brand Team shows one view at a time (Volume · Teams · Types · Turnaround · Status; Monthly report has no Volume); the two monthly charts merged into one; Requests by status grouped into Open / Completed / On hold / Inactive (click to expand); Feedback by month and the Monthly designer per-type columns open on request; Period list shows the last 6 months (older ones via Custom range).
 - v0.39.1 (owner, Oct 23): Requests per team / type donuts no longer clipped and sit with a compact table; Turnaround and designer Summary tables are compact; Monthly report Designer Productivity has a Summary | By type of request switch and insights.
 - v0.39.2 (owner, Oct 23): padding on both sides of the team/type tables; designer By type table sized to its content; insights only on Month on Month; "e.g." in the Process insight; Month on Month Deal and Inactive sections show the totals stacked on the left with the monthly table beside them.
+- v0.39.3 (owner, Oct 23): Monthly report Deal and Inactive sections use the same layout as Month on Month (totals stacked left, table right).
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql`, `0014_theme.sql`, `0015_require_acceptance.sql`, `0016_hidden_approvers.sql`, `0017_project_overview.sql`, `0018_designers_take_requests.sql`, `0019_super_admin_role.sql`, `0020_super_admin.sql` (apply 0019 on its own first; 0020 also makes the owner Super Admin) and `0021_staff_cancel_note.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
