@@ -996,8 +996,8 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
           <p className="py-6 text-center text-sm text-muted-foreground">No completed requests in this period.</p>
         ) : (
           <div className="overflow-x-auto">
-            {/* Compact when it's just the averages (Monthly report, owner Oct 23). */}
-            <table className={`zebra w-full text-sm ${mom ? "" : "max-w-2xl"}`}>
+            {/* Fills its card (it sits beside Request types on the Monthly report). */}
+            <table className="zebra w-full text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Type of request</th>
