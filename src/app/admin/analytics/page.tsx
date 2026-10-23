@@ -13,7 +13,7 @@ import { MonthBars } from "@/components/charts/MonthBars";
 import { foldShares, type Share } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
 import { FeedbackSummary } from "@/components/feedback/FeedbackSummary";
-import { Insights } from "@/components/Insights";
+import { Insights, ShowTable } from "@/components/Insights";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { endOfMonth, format, parseISO, subMonths } from "date-fns";
@@ -31,6 +31,8 @@ const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`)
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
 const th = "px-3 py-2 text-right font-medium whitespace-nowrap";
 const td = "px-3 py-2 text-right tabular-nums whitespace-nowrap";
+// Equal-width columns whose headers wrap (Monthly designer table, owner Oct 23).
+const thEven = "w-32 min-w-32 px-3 py-2 text-right align-bottom font-medium";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -358,28 +360,29 @@ export default async function AnalyticsPage({
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
+                    {/* Totals first, then the months (owner, Oct 23). */}
+                    <th className={th}>Total completed</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Feedback</th>
                     {a.months.map((m) => (
                       <th key={m.month} className={th} title={`Completed in ${m.label}`}>
                         {m.label.slice(0, 3)}
                       </th>
                     ))}
-                    <th className={th}>Total completed</th>
-                    <th className={th}>Avg. Turnaround</th>
-                    <th className={th}>Feedback</th>
                   </tr>
                 </thead>
                 <tbody>
                   {a.designers.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
                       <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className={`${td} font-semibold`}>{d.completed}</td>
+                      <td className={td}>{days(d.avgTurnaround)}</td>
+                      <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
                       {d.completedByMonth.map((n, i) => (
                         <td key={a.months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
                           {n}
                         </td>
                       ))}
-                      <td className={`${td} font-semibold`}>{d.completed}</td>
-                      <td className={td}>{days(d.avgTurnaround)}</td>
-                      <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -402,16 +405,19 @@ export default async function AnalyticsPage({
               <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
+                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left align-bottom font-medium">Designer</th>
+                    {/* Same width for every type column; long names wrap (owner, Oct 23). */}
                     {a.periodTypes.map((type) => (
-                      <th key={type} className={`${th} whitespace-normal`}>
+                      <th key={type} className={thEven}>
                         {type}
                       </th>
                     ))}
-                    <th className={th}>Total completed</th>
-                    <th className={th}>{month ? "Open at month-end" : "Open at end of range"}</th>
-                    <th className={th}>Avg. Turnaround</th>
-                    <th className={th}>Feedback</th>
+                    <th className={thEven}>Total completed</th>
+                    <th className={thEven}>
+                      {month ? "Open at month-end" : "Open at end of range"}
+                    </th>
+                    <th className={thEven}>Avg. Turnaround</th>
+                    <th className={thEven}>Feedback</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -750,6 +756,8 @@ function MonthCountsCard({
         ) : (
           <>
             <MonthBars data={data} series={series} stacked />
+            {/* The numbers table opens on request (owner, Oct 23). */}
+            <ShowTable label={`${column.toLowerCase()} table`}>
             <div className="overflow-x-auto">
               <table className="zebra w-full text-sm">
                 <thead>
@@ -778,6 +786,7 @@ function MonthCountsCard({
                 </tbody>
               </table>
             </div>
+            </ShowTable>
           </>
         )}
       </CardContent>
@@ -807,14 +816,15 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Type of request</th>
+                  {/* Totals first, then the months (owner, Oct 23). */}
+                  <th className={th}>{mom ? `${year} average` : "Avg. Turnaround"}</th>
+                  <th className={th}>Completed</th>
                   {mom &&
                     a.months.map((m) => (
                       <th key={m.month} className={th}>
                         {m.label.slice(0, 3)}
                       </th>
                     ))}
-                  <th className={th}>{mom ? `${year} average` : "Avg. Turnaround"}</th>
-                  <th className={th}>Completed</th>
                 </tr>
               </thead>
               <tbody>
@@ -823,6 +833,8 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
                   return (
                     <tr key={r.label} className="border-b last:border-0">
                       <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{r.label}</td>
+                      <td className={`${td} font-semibold`}>{days(r.avg)}</td>
+                      <td className={td}>{r.completed}</td>
                       {mom &&
                         r.months.map((m, i) => {
                           const before = previous;
@@ -853,8 +865,6 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
                             </td>
                           );
                         })}
-                      <td className={`${td} font-semibold`}>{days(r.avg)}</td>
-                      <td className={td}>{r.completed}</td>
                     </tr>
                   );
                 })}
@@ -922,11 +932,11 @@ function feedbackInsights(t: PeriodTotals, months: Analytics["months"]): string[
   const o = t.feedbackOutput!;
   if (o - p >= 0.3) {
     out.push(
-      `Requesters rate the output (${o.toFixed(1)} ★) higher than the process (${p.toFixed(1)} ★): the designs land well, and the request experience (communication, updates, timing) is the part to improve.`,
+      `Requesters rate the output (${o.toFixed(1)} ★) higher than the process (${p.toFixed(1)} ★). The Process rating covers the whole request experience (submitting, working with the team, getting the output); the written comments can show which part.`,
     );
   } else if (p - o >= 0.3) {
     out.push(
-      `Requesters rate the process (${p.toFixed(1)} ★) higher than the output (${o.toFixed(1)} ★): working with the team is smooth, and the designs themselves are the part to improve.`,
+      `Requesters rate the process (${p.toFixed(1)} ★) higher than the output (${o.toFixed(1)} ★). The Output rating covers the quality and usefulness of the designs; the written comments can show what was missing.`,
     );
   } else {
     out.push(`Process (${p.toFixed(1)} ★) and Output (${o.toFixed(1)} ★) are rated about the same.`);

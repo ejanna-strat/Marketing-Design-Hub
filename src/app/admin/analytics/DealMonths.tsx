@@ -18,15 +18,16 @@ export function DealMonths({ months, year, total }: { months: Month[]; year: str
       else next.add(m);
       return next;
     });
-  const td = "px-3 py-2 text-right tabular-nums whitespace-nowrap";
+  // Compact (owner, Oct 23): tighter rows, and only as wide as it needs to be.
+  const td = "px-3 py-1.5 text-right tabular-nums whitespace-nowrap";
   return (
     <div className="overflow-x-auto">
-      <table className="zebra w-full text-sm">
+      <table className="zebra w-full max-w-xl text-sm">
         <thead>
           <tr className="border-b text-muted-foreground">
-            <th className="px-3 py-2 text-left font-medium">Month</th>
-            <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Requests with deals</th>
-            <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Total deal size</th>
+            <th className="px-3 py-1.5 text-left font-medium">Month</th>
+            <th className="px-3 py-1.5 text-right font-medium whitespace-nowrap">Requests with deals</th>
+            <th className="px-3 py-1.5 text-right font-medium whitespace-nowrap">Total deal size</th>
           </tr>
         </thead>
         <tbody>
@@ -36,7 +37,7 @@ export function DealMonths({ months, year, total }: { months: Month[]; year: str
             return (
               <Fragment key={m.month}>
                 <tr className="border-b last:border-0">
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-1.5">
                     {can ? (
                       <button
                         type="button"
@@ -66,7 +67,7 @@ export function DealMonths({ months, year, total }: { months: Month[]; year: str
             );
           })}
           <tr className="border-t-2 font-semibold">
-            <td className="px-3 py-2">{year} total</td>
+            <td className="px-3 py-1.5">{year} total</td>
             <td className={td}>{total.requests}</td>
             <td className={td}>{total.size ? formatPeso(total.size) : "—"}</td>
           </tr>
