@@ -25,7 +25,7 @@ import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
-import { SectionViews, ShortOrFull, StatusGroups } from "./Views";
+import { SectionViews, StatusGroups } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
@@ -421,13 +421,17 @@ export default async function AnalyticsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* The per-type columns open on request (Hick's Law, owner Oct 23). */}
-              <ShortOrFull
-                label="breakdown by type of request"
-                short={
+              {/* Summary or per-type view, with insights (owner, Oct 23). */}
+              <SectionViews
+                label="Designer view"
+                views={[
+                  {
+                    key: "summary",
+                    label: "Summary",
+                    content: (
                   <>
               <div className="overflow-x-auto">
-              <table className="zebra w-full text-sm">
+              <table className="zebra w-full max-w-3xl text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
@@ -451,8 +455,12 @@ export default async function AnalyticsPage({
               </table>
               </div>
                   </>
-                }
-                full={
+                    ),
+                  },
+                  {
+                    key: "types",
+                    label: "By type of request",
+                    content: (
                   <>
               <div className="overflow-x-auto">
               <table className="zebra w-full text-sm">
@@ -492,8 +500,13 @@ export default async function AnalyticsPage({
               </table>
               </div>
                   </>
-                }
+                    ),
+                  },
+                ]}
               />
+              <div className="mt-3">
+                <Insights lines={designerInsights(a, t)} />
+              </div>
             </CardContent>
           </Card>
         )}
@@ -667,9 +680,11 @@ function ShareCard({ title, data, total, column }: { title: string; data: Share[
         {slices.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No data yet.</p>
         ) : (
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+          // Chart and table side by side in a compact block, not stretched
+          // across the page (owner, Oct 23).
+          <div className="flex max-w-3xl flex-col items-center gap-8 sm:flex-row sm:items-start sm:pl-2">
             <ShareDonut data={slices} />
-            <table className="zebra w-full text-sm">
+            <table className="zebra w-full max-w-md text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 font-medium">{column}</th>
@@ -938,7 +953,8 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
           <p className="py-6 text-center text-sm text-muted-foreground">No completed requests in this period.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="zebra w-full text-sm">
+            {/* Compact when it's just the averages (Monthly report, owner Oct 23). */}
+            <table className={`zebra w-full text-sm ${mom ? "" : "max-w-2xl"}`}>
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Type of request</th>
