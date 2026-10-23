@@ -152,3 +152,14 @@ input::-ms-clear {
 .hover\:text-brand:hover {
   color: var(--brand-ink);
 }
+
+/* Report tables (Analytics): alternating row colours so rows are easy to
+   follow across (owner, Oct 23). Solid colours, so a sticky first column
+   (bg-inherit) hides what scrolls under it. */
+.zebra > tbody > tr {
+  background-color: var(--card);
+}
+.zebra > tbody > tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--muted) 55%, var(--card));
+}
+
