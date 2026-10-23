@@ -12,16 +12,19 @@ import { BarList } from "@/components/charts/BarList";
 import { MonthBars } from "@/components/charts/MonthBars";
 import { foldShares, type Share } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
-import { StarsDisplay } from "@/components/feedback/Stars";
+import { FeedbackSummary } from "@/components/feedback/FeedbackSummary";
+import { Insights } from "@/components/Insights";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { endOfMonth, format, parseISO, subMonths } from "date-fns";
-import { type Analytics, firstRequestDay, loadAnalytics } from "@/lib/analytics";
+import { type Analytics, firstRequestDay, loadAnalytics, type MonthCounts, type PeriodTotals } from "@/lib/analytics";
+import { CATEGORY_COLORS } from "@/components/charts/palette";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
+import { DealMonths } from "./DealMonths";
 import { PeriodControls } from "./PeriodControls";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
@@ -132,12 +135,67 @@ export default async function AnalyticsPage({
             </CardContent>
           </Card>
           <SummaryBox title="Average turnaround" value={days(t.avgTurnaround)} lines={["Working days, request to completed"]} />
-          <SummaryBox
-            title="Feedback (overall)"
-            value={t.feedbackRating === null ? "—" : <StarsDisplay value={t.feedbackRating} size="md" />}
-            lines={[`${t.feedbackCount} responses (Marketing team excluded)`]}
+          {/* Same feedback report as the Dashboard (owner, Oct 23). */}
+          <FeedbackSummary
+            title="Feedback"
+            overall={t.feedbackRating}
+            process={t.feedbackProcess}
+            output={t.feedbackOutput}
+            responses={t.feedbackCount}
+            completed={t.completedOutside}
           />
         </div>
+        {/* Full width under the cards, so opening it doesn't stretch them. */}
+        <Insights label="feedback insights" lines={feedbackInsights(t, mom ? a.months : [])} />
+        {mom && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Feedback by month</CardTitle>
+              <CardDescription>
+                Feedback submitted each month (Marketing team requesters excluded), against requests completed that month
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="zebra w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="px-3 py-2 text-left font-medium">Month</th>
+                      <th className={th}>Responses</th>
+                      <th className={th}>Completed</th>
+                      <th className={th}>Response rate</th>
+                      <th className={th}>Process</th>
+                      <th className={th}>Output</th>
+                      <th className={th}>Overall</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {a.months.map((m) => (
+                      <tr key={m.month} className="border-b last:border-0">
+                        <td className="px-3 py-2">{m.label}</td>
+                        <td className={td}>{m.feedbackCount}</td>
+                        <td className={td}>{m.completedOutside}</td>
+                        <td className={td}>{m.completedOutside ? shareOf(m.feedbackCount, m.completedOutside) : "—"}</td>
+                        <td className={td}>{starText(m.feedbackProcess)}</td>
+                        <td className={td}>{starText(m.feedbackOutput)}</td>
+                        <td className={td}>{starText(m.feedbackRating)}</td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 font-semibold">
+                      <td className="px-3 py-2">{year} total</td>
+                      <td className={td}>{t.feedbackCount}</td>
+                      <td className={td}>{t.completedOutside}</td>
+                      <td className={td}>{t.completedOutside ? shareOf(t.feedbackCount, t.completedOutside) : "—"}</td>
+                      <td className={td}>{starText(t.feedbackProcess)}</td>
+                      <td className={td}>{starText(t.feedbackOutput)}</td>
+                      <td className={td}>{starText(t.feedbackRating)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section id="brand" className="scroll-mt-32 space-y-4">
@@ -175,6 +233,9 @@ export default async function AnalyticsPage({
                     { key: "openAtEnd", label: "Open at month-end" },
                   ]}
                 />
+                <div className="mt-3">
+                  <Insights lines={flowInsights(a, year)} />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -187,8 +248,9 @@ export default async function AnalyticsPage({
                 completed that month; feedback leaves out Marketing team requesters.
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <CardContent className="space-y-3">
+              <div className="overflow-x-auto">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="px-3 py-2 text-left font-medium">Month</th>
@@ -245,29 +307,28 @@ export default async function AnalyticsPage({
                   </tr>
                 </tbody>
               </table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Key insights</CardTitle>
-              <CardDescription>Worked out automatically from the numbers above</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc space-y-1.5 pl-5 text-sm">
-                {insights(a, year).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
+              </div>
+              <Insights lines={insights(a, year)} />
             </CardContent>
           </Card>
           </>
         )}
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
-          <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" />
-        </div>
+        {/* Month on Month: requests per team and per type as monthly bars
+            (owner, Oct 23); the Monthly report keeps the donuts. */}
+        {mom ? (
+          <div className="grid gap-6 2xl:grid-cols-2">
+            <MonthCountsCard title="Requests per team" column="Team" rows={a.teamMonths} months={a.months} year={year} />
+            <MonthCountsCard title="Request type breakdown" column="Type of request" rows={a.typeMonths} months={a.months} year={year} />
+          </div>
+        ) : (
+          <div className="grid gap-6 xl:grid-cols-2">
+            <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
+            <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" />
+          </div>
+        )}
+
+        <TurnaroundByType a={a} mom={mom} year={year} />
 
         <Card>
           <CardHeader>
@@ -286,44 +347,45 @@ export default async function AnalyticsPage({
           <Card>
             <CardHeader>
               <CardDescription>
-                Handled: requests filed in this period, by the designer currently assigned. Completed and turnaround:
-                requests completed in this period. Feedback leaves out Marketing team requesters.
+                Each month column is the number of requests the designer completed that month (by Date Completed). Total
+                is the year&apos;s completed requests; turnaround counts working days from request to completed; feedback
+                leaves out Marketing team requesters.
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <CardContent className="space-y-3">
+              <div className="overflow-x-auto">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
-                    <th className={th}>Handled</th>
-                    <th className={th}>Completed</th>
-                    <th className={th}>Avg. Turnaround</th>
-                    <th className={th}>Feedback</th>
                     {a.months.map((m) => (
                       <th key={m.month} className={th} title={`Completed in ${m.label}`}>
                         {m.label.slice(0, 3)}
                       </th>
                     ))}
+                    <th className={th}>Total completed</th>
+                    <th className={th}>Avg. Turnaround</th>
+                    <th className={th}>Feedback</th>
                   </tr>
                 </thead>
                 <tbody>
                   {a.designers.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-card px-3 py-2 whitespace-nowrap">{d.name}</td>
-                      <td className={td}>{d.handled}</td>
-                      <td className={td}>{d.completed}</td>
-                      <td className={td}>{days(d.avgTurnaround)}</td>
-                      <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
                       {d.completedByMonth.map((n, i) => (
                         <td key={a.months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
                           {n}
                         </td>
                       ))}
+                      <td className={`${td} font-semibold`}>{d.completed}</td>
+                      <td className={td}>{days(d.avgTurnaround)}</td>
+                      <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {mom && <p className="mt-2 text-xs text-muted-foreground">Month columns: requests completed in that month.</p>}
+              </div>
+              <Insights lines={designerInsights(a, t)} />
             </CardContent>
           </Card>
         ) : (
@@ -335,8 +397,9 @@ export default async function AnalyticsPage({
                 excluded).
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <CardContent>
+              <div className="overflow-x-auto">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
@@ -354,7 +417,7 @@ export default async function AnalyticsPage({
                 <tbody>
                   {a.designerPeriod.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-card px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
                       {a.periodTypes.map((type) => (
                         <td key={type} className={`${td} ${d.byType[type] ? "" : "text-muted-foreground"}`}>
                           {d.byType[type] ?? 0}
@@ -374,6 +437,7 @@ export default async function AnalyticsPage({
                   ))}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -385,6 +449,30 @@ export default async function AnalyticsPage({
           <SummaryBox title="Requests with associated deals" value={t.dealRequests} rate={shareOf(t.dealRequests, t.requestsIn)} />
           <SummaryBox title="Total deal size" value={formatPeso(t.dealSize)} />
         </div>
+        {mom ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Deal requests by month</CardTitle>
+              <CardDescription>
+                Requests with a deal filed each month (Returned and Cancelled not counted). Click a month for its
+                breakdown by type of request.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DealMonths
+                year={year}
+                total={{ requests: t.dealRequests, size: t.dealSize }}
+                months={a.months.map((m) => ({
+                  month: m.month,
+                  label: m.label,
+                  requests: m.dealRequests,
+                  size: m.dealSize,
+                  byType: m.dealsByType,
+                }))}
+              />
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle>Deal size by type of request</CardTitle>
@@ -394,7 +482,7 @@ export default async function AnalyticsPage({
             {a.dealTypes.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No deal requests in this period.</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="px-3 py-2 text-left font-medium">Type of request</th>
@@ -425,6 +513,7 @@ export default async function AnalyticsPage({
             )}
           </CardContent>
         </Card>
+        )}
       </section>
 
       <section id="inactive" className="scroll-mt-32 space-y-4">
@@ -445,7 +534,7 @@ export default async function AnalyticsPage({
           </CardHeader>
           <CardContent className="space-y-6 overflow-x-auto">
             {mom && (
-              <table className="w-full text-sm">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="px-3 py-2 text-left font-medium">Month</th>
@@ -473,7 +562,7 @@ export default async function AnalyticsPage({
             {a.inactiveTypes.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests in this period.</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="px-3 py-2 text-left font-medium">Type of request</th>
@@ -515,7 +604,7 @@ function ShareCard({ title, data, total, column }: { title: string; data: Share[
         ) : (
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
             <ShareDonut data={slices} />
-            <table className="w-full text-sm">
+            <table className="zebra w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 font-medium">{column}</th>
@@ -615,6 +704,296 @@ function insights(a: Analytics, year: string): string[] {
     out.push(
       `${inactive} request${inactive === 1 ? " was" : "s were"} returned or cancelled (${pctText(inactive, t.requestsIn)})${t.inactiveDeals ? `, including ${t.inactiveDeals} with a deal worth ${formatPeso(t.inactiveDealSize)}` : ""}.`,
     );
+  }
+  return out;
+}
+
+const starText = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} ★`);
+
+// Month on Month: requests filed each month per team or type (owner, Oct 23),
+// as stacked bars (the 7 biggest, the rest as "Other"), with the numbers in a
+// table underneath.
+function MonthCountsCard({
+  title,
+  column,
+  rows,
+  months,
+  year,
+}: {
+  title: string;
+  column: string;
+  rows: MonthCounts[];
+  months: Analytics["months"];
+  year: string;
+}) {
+  const shown = rows.length > CATEGORY_COLORS.length ? rows.slice(0, CATEGORY_COLORS.length - 1) : rows;
+  const rest = rows.slice(shown.length);
+  const series = [
+    ...shown.map((r, i) => ({ key: `s${i}`, label: r.label, color: CATEGORY_COLORS[i] })),
+    ...(rest.length ? [{ key: "other", label: "Other", color: "#9ca3af" }] : []),
+  ];
+  const data = months.map((m, mi) => ({
+    label: m.label,
+    short: m.label.slice(0, 3),
+    ...Object.fromEntries(shown.map((r, i) => [`s${i}`, r.counts[mi]])),
+    ...(rest.length ? { other: rest.reduce((n, r) => n + r.counts[mi], 0) } : {}),
+  }));
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>Requests filed each month</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {rows.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No data yet.</p>
+        ) : (
+          <>
+            <MonthBars data={data} series={series} stacked />
+            <div className="overflow-x-auto">
+              <table className="zebra w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{column}</th>
+                    {months.map((m) => (
+                      <th key={m.month} className={th}>
+                        {m.label.slice(0, 3)}
+                      </th>
+                    ))}
+                    <th className={th}>{year} total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.label} className="border-b last:border-0">
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{r.label}</td>
+                      {r.counts.map((n, i) => (
+                        <td key={months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
+                          {n}
+                        </td>
+                      ))}
+                      <td className={`${td} font-semibold`}>{r.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Average turnaround per type of request, a basis for SLAs (owner, Oct 23).
+// Monthly report: the period. Month on Month: each month, with an arrow
+// against the type's previous month, and the whole year.
+function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Turnaround per type of request</CardTitle>
+        <CardDescription>
+          Working days (Mon–Fri) from request date to completed, for requests completed {mom ? "each month" : "in this period"}. A
+          basis for SLAs.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {a.typeTurnaround.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No completed requests in this period.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="zebra w-full text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Type of request</th>
+                  {mom &&
+                    a.months.map((m) => (
+                      <th key={m.month} className={th}>
+                        {m.label.slice(0, 3)}
+                      </th>
+                    ))}
+                  <th className={th}>{mom ? `${year} average` : "Avg. Turnaround"}</th>
+                  <th className={th}>Completed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {a.typeTurnaround.map((r) => {
+                  let previous: number | null = null;
+                  return (
+                    <tr key={r.label} className="border-b last:border-0">
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{r.label}</td>
+                      {mom &&
+                        r.months.map((m, i) => {
+                          const before = previous;
+                          if (m.avg !== null) previous = m.avg;
+                          const change = m.avg === null || before === null ? 0 : m.avg - before;
+                          return (
+                            <td
+                              key={a.months[i].month}
+                              className={`${td} ${m.avg === null ? "text-muted-foreground" : ""}`}
+                              title={m.completed ? `${m.completed} completed in ${a.months[i].label}` : undefined}
+                            >
+                              {m.avg === null ? (
+                                "—"
+                              ) : (
+                                <span className="inline-flex items-center gap-1">
+                                  {m.avg.toFixed(1)}
+                                  {Math.abs(change) >= 0.05 && (
+                                    // Slower (more days) is red, faster is green.
+                                    <span
+                                      className={change > 0 ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"}
+                                      title={`${change > 0 ? "Slower" : "Faster"} than the month before (${before!.toFixed(1)})`}
+                                    >
+                                      {change > 0 ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      <td className={`${td} font-semibold`}>{days(r.avg)}</td>
+                      <td className={td}>{r.completed}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {mom && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Month columns: average working days for that month&apos;s completions. ↑ slower / ↓ faster than the
+                type&apos;s previous month with completions.
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Requests in vs completed vs open at month-end (owner, Oct 23).
+function flowInsights(a: Analytics, year: string): string[] {
+  const t = a.totals;
+  const active = a.months.filter((m) => m.requestsIn > 0 || m.completed > 0 || m.openAtEnd > 0);
+  if (active.length === 0) return [];
+  const out: string[] = [];
+  const last = a.months[a.months.length - 1];
+  const prev = a.months[a.months.length - 2];
+  if (last) {
+    if (last.completed < last.requestsIn) {
+      out.push(
+        `In ${last.label}, ${last.requestsIn} request${last.requestsIn === 1 ? "" : "s"} came in and ${last.completed} ${last.completed === 1 ? "was" : "were"} completed: more came in than the team finished, so ${last.openAtEnd} ${last.openAtEnd === 1 ? "is" : "are"} still open at the end of the month.`,
+      );
+    } else if (last.completed > last.requestsIn) {
+      out.push(
+        `In ${last.label}, the team completed ${last.completed} while ${last.requestsIn} came in, so it is catching up on open work (${last.openAtEnd} open at the end of the month).`,
+      );
+    } else if (last.requestsIn > 0) {
+      out.push(`In ${last.label}, the team completed as many requests as came in (${last.requestsIn}).`);
+    }
+    if (last.completed === 0 && last.openAtEnd > 0) {
+      out.push(`Nothing was completed in ${last.label} while ${last.openAtEnd} stayed open; check Pendings for requests that may be stuck.`);
+    }
+  }
+  if (last && prev && (prev.openAtEnd > 0 || last.openAtEnd > 0) && last.openAtEnd !== prev.openAtEnd) {
+    out.push(
+      `Open work ${last.openAtEnd > prev.openAtEnd ? "grew" : "went down"} from ${prev.openAtEnd} at the end of ${prev.label} to ${last.openAtEnd} at the end of ${last.label}.`,
+    );
+  }
+  if (t.requestsIn) {
+    out.push(`So far in ${year}, ${t.requestsIn} requests came in and ${t.completed} were completed (${pctText(t.completed, t.requestsIn)}).`);
+  }
+  const peak = [...a.months].sort((x, y) => y.openAtEnd - x.openAtEnd)[0];
+  if (peak && peak.openAtEnd > 0 && active.length > 1) out.push(`Open work peaked at ${peak.openAtEnd} at the end of ${peak.label}.`);
+  return out;
+}
+
+// What the feedback says (owner, Oct 23). With months (Month on Month), also
+// the best and lowest month.
+function feedbackInsights(t: PeriodTotals, months: Analytics["months"]): string[] {
+  const out: string[] = [];
+  if (t.feedbackCount === 0) {
+    if (t.completedOutside) out.push(`None of the ${t.completedOutside} completed requests in this period have feedback yet.`);
+    return out;
+  }
+  const p = t.feedbackProcess!;
+  const o = t.feedbackOutput!;
+  if (o - p >= 0.3) {
+    out.push(
+      `Requesters rate the output (${o.toFixed(1)} ★) higher than the process (${p.toFixed(1)} ★): the designs land well, and the request experience (communication, updates, timing) is the part to improve.`,
+    );
+  } else if (p - o >= 0.3) {
+    out.push(
+      `Requesters rate the process (${p.toFixed(1)} ★) higher than the output (${o.toFixed(1)} ★): working with the team is smooth, and the designs themselves are the part to improve.`,
+    );
+  } else {
+    out.push(`Process (${p.toFixed(1)} ★) and Output (${o.toFixed(1)} ★) are rated about the same.`);
+  }
+  if (t.completedOutside) {
+    const rate = Math.round((t.feedbackCount / t.completedOutside) * 100);
+    out.push(
+      rate < 50
+        ? `Only ${t.feedbackCount} of ${t.completedOutside} completed requests (${rate}%) have feedback, so these averages rest on a few responses. More responses make them more reliable.`
+        : `${t.feedbackCount} of ${t.completedOutside} completed requests (${rate}%) have feedback.`,
+    );
+  }
+  if (t.feedbackLow) {
+    out.push(
+      `${t.feedbackLow} response${t.feedbackLow === 1 ? "" : "s"} rated 3 ★ or below on Process or Output. Read ${t.feedbackLow === 1 ? "it" : "them"} on the Feedback page to see what went wrong.`,
+    );
+  }
+  if (t.feedbackComments) {
+    out.push(`${t.feedbackComments} response${t.feedbackComments === 1 ? " includes" : "s include"} written comments (on the Feedback page).`);
+  }
+  const rated = months.filter((m) => m.feedbackRating !== null);
+  if (rated.length > 1) {
+    const best = [...rated].sort((x, y) => y.feedbackRating! - x.feedbackRating!)[0];
+    const low = [...rated].sort((x, y) => x.feedbackRating! - y.feedbackRating!)[0];
+    if (best.month !== low.month) {
+      out.push(
+        `${best.label} had the best rating (${best.feedbackRating!.toFixed(1)} ★) and ${low.label} the lowest (${low.feedbackRating!.toFixed(1)} ★).`,
+      );
+    }
+  }
+  return out;
+}
+
+// Why designers' completed counts differ (owner, Oct 23): a low count isn't
+// low effort when the work is mostly slower types (e.g. videos).
+function designerInsights(a: Analytics, t: PeriodTotals): string[] {
+  const out: string[] = [];
+  const typeDays = new Map(a.typeTurnaround.map((r) => [r.label, r.avg]));
+  const overall = t.avgTurnaround;
+  out.push(
+    "Completed counts don't show effort on their own: some types of request take much longer than others (see Turnaround per type of request).",
+  );
+  const idle: string[] = [];
+  for (const d of a.designers) {
+    const types = Object.entries(d.completedByType).sort((x, y) => y[1] - x[1]);
+    if (d.completed === 0) {
+      if (d.openNow > 0) out.push(`${d.name} has nothing completed yet but ${d.openNow} open request${d.openNow === 1 ? "" : "s"} in progress.`);
+      else idle.push(d.name);
+      continue;
+    }
+    const [topType, topCount] = types[0];
+    // The average turnaround of the types this designer completed, weighted
+    // by how many of each.
+    const mixDays = types.reduce((sum, [type, n]) => sum + (typeDays.get(type) ?? 0) * n, 0) / d.completed;
+    const mix = types.map(([type, n]) => `${type} (${n})`).join(", ");
+    if (overall !== null && mixDays > overall * 1.2 && mixDays - overall >= 0.5) {
+      out.push(
+        `${d.name} completed ${d.completed}, mostly ${topType} (${topCount}). These types take ${mixDays.toFixed(1)} working days on average vs ${overall.toFixed(1)} across all work, so a lower count can still be a full workload.`,
+      );
+    } else {
+      out.push(`${d.name} completed ${d.completed}: ${mix}.`);
+    }
+    if (d.openNow > 0) out[out.length - 1] += ` ${d.openNow} more ${d.openNow === 1 ? "is" : "are"} open now.`;
+  }
+  if (idle.length) {
+    const names = idle.length === 1 ? idle[0] : `${idle.slice(0, -1).join(", ")} and ${idle[idle.length - 1]}`;
+    out.push(`${names} ${idle.length === 1 ? "has" : "have"} no completed or open requests in this period.`);
   }
   return out;
 }

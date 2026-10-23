@@ -47,6 +47,39 @@ function DialogOverlay({
   )
 }
 
+// Phones and tablets (owner, Oct 23): the on-screen keyboard covers the
+// bottom of the screen without resizing the page, so a pop-up centred on the
+// page ends up behind it. While a pop-up is open, keep it centred in the part
+// of the screen you can still see and no taller than that (it scrolls inside).
+function useFitVisibleArea() {
+  const node = React.useRef<HTMLDivElement | null>(null)
+  const cleanup = React.useRef<() => void>(() => {})
+  return React.useCallback((el: HTMLDivElement | null) => {
+    cleanup.current()
+    node.current = el
+    const vv = typeof window === "undefined" ? null : window.visualViewport
+    if (!el || !vv) return
+    const place = () => {
+      if (!node.current) return
+      // Only when part of the screen is hidden (keyboard open).
+      if (vv.height >= window.innerHeight - 1 && vv.offsetTop === 0) {
+        node.current.style.top = ""
+        node.current.style.maxHeight = ""
+        return
+      }
+      node.current.style.top = `${vv.offsetTop + vv.height / 2}px`
+      node.current.style.maxHeight = `${vv.height - 24}px`
+    }
+    vv.addEventListener("resize", place)
+    vv.addEventListener("scroll", place)
+    place()
+    cleanup.current = () => {
+      vv.removeEventListener("resize", place)
+      vv.removeEventListener("scroll", place)
+    }
+  }, [])
+}
+
 function DialogContent({
   className,
   children,
@@ -55,13 +88,15 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const fit = useFitVisibleArea()
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
+        ref={fit}
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
