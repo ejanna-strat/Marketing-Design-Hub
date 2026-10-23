@@ -31,6 +31,7 @@ export function PipelineTable({
   extra,
   readOnly = false,
   closedBy,
+  dealColumns: withDeals = false,
 }: {
   rows: RequestListRow[];
   total: number;
@@ -45,10 +46,13 @@ export function PipelineTable({
   readOnly?: boolean;
   // Inactive Requests: who cancelled or returned each request, by request id.
   closedBy?: Record<string, string>;
+  // Show Deal Name and Deal Size (Deal Requests always; Inactive Requests'
+  // With deals view).
+  dealColumns?: boolean;
 }) {
   const columns = useMemo(() => {
     const dealColumns: TableColumn<RequestListRow>[] =
-      extra === "deal"
+      extra === "deal" || withDeals
         ? [
             col.accessor("deal_name", { header: "Deal Name", cell: (info) => <Highlight text={info.getValue()} /> }),
             col.accessor("deal_size", { header: "Deal Size (PHP)", cell: (info) => formatPeso(info.getValue()) }),
@@ -170,7 +174,7 @@ export function PipelineTable({
       // Requester's Email is on the request page, not in the tables (owner, Oct 21).
       ...closingColumns,
     ]);
-  }, [viewer, designers, extra, readOnly, closedBy]);
+  }, [viewer, designers, extra, readOnly, closedBy, withDeals]);
 
   return (
     <DataTable
