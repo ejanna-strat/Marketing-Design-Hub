@@ -66,7 +66,11 @@ export type MonthRow = PeriodTotals & {
   label: string;
   // Deal requests filed that month, by type of request (owner, Oct 23).
   dealsByType: { label: string; requests: number; size: number }[];
+  // Returned / Cancelled requests filed that month, by type (owner, Oct 23).
+  inactiveByType: InactiveType[];
 };
+
+export type InactiveType = { label: string; returned: number; cancelled: number; dealSize: number };
 
 // Turnaround per type of request (owner, Oct 23, a basis for SLAs): requests
 // completed, and the average working days from request to completed.
@@ -211,6 +215,21 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     return [...byType.values()].sort((x, y) => y.size - x.size || y.requests - x.requests);
   };
 
+  // Returned and Cancelled requests by type, with the deal size of those
+  // that had a deal (owner, Oct 21).
+  const groupInactive = (list: Req[]) => {
+    const byType = new Map<string, InactiveType>();
+    for (const r of list.filter((x) => x.status === "rejected" || x.status === "cancelled")) {
+      const label = r.request_type?.name ?? "—";
+      const t = byType.get(label) ?? { label, returned: 0, cancelled: 0, dealSize: 0 };
+      if (r.status === "rejected") t.returned += 1;
+      else t.cancelled += 1;
+      if (r.is_deal) t.dealSize += r.deal_size ?? 0;
+      byType.set(label, t);
+    }
+    return [...byType.values()].sort((x, y) => y.returned + y.cancelled - (x.returned + x.cancelled));
+  };
+
   const months: MonthRow[] = [];
   if (byMonth) {
     for (let m = parseISO(`${from.slice(0, 7)}-01`); format(m, "yyyy-MM") <= to.slice(0, 7); m = addMonths(m, 1)) {
@@ -224,6 +243,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
         label: format(m, "MMMM"),
         ...totalsFor(s, e2),
         dealsByType: groupDeals(requests.filter((r) => r.created_at >= s && r.created_at < e2 && isDeal(r))),
+        inactiveByType: groupInactive(requests.filter((r) => r.created_at >= s && r.created_at < e2)),
       });
     }
   }
@@ -330,22 +350,10 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
   const byStatus = new Map<string, number>();
   for (const r of filed) byStatus.set(r.status, (byStatus.get(r.status) ?? 0) + 1);
 
-  // Inactive requests (Returned / Cancelled) filed in the period, by type,
-  // including the deal size of those that had a deal (owner, Oct 21).
-  const inactiveTypes = new Map<string, { label: string; returned: number; cancelled: number; dealSize: number }>();
-  for (const r of filed.filter((x) => x.status === "rejected" || x.status === "cancelled")) {
-    const label = r.request_type?.name ?? "—";
-    const t = inactiveTypes.get(label) ?? { label, returned: 0, cancelled: 0, dealSize: 0 };
-    if (r.status === "rejected") t.returned += 1;
-    else t.cancelled += 1;
-    if (r.is_deal) t.dealSize += r.deal_size ?? 0;
-    inactiveTypes.set(label, t);
-  }
-
   return {
     totals: totalsFor(start, end),
     byStatus,
-    inactiveTypes: [...inactiveTypes.values()].sort((x, y) => y.returned + y.cancelled - (x.returned + x.cancelled)),
+    inactiveTypes: groupInactive(filed),
     months,
     byTeam: shares((r) => r.team?.name ?? "—"),
     byType: shares((r) => r.request_type?.name ?? "—"),

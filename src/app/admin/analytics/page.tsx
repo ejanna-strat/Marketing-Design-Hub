@@ -24,7 +24,7 @@ import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
-import { DealMonths } from "./DealMonths";
+import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
@@ -465,16 +465,16 @@ export default async function AnalyticsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DealMonths
-                year={year}
-                total={{ requests: t.dealRequests, size: t.dealSize }}
+              <MonthBreakdown
+                narrow
+                headers={["Requests with deals", "Total deal size"]}
                 months={a.months.map((m) => ({
                   month: m.month,
                   label: m.label,
-                  requests: m.dealRequests,
-                  size: m.dealSize,
-                  byType: m.dealsByType,
+                  cells: [String(m.dealRequests), m.dealSize ? formatPeso(m.dealSize) : "—"],
+                  details: m.dealsByType.map((d) => ({ label: d.label, cells: [String(d.requests), formatPeso(d.size)] })),
                 }))}
+                total={{ label: `${year} total`, cells: [String(t.dealRequests), t.dealSize ? formatPeso(t.dealSize) : "—"] }}
               />
             </CardContent>
           </Card>
@@ -535,59 +535,68 @@ export default async function AnalyticsPage({
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>{mom ? "Inactive requests by month and type" : "Inactive requests by type"}</CardTitle>
-            <CardDescription>Returned and cancelled requests filed in this period, with the deal size behind them</CardDescription>
+            <CardTitle>{mom ? "Inactive requests by month" : "Inactive requests by type"}</CardTitle>
+            <CardDescription>
+              Returned and cancelled requests filed in this period, with the deal size behind them
+              {mom && ". Click a month for its breakdown by type of request."}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 overflow-x-auto">
-            {mom && (
-              <table className="zebra w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-medium">Month</th>
-                    <th className={th}>Returned</th>
-                    <th className={th}>Cancelled</th>
-                    <th className={th}>Inactive rate</th>
-                    <th className={th}>With a deal</th>
-                    <th className={th}>Deal size</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {a.months.map((m) => (
-                    <tr key={m.month} className="border-b last:border-0">
-                      <td className="px-3 py-2">{m.label}</td>
-                      <td className={td}>{m.returned}</td>
-                      <td className={td}>{m.cancelled}</td>
-                      <td className={td}>{m.requestsIn ? shareOf(m.returned + m.cancelled, m.requestsIn) : "—"}</td>
-                      <td className={td}>{m.inactiveDeals}</td>
-                      <td className={td}>{m.inactiveDealSize ? formatPeso(m.inactiveDealSize) : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {a.inactiveTypes.length === 0 ? (
+          <CardContent>
+            {/* Month on Month: types open per month, like Deal requests (owner, Oct 23). */}
+            {mom ? (
+              <MonthBreakdown
+                headers={["Returned", "Cancelled", "Inactive rate", "With a deal", "Deal size"]}
+                months={a.months.map((m) => ({
+                  month: m.month,
+                  label: m.label,
+                  cells: [
+                    String(m.returned),
+                    String(m.cancelled),
+                    m.requestsIn ? shareOf(m.returned + m.cancelled, m.requestsIn) : "—",
+                    String(m.inactiveDeals),
+                    m.inactiveDealSize ? formatPeso(m.inactiveDealSize) : "—",
+                  ],
+                  details: m.inactiveByType.map((r) => ({
+                    label: r.label,
+                    cells: [String(r.returned), String(r.cancelled), "", "", r.dealSize ? formatPeso(r.dealSize) : "—"],
+                  })),
+                }))}
+                total={{
+                  label: `${year} total`,
+                  cells: [
+                    String(t.returned),
+                    String(t.cancelled),
+                    t.requestsIn ? shareOf(t.returned + t.cancelled, t.requestsIn) : "—",
+                    String(t.inactiveDeals),
+                    t.inactiveDealSize ? formatPeso(t.inactiveDealSize) : "—",
+                  ],
+                }}
+              />
+            ) : a.inactiveTypes.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests in this period.</p>
             ) : (
-              <table className="zebra w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-medium">Type of request</th>
-                    <th className={th}>Returned</th>
-                    <th className={th}>Cancelled</th>
-                    <th className={th}>Deal size</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {a.inactiveTypes.map((r) => (
-                    <tr key={r.label} className="border-b last:border-0">
-                      <td className="px-3 py-2">{r.label}</td>
-                      <td className={td}>{r.returned}</td>
-                      <td className={td}>{r.cancelled}</td>
-                      <td className={td}>{r.dealSize ? formatPeso(r.dealSize) : "—"}</td>
+              <div className="overflow-x-auto">
+                <table className="zebra w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="px-3 py-2 text-left font-medium">Type of request</th>
+                      <th className={th}>Returned</th>
+                      <th className={th}>Cancelled</th>
+                      <th className={th}>Deal size</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {a.inactiveTypes.map((r) => (
+                      <tr key={r.label} className="border-b last:border-0">
+                        <td className="px-3 py-2">{r.label}</td>
+                        <td className={td}>{r.returned}</td>
+                        <td className={td}>{r.cancelled}</td>
+                        <td className={td}>{r.dealSize ? formatPeso(r.dealSize) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
