@@ -3,12 +3,21 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CATEGORY_COLORS } from "./palette";
 
-export type MonthSeries = { key: string; label: string };
+export type MonthSeries = { key: string; label: string; color?: string };
 
 // Grouped bars per month (2–3 series), colours in the fixed categorical
-// order, with a legend and a hover pop-up. A table with the same numbers sits
-// on the page, so screen readers skip the chart.
-export function MonthBars({ data, series }: { data: Record<string, string | number>[]; series: MonthSeries[] }) {
+// order, with a legend and a hover pop-up. `stacked`: one bar per month split
+// by team or type (owner, Oct 23). A table with the same numbers sits on the
+// page, so screen readers skip the chart.
+export function MonthBars({
+  data,
+  series,
+  stacked = false,
+}: {
+  data: Record<string, string | number>[];
+  series: MonthSeries[];
+  stacked?: boolean;
+}) {
   return (
     <div className="h-72" aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
@@ -28,9 +37,10 @@ export function MonthBars({ data, series }: { data: Record<string, string | numb
               key={s.key}
               dataKey={s.key}
               name={s.label}
-              fill={CATEGORY_COLORS[i]}
-              radius={[3, 3, 0, 0]}
-              maxBarSize={22}
+              fill={s.color ?? CATEGORY_COLORS[i]}
+              stackId={stacked ? "all" : undefined}
+              radius={stacked ? (i === series.length - 1 ? [3, 3, 0, 0] : 0) : [3, 3, 0, 0]}
+              maxBarSize={stacked ? 36 : 22}
               isAnimationActive={false}
             />
           ))}

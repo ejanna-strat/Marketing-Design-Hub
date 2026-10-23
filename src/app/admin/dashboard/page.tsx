@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BarList } from "@/components/charts/BarList";
 import { foldShares } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
-import { StarsDisplay } from "@/components/feedback/Stars";
+import { FeedbackSummary } from "@/components/feedback/FeedbackSummary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { theme } from "@/config/theme";
 import { requireStaff } from "@/lib/auth";
@@ -47,7 +47,11 @@ export default async function DashboardPage() {
   };
   const byStatus = countBy((r) => r.status);
   const byTeam = countBy((r) => r.team?.name ?? "—");
-  const byType = countBy((r) => r.request_type?.name ?? "—");
+  // Top 5 types count active requests only: Returned and Cancelled are left
+  // out (owner, Oct 23).
+  const activeRows = rows.filter((r) => !(INACTIVE_STATUSES as readonly string[]).includes(r.status));
+  const activeByType = new Map<string, number>();
+  for (const r of activeRows) activeByType.set(r.request_type?.name ?? "—", (activeByType.get(r.request_type?.name ?? "—") ?? 0) + 1);
   const sorted = (m: Map<string, number>) =>
     [...m.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
 
@@ -116,31 +120,13 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Link href="/admin/feedback" className="block rounded-xl transition-shadow hover:shadow-md">
-          <Card className="h-full">
-            <CardHeader>
-              <CardDescription>Overall feedback</CardDescription>
-              <CardTitle className="text-2xl">
-                {overall === null ? "—" : <StarsDisplay value={overall} size="md" />}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <dl className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Process average</dt>
-                  <dd>{processAvg === null ? "—" : <StarsDisplay value={processAvg} />}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Output average</dt>
-                  <dd>{outputAvg === null ? "—" : <StarsDisplay value={outputAvg} />}</dd>
-                </div>
-              </dl>
-              <p className="text-sm">
-                <span className="font-semibold">{counted.length}</span> of {completedOutside} completed requests have feedback
-                {completedOutside > 0 && <span className="text-muted-foreground"> · {rate(counted.length, completedOutside)}</span>}
-              </p>
-              <p className="text-xs text-muted-foreground">Marketing team requesters excluded</p>
-            </CardContent>
-          </Card>
+          <FeedbackSummary
+            overall={overall}
+            process={processAvg}
+            output={outputAvg}
+            responses={counted.length}
+            completed={completedOutside}
+          />
         </Link>
 
         <Link href="/admin/deals" className="block rounded-xl transition-shadow hover:shadow-md">
@@ -241,10 +227,13 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Top 5 types of request</CardTitle>
-            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
+            {/* Active requests only (owner, Oct 23). */}
+            <CardDescription>
+              Share of this year&apos;s {activeRows.length} active requests (Returned and Cancelled not counted)
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList data={sorted(byType).slice(0, 5)} total={total} />
+            <BarList data={sorted(activeByType).slice(0, 5)} total={activeRows.length} />
           </CardContent>
         </Card>
       </div>
