@@ -25,7 +25,8 @@ import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
-import { SectionViews, StatusGroups } from "./Views";
+import { RequestFlow, WhereTheyStand, WhoAsked } from "./OverviewParts";
+import { SectionViews } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
@@ -127,29 +128,37 @@ export default async function AnalyticsPage({
 
       <section id="overview" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={LayoutDashboardIcon} title="Overview" description="The period at a glance" />
-        {/* Three grouped cards instead of six boxes (owner, Oct 21). */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <Card>
+        {/* Layout from the owner's mock-up (Oct 23): the flow as tiles, then
+            turnaround and feedback, what stands out, where the requests stand
+            and who asked. */}
+        <RequestFlow
+          period={periodLabel}
+          steps={[
+            { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate" },
+            { label: "Accepted", value: t.accepted, note: `${shareOf(t.accepted, t.requestsIn)} of requests`, tone: "blue" },
+            { label: "Completed", value: t.completed, note: `${shareOf(t.completed, t.requestsIn)} of requests`, tone: "green" },
+            { label: month ? "Open at month-end" : "Open at the end", value: t.openAtEnd, note: "Still being worked on", tone: "amber" },
+          ]}
+          aside={{
+            label: "Inactive",
+            value: t.returned + t.cancelled,
+            note: `${shareOf(t.returned + t.cancelled, t.requestsIn)} · returned or cancelled`,
+            tone: "grey",
+          }}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="h-full">
             <CardHeader>
-              <CardDescription>Request flow</CardDescription>
+              <CardDescription>Average turnaround</CardDescription>
+              <CardTitle className="text-3xl tabular-nums">
+                {t.avgTurnaround === null ? "—" : t.avgTurnaround.toFixed(1)}
+                {t.avgTurnaround !== null && <span className="ml-1.5 text-base font-medium text-muted-foreground">working days</span>}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-                <Flow label="Requests in" value={t.requestsIn} />
-                <Flow label="Accepted" value={t.accepted} rate={shareOf(t.accepted, t.requestsIn)} />
-                <Flow label="Completed" value={t.completed} rate={shareOf(t.completed, t.requestsIn)} />
-                <Flow label="Open at the end" value={t.openAtEnd} note="New request to For revision" />
-                {/* Total inactive (owner, Oct 23). */}
-                <Flow
-                  label="Inactive"
-                  value={t.returned + t.cancelled}
-                  rate={shareOf(t.returned + t.cancelled, t.requestsIn)}
-                  note="Returned or cancelled"
-                />
-              </dl>
+              <p className="text-sm text-muted-foreground">From request to completed, weekends left out</p>
             </CardContent>
           </Card>
-          <SummaryBox title="Average turnaround" value={days(t.avgTurnaround)} lines={["Working days, request to completed"]} />
           {/* Same feedback report as the Dashboard (owner, Oct 23). */}
           <FeedbackSummary
             title="Feedback"
@@ -160,11 +169,25 @@ export default async function AnalyticsPage({
             completed={t.completedOutside}
           />
         </div>
-        {/* The three things to look at first (Hick's Law, owner Oct 23). */}
-        <KeyTakeaways lines={keyTakeaways(a, mom, periodLabel)} />
+        <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
         {/* Full width under the cards, so opening it doesn't stretch them. */}
         {/* Insights are on Month on Month only (owner, Oct 23). */}
         {mom && <Insights label="feedback insights" lines={feedbackInsights(t, a.months)} />}
+        {/* Who asked moved here from Brand Team (owner, Oct 23). */}
+        {/* items-start: opening the team lists doesn't stretch the left card. */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <WhereTheyStand title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} ${t.requestsIn} requests stand`} groups={standGroups(a)} />
+          <WhoAsked teams={a.byTeam}>
+            <ShowTable label="all teams">
+              <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" bare />
+            </ShowTable>
+            {mom && (
+              <ShowTable label="teams by month">
+                <MonthCountsCard title="Requests per team" column="Team" rows={a.teamMonths} months={a.months} year={year} bare />
+              </ShowTable>
+            )}
+          </WhoAsked>
+        </div>
         {mom && (
           <Card>
             <CardHeader>
@@ -332,15 +355,6 @@ export default async function AnalyticsPage({
                 ]
               : []),
             {
-              key: "teams",
-              label: "Teams",
-              content: mom ? (
-                <MonthCountsCard title="Requests per team" column="Team" rows={a.teamMonths} months={a.months} year={year} />
-              ) : (
-                <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" />
-              ),
-            },
-            {
               key: "types",
               label: "Types",
               content: mom ? (
@@ -350,23 +364,6 @@ export default async function AnalyticsPage({
               ),
             },
             { key: "turnaround", label: "Turnaround", content: <TurnaroundByType a={a} mom={mom} year={year} /> },
-            {
-              key: "status",
-              label: "Status",
-              content: (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Requests by status</CardTitle>
-                    <CardDescription>
-                      Where this period&apos;s {t.requestsIn} requests are now. Click a group to see its statuses.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <StatusGroups total={t.requestsIn} groups={statusGroups(a)} />
-                  </CardContent>
-                </Card>
-              ),
-            },
           ]}
         />
       </section>
@@ -598,15 +595,17 @@ export default async function AnalyticsPage({
         <SectionHeader icon={ArchiveIcon} title="Inactive Requests" description="Returned and cancelled requests, including those with a deal" />
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="grid gap-4">
-          {/* Total first, then its two parts (owner, Oct 23). */}
+          {/* One box: the total big, returned and cancelled smaller (owner, Oct 23). */}
           <SummaryBox
+            big
             title="Total inactive"
             value={t.returned + t.cancelled}
             rate={shareOf(t.returned + t.cancelled, t.requestsIn)}
-            lines={["Returned and cancelled, of this period's requests"]}
+            lines={[
+              `${t.returned} returned (${shareOf(t.returned, t.requestsIn)}) · ${t.cancelled} cancelled (${shareOf(t.cancelled, t.requestsIn)})`,
+              "Of this period's requests",
+            ]}
           />
-          <SummaryBox title="Returned" value={t.returned} rate={shareOf(t.returned, t.requestsIn)} lines={["Of this period's requests"]} />
-          <SummaryBox title="Cancelled" value={t.cancelled} rate={shareOf(t.cancelled, t.requestsIn)} lines={["Of this period's requests"]} />
           <SummaryBox
             title="Inactive with a deal"
             value={t.inactiveDeals}
@@ -687,14 +686,30 @@ export default async function AnalyticsPage({
 }
 
 // A donut with a table beside it (the table is the legend).
-function ShareCard({ title, data, total, column }: { title: string; data: Share[]; total: number; column: string }) {
+function ShareCard({
+  title,
+  data,
+  total,
+  column,
+  bare = false,
+}: {
+  title: string;
+  data: Share[];
+  total: number;
+  column: string;
+  // Without its own card (inside another card).
+  bare?: boolean;
+}) {
   const slices = foldShares(data);
+  const Wrap = bare ? Bare : Card;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Wrap>
+      {!bare && (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={bare ? "px-0" : undefined}>
         {slices.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No data yet.</p>
         ) : (
@@ -728,22 +743,13 @@ function ShareCard({ title, data, total, column }: { title: string; data: Share[
           </div>
         )}
       </CardContent>
-    </Card>
+    </Wrap>
   );
 }
 
-// One number in the Request flow card.
-function Flow({ label, value, rate, note }: { label: string; value: number; rate?: string; note?: string }) {
-  return (
-    <div className="space-y-1">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-2xl font-semibold tabular-nums">
-        {value}
-        {rate && <span className="text-base font-medium text-muted-foreground"> · {rate}</span>}
-      </dd>
-      {note && <dd className="text-xs text-muted-foreground">{note}</dd>}
-    </div>
-  );
+// A plain wrapper standing in for a Card (content shown inside another card).
+function Bare({ children }: { children: React.ReactNode }) {
+  return <div>{children}</div>;
 }
 
 const pctText = (n: number, of: number) => `${Math.round((n / of) * 100)}%`;
@@ -806,23 +812,6 @@ function insights(a: Analytics, year: string): string[] {
   return out;
 }
 
-// Requests by status in 4 groups (Hick's Law, owner Oct 23).
-const STATUS_GROUPS = [
-  { label: "Open", statuses: ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"] },
-  { label: "Completed", statuses: ["completed"] },
-  { label: "On hold", statuses: ["on_hold"] },
-  { label: "Inactive", statuses: ["rejected", "cancelled"] },
-];
-function statusGroups(a: Analytics) {
-  return STATUS_GROUPS.map((g) => {
-    const items = g.statuses.map((st) => ({
-      label: STATUSES.find((x) => x.value === st)?.label ?? st,
-      value: a.byStatus.get(st) ?? 0,
-    }));
-    return { label: g.label, value: items.reduce((n, i) => n + i.value, 0), items };
-  });
-}
-
 // "4.8 ★ (2 of 3)": feedback on the designer's completed requests.
 function designerFeedback(d: Analytics["designerPeriod"][number]) {
   if (d.feedbackRating === null) return d.feedbackOutOf ? `— (0 of ${d.feedbackOutOf})` : "—";
@@ -856,21 +845,36 @@ function keyTakeaways(a: Analytics, mom: boolean, period: string): string[] {
   return out;
 }
 
-function KeyTakeaways({ lines }: { lines: string[] }) {
+function KeyTakeaways({ title, lines }: { title: string; lines: string[] }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Key takeaways</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-          {lines.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ol>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+      <p className="mb-2 text-xs font-semibold tracking-wider text-amber-800 uppercase dark:text-amber-300">{title}</p>
+      <ul className="list-disc space-y-1.5 pl-5 text-sm">
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+    </div>
   );
+}
+
+// Where the period's requests are now, in 4 groups (owner's mock-up, Oct 23).
+function standGroups(a: Analytics) {
+  const n = (st: string) => a.byStatus.get(st) ?? 0;
+  const open = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"];
+  const openParts = open
+    .filter((st) => n(st) > 0)
+    .map((st) => (STATUSES.find((x) => x.value === st)?.label ?? st).replace(" (not yet started)", "").toLowerCase());
+  return [
+    { label: "Completed" as const, value: n("completed") },
+    { label: "Open" as const, value: open.reduce((sum, st) => sum + n(st), 0), detail: openParts.join(", ") || undefined },
+    { label: "On hold" as const, value: n("on_hold") },
+    {
+      label: "Returned or cancelled" as const,
+      value: n("rejected") + n("cancelled"),
+      detail: `${n("rejected")} returned, ${n("cancelled")} cancelled`,
+    },
+  ];
 }
 
 const starText = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} ★`);
@@ -884,12 +888,14 @@ function MonthCountsCard({
   rows,
   months,
   year,
+  bare = false,
 }: {
   title: string;
   column: string;
   rows: MonthCounts[];
   months: Analytics["months"];
   year: string;
+  bare?: boolean;
 }) {
   const shown = rows.length > CATEGORY_COLORS.length ? rows.slice(0, CATEGORY_COLORS.length - 1) : rows;
   const rest = rows.slice(shown.length);
@@ -903,13 +909,16 @@ function MonthCountsCard({
     ...Object.fromEntries(shown.map((r, i) => [`s${i}`, r.counts[mi]])),
     ...(rest.length ? { other: rest.reduce((n, r) => n + r.counts[mi], 0) } : {}),
   }));
+  const Wrap = bare ? Bare : Card;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>Requests filed each month</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Wrap>
+      {!bare && (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>Requests filed each month</CardDescription>
+        </CardHeader>
+      )}
+      <CardContent className={bare ? "space-y-4 px-0" : "space-y-4"}>
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No data yet.</p>
         ) : (
@@ -949,7 +958,7 @@ function MonthCountsCard({
           </>
         )}
       </CardContent>
-    </Card>
+    </Wrap>
   );
 }
 

@@ -7,17 +7,20 @@ export function SummaryBox({
   value,
   rate,
   lines = [],
+  big = false,
 }: {
   title: string;
   value: React.ReactNode;
   rate?: string;
   lines?: React.ReactNode[];
+  // A larger main number (e.g. Total inactive, owner Oct 23).
+  big?: boolean;
 }) {
   return (
     <Card className="h-full">
       <CardHeader>
         <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-2xl">
+        <CardTitle className={big ? "text-4xl" : "text-2xl"}>
           {value}
           {rate && <span className="text-base font-medium text-muted-foreground"> · {rate}</span>}
         </CardTitle>
