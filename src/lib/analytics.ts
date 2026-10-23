@@ -215,11 +215,11 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     return [...byType.values()].sort((x, y) => y.size - x.size || y.requests - x.requests);
   };
 
-  // Returned and Cancelled requests that had a deal, by type, with their
-  // deal size (owner, Oct 23: the table is "Inactive requests with deals").
+  // Every Returned and Cancelled request by type, with the deal size of
+  // those that had a deal (owner, Oct 21; all of them, Oct 23).
   const groupInactive = (list: Req[]) => {
     const byType = new Map<string, InactiveType>();
-    for (const r of list.filter((x) => x.is_deal && (x.status === "rejected" || x.status === "cancelled"))) {
+    for (const r of list.filter((x) => x.status === "rejected" || x.status === "cancelled")) {
       const label = r.request_type?.name ?? "—";
       const t = byType.get(label) ?? { label, returned: 0, cancelled: 0, dealSize: 0 };
       if (r.status === "rejected") t.returned += 1;
