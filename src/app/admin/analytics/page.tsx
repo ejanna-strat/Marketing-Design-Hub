@@ -177,7 +177,7 @@ export default async function AnalyticsPage({
         {/* items-start: opening the team lists doesn't stretch the left card. */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
           <WhereTheyStand title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} ${t.requestsIn} requests stand`} groups={standGroups(a)} />
-          <WhoAsked teams={a.byTeam}>
+          <WhoAsked title="Who asked" noun="teams" items={a.byTeam} total={t.requestsIn}>
             <ShowTable label="all teams">
               <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" bare />
             </ShowTable>
@@ -247,6 +247,7 @@ export default async function AnalyticsPage({
         {/* One view at a time (Hick's Law, owner Oct 23). Month on Month opens
             on Volume: one chart of requests in, accepted, completed and open
             (the two monthly charts merged), and the Monthly Pipeline Summary. */}
+        {mom ? (
         <SectionViews
           label="Brand Team view"
           views={[
@@ -366,6 +367,18 @@ export default async function AnalyticsPage({
             { key: "turnaround", label: "Turnaround", content: <TurnaroundByType a={a} mom={mom} year={year} /> },
           ]}
         />
+        ) : (
+          // Monthly report: no switch (owner, Oct 23). Turnaround on the left,
+          // request types on the right in the Who asked style.
+          <div className="grid items-start gap-4 xl:grid-cols-2">
+            <TurnaroundByType a={a} mom={false} year={year} />
+            <WhoAsked title="Request types" noun="types" items={a.byType} total={t.requestsIn}>
+              <ShowTable label="all types">
+                <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" bare />
+              </ShowTable>
+            </WhoAsked>
+          </div>
+        )}
       </section>
 
       <section id="designers" className="scroll-mt-32 space-y-4">
@@ -614,9 +627,10 @@ export default async function AnalyticsPage({
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>{mom ? "Inactive requests by month" : "Inactive requests by type"}</CardTitle>
+            {/* Deals only (owner, Oct 23); all inactive requests are in the Total box. */}
+            <CardTitle>Inactive requests with deals</CardTitle>
             <CardDescription>
-              Returned and cancelled requests filed in this period, with the deal size behind them
+              Returned and cancelled requests that had a deal, filed in this period, with their deal size
               {mom && ". Click a month for its breakdown by type of request."}
             </CardDescription>
           </CardHeader>
@@ -624,35 +638,17 @@ export default async function AnalyticsPage({
             {/* Month on Month: types open per month, like Deal requests (owner, Oct 23). */}
             {mom ? (
               <MonthBreakdown
-                headers={["Returned", "Cancelled", "Inactive rate", "With a deal", "Deal size"]}
+                headers={["Returned", "Cancelled", "Total", "Deal size"]}
                 months={a.months.map((m) => ({
                   month: m.month,
                   label: m.label,
-                  cells: [
-                    String(m.returned),
-                    String(m.cancelled),
-                    m.requestsIn ? shareOf(m.returned + m.cancelled, m.requestsIn) : "—",
-                    String(m.inactiveDeals),
-                    m.inactiveDealSize ? formatPeso(m.inactiveDealSize) : "—",
-                  ],
-                  details: m.inactiveByType.map((r) => ({
-                    label: r.label,
-                    cells: [String(r.returned), String(r.cancelled), "", "", r.dealSize ? formatPeso(r.dealSize) : "—"],
-                  })),
+                  cells: inactiveDealCells(m.inactiveByType),
+                  details: m.inactiveByType.map((r) => ({ label: r.label, cells: inactiveDealCells([r]) })),
                 }))}
-                total={{
-                  label: `${year} total`,
-                  cells: [
-                    String(t.returned),
-                    String(t.cancelled),
-                    t.requestsIn ? shareOf(t.returned + t.cancelled, t.requestsIn) : "—",
-                    String(t.inactiveDeals),
-                    t.inactiveDealSize ? formatPeso(t.inactiveDealSize) : "—",
-                  ],
-                }}
+                total={{ label: `${year} total`, cells: inactiveDealCells(a.inactiveTypes) }}
               />
             ) : a.inactiveTypes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests in this period.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No returned or cancelled requests with a deal in this period.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="zebra w-full text-sm">
@@ -683,6 +679,14 @@ export default async function AnalyticsPage({
       </section>
     </div>
   );
+}
+
+// Returned · Cancelled · Total · Deal size for inactive requests with deals.
+function inactiveDealCells(rows: { returned: number; cancelled: number; dealSize: number }[]) {
+  const r = rows.reduce((n, x) => n + x.returned, 0);
+  const c = rows.reduce((n, x) => n + x.cancelled, 0);
+  const size = rows.reduce((n, x) => n + x.dealSize, 0);
+  return [String(r), String(c), String(r + c), size ? formatPeso(size) : "—"];
 }
 
 // A donut with a table beside it (the table is the legend).

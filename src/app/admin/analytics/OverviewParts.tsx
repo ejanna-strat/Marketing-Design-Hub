@@ -81,7 +81,10 @@ export function WhereTheyStand({
                     {g.label}
                     {g.detail && <span className="text-muted-foreground"> · {g.detail}</span>}
                   </span>
-                  <span className="font-semibold tabular-nums">{g.value}</span>
+                  <span className="font-semibold tabular-nums">
+                    {g.value}
+                    <span className="ml-1 font-normal text-muted-foreground">· {pct(g.value, total)}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -92,8 +95,23 @@ export function WhereTheyStand({
   );
 }
 
-// Who asked: the busiest teams, with the rest folded into one line.
-export function WhoAsked({ teams, children }: { teams: { label: string; value: number }[]; children?: React.ReactNode }) {
+const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : "—");
+
+// Who asked (teams) or Request types: the biggest ones, with the rest folded
+// into one line, each with its share of the period's requests.
+export function WhoAsked({
+  title,
+  noun,
+  items: teams,
+  total,
+  children,
+}: {
+  title: string;
+  noun: string;
+  items: { label: string; value: number }[];
+  total: number;
+  children?: React.ReactNode;
+}) {
   const max = Math.max(1, ...teams.map((t) => t.value));
   // Teams with more than one request (up to 4) get their own bar.
   const shown = teams.filter((t) => t.value > 1).slice(0, 4);
@@ -104,14 +122,14 @@ export function WhoAsked({ teams, children }: { teams: { label: string; value: n
     ...(rest.length === 1
       ? rest
       : rest.length > 1
-        ? [{ label: `${rest.length} other teams${rest.every((t) => t.value === 1) ? ", 1 each" : ""}`, value: restTotal }]
+        ? [{ label: `${rest.length} other ${noun}${rest.every((t) => t.value === 1) ? ", 1 each" : ""}`, value: restTotal }]
         : []),
   ];
   const width = Math.max(max, restTotal);
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Who asked</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {rows.length === 0 ? (
@@ -122,7 +140,10 @@ export function WhoAsked({ teams, children }: { teams: { label: string; value: n
               <li key={r.label} className="space-y-1">
                 <div className="flex justify-between gap-3">
                   <span>{r.label}</span>
-                  <span className="font-semibold tabular-nums">{r.value}</span>
+                  <span className="font-semibold tabular-nums">
+                    {r.value}
+                    <span className="ml-1 font-normal text-muted-foreground">· {pct(r.value, total)}</span>
+                  </span>
                 </div>
                 <div className="h-2 rounded-full bg-muted">
                   <div className="h-2 rounded-full bg-brand" style={{ width: `${(r.value / width) * 100}%` }} />
