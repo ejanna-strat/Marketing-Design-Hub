@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.49.0_
+_Last updated: Oct 22, 2026 · version 0.49.1_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -77,6 +77,7 @@ _Last updated: Oct 22, 2026 · version 0.49.0_
 - v0.48.0 (owner, Oct 24): Open and Completed are shares of Accepted on the Dashboard and Analytics (Open = accepted work still in progress; New requests not yet accepted show as "+N waiting for a designer"); every rate says what it's based on; Dashboard Requests by status lists On hold after Completed and Returned / Cancelled last in grey.
 - v0.48.1 (owner, Oct 24): Analytics "Where … active requests stand" leaves out Returned and Cancelled; its % is a share of active requests.
 - v0.49.0 (owner, Oct 24): Dashboard and Analytics show the numbers in two labelled rows: All requests (Total / Requests in · Waiting for a designer · Accepted · Inactive, % of total) and Accepted work (Open · Completed · On hold · Average turnaround, % of accepted). Dashboard "Active requests by status" covers accepted work only (% of accepted) with New requests waiting in their own box; Analytics' active-requests bar shows Waiting for a designer separately; Feedback sits beside What stands out.
+- v0.49.1 (owner, Oct 24): Month on Month starts at the first month with requests (Oct 2026; later years from January); first columns wrap on phones instead of covering the table; monthly charts scroll sideways on phones; the Month column stays fixed when scrolling the summary, deals, inactive and feedback tables.
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql`, `0014_theme.sql`, `0015_require_acceptance.sql`, `0016_hidden_approvers.sql`, `0017_project_overview.sql`, `0018_designers_take_requests.sql`, `0019_super_admin_role.sql`, `0020_super_admin.sql` (apply 0019 on its own first; 0020 also makes the owner Super Admin) and `0021_staff_cancel_note.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 

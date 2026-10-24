@@ -38,7 +38,7 @@ export function MonthBreakdown({
       <table className="zebra w-full text-sm">
         <thead>
           <tr className="border-b text-muted-foreground">
-            <th className="px-3 py-1.5 text-left font-medium">Month</th>
+            <th className="sticky left-0 z-10 bg-card px-3 py-1.5 text-left font-medium">Month</th>
             {headers.map((h) => (
               <th key={h} className="px-3 py-1.5 text-right font-medium whitespace-nowrap">
                 {h}
@@ -53,7 +53,8 @@ export function MonthBreakdown({
             return (
               <Fragment key={m.month}>
                 <tr className="border-b last:border-0">
-                  <td className="px-3 py-1.5">
+                  {/* Month stays in view when scrolling sideways (owner, Oct 24). */}
+                  <td className="sticky left-0 z-10 bg-inherit px-3 py-1.5">
                     {can ? (
                       <button
                         type="button"
@@ -77,7 +78,7 @@ export function MonthBreakdown({
                 {isOpen &&
                   m.details.map((d) => (
                     <tr key={`${m.month}-${d.label}`} className="border-b text-muted-foreground">
-                      <td className="py-1.5 pr-3 pl-10">{d.label}</td>
+                      <td className="sticky left-0 z-10 max-w-44 bg-inherit py-1.5 pr-3 pl-10">{d.label}</td>
                       {d.cells.map((c, i) => (
                         <td key={i} className={td}>
                           {c}
@@ -90,7 +91,7 @@ export function MonthBreakdown({
           })}
           {total && (
             <tr className="border-t-2 font-semibold">
-              <td className="px-3 py-1.5">{total.label}</td>
+              <td className="sticky left-0 z-10 bg-inherit px-3 py-1.5 whitespace-nowrap">{total.label}</td>
               {total.cells.map((c, i) => (
                 <td key={i} className={td}>
                   {c}

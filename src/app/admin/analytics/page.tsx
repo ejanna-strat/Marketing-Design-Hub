@@ -77,7 +77,9 @@ export default async function AnalyticsPage({
   let periodLabel: string;
   if (tab === "mom") {
     if (years.includes(param("year"))) year = param("year");
-    from = `${year}-01-01`;
+    // Months before the app's first request are left out (owner, Oct 24):
+    // 2026 starts in October; later years start in January.
+    from = year === first.slice(0, 4) ? `${first.slice(0, 7)}-01` : `${year}-01-01`;
     to = year === today.slice(0, 4) ? today : `${year}-12-31`;
     periodLabel = `${year}, month by month`;
   } else if (DAY.test(param("from")) && DAY.test(param("to")) && param("from") <= param("to")) {
@@ -215,7 +217,7 @@ export default async function AnalyticsPage({
                 <table className="zebra w-full text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
-                      <th className="px-3 py-2 text-left font-medium">Month</th>
+                      <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Month</th>
                       <th className={th}>Responses</th>
                       <th className={th}>Completed</th>
                       <th className={th}>Response rate</th>
@@ -227,7 +229,7 @@ export default async function AnalyticsPage({
                   <tbody>
                     {a.months.map((m) => (
                       <tr key={m.month} className="border-b last:border-0">
-                        <td className="px-3 py-2">{m.label}</td>
+                        <td className="sticky left-0 z-10 bg-inherit px-3 py-2">{m.label}</td>
                         <td className={td}>{m.feedbackCount}</td>
                         <td className={td}>{m.completedOutside}</td>
                         <td className={td}>{m.completedOutside ? shareOf(m.feedbackCount, m.completedOutside) : "—"}</td>
@@ -237,7 +239,7 @@ export default async function AnalyticsPage({
                       </tr>
                     ))}
                     <tr className="border-t-2 font-semibold">
-                      <td className="px-3 py-2">{year} total</td>
+                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{year} total</td>
                       <td className={td}>{t.feedbackCount}</td>
                       <td className={td}>{t.completedOutside}</td>
                       <td className={td}>{t.completedOutside ? shareOf(t.feedbackCount, t.completedOutside) : "—"}</td>
@@ -304,7 +306,7 @@ export default async function AnalyticsPage({
                           <table className="zebra w-full text-sm">
                             <thead>
                               <tr className="border-b text-muted-foreground">
-                                <th className="px-3 py-2 text-left font-medium">Month</th>
+                                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Month</th>
                                 <th className={th}>Requests In</th>
                                 <th className={th}>Accepted</th>
                                 <th className={th}>Completed</th>
@@ -320,7 +322,7 @@ export default async function AnalyticsPage({
                                 const change = i === 0 ? 0 : m.requestsIn - a.months[i - 1].requestsIn;
                                 return (
                                   <tr key={m.month} className="border-b last:border-0">
-                                    <td className="px-3 py-2">{m.label}</td>
+                                    <td className="sticky left-0 z-10 bg-inherit px-3 py-2">{m.label}</td>
                                     <td className={td}>
                                       <span className="inline-flex items-center gap-1">
                                         {m.requestsIn}
@@ -346,7 +348,7 @@ export default async function AnalyticsPage({
                                 );
                               })}
                               <tr className="border-t-2 font-semibold">
-                                <td className="px-3 py-2">{year} total</td>
+                                <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{year} total</td>
                                 <td className={td}>{t.requestsIn}</td>
                                 <td className={td}>{t.accepted}</td>
                                 <td className={td}>{t.completed}</td>
@@ -410,7 +412,7 @@ export default async function AnalyticsPage({
               <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
+                    <th className="sticky left-0 z-10 max-w-36 bg-card px-3 py-2 text-left font-medium">Designer</th>
                     {/* Totals first, then the months (owner, Oct 23). */}
                     <th className={th}>Total completed</th>
                     <th className={th}>Avg. Turnaround</th>
@@ -425,7 +427,7 @@ export default async function AnalyticsPage({
                 <tbody>
                   {a.designers.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className="sticky left-0 z-10 max-w-36 bg-inherit px-3 py-2 sm:max-w-none sm:whitespace-nowrap">{d.name}</td>
                       <td className={`${td} font-semibold`}>{d.completed}</td>
                       <td className={td}>{days(d.avgTurnaround)}</td>
                       <td className={td}>{d.feedbackRating === null ? "—" : `${stars(d.feedbackRating)} ★`}</td>
@@ -465,7 +467,7 @@ export default async function AnalyticsPage({
               <table className="zebra w-full max-w-3xl text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Designer</th>
+                    <th className="sticky left-0 z-10 max-w-36 bg-card px-3 py-2 text-left font-medium">Designer</th>
                     <th className={th}>Total completed</th>
                     <th className={th}>{month ? "Open at month-end" : "Open at end of range"}</th>
                     <th className={th}>Avg. Turnaround</th>
@@ -475,7 +477,7 @@ export default async function AnalyticsPage({
                 <tbody>
                   {a.designerPeriod.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className="sticky left-0 z-10 max-w-36 bg-inherit px-3 py-2 sm:max-w-none sm:whitespace-nowrap">{d.name}</td>
                       <td className={`${td} font-semibold`}>{d.total}</td>
                       <td className={td}>{d.openAtEnd}</td>
                       <td className={td}>{days(d.avgTurnaround)}</td>
@@ -497,7 +499,7 @@ export default async function AnalyticsPage({
               <table className="zebra w-auto text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left align-bottom font-medium">Designer</th>
+                    <th className="sticky left-0 z-10 max-w-36 bg-card px-3 py-2 text-left align-bottom font-medium">Designer</th>
                     {/* Same width for every type column; long names wrap (owner, Oct 23). */}
                     {a.periodTypes.map((type) => (
                       <th key={type} className={thEven}>
@@ -515,7 +517,7 @@ export default async function AnalyticsPage({
                 <tbody>
                   {a.designerPeriod.map((d) => (
                     <tr key={d.name} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{d.name}</td>
+                      <td className="sticky left-0 z-10 max-w-36 bg-inherit px-3 py-2 sm:max-w-none sm:whitespace-nowrap">{d.name}</td>
                       {a.periodTypes.map((type) => (
                         <td key={type} className={`${td} ${d.byType[type] ? "" : "text-muted-foreground"}`}>
                           {d.byType[type] ?? 0}
@@ -958,7 +960,7 @@ function MonthCountsCard({
               <table className="zebra w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">{column}</th>
+                    <th className="sticky left-0 z-10 max-w-36 bg-card px-3 py-2 text-left font-medium">{column}</th>
                     {months.map((m) => (
                       <th key={m.month} className={th}>
                         {m.label.slice(0, 3)}
@@ -970,7 +972,7 @@ function MonthCountsCard({
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.label} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{r.label}</td>
+                      <td className="sticky left-0 z-10 max-w-36 bg-inherit px-3 py-2 sm:max-w-none sm:whitespace-nowrap">{r.label}</td>
                       {r.counts.map((n, i) => (
                         <td key={months[i].month} className={`${td} ${n ? "" : "text-muted-foreground"}`}>
                           {n}
@@ -1012,7 +1014,7 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
             <table className="zebra w-full text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
-                  <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium">Type of request</th>
+                  <th className="sticky left-0 z-10 max-w-36 bg-card px-3 py-2 text-left font-medium">Type of request</th>
                   {/* Totals first, then the months (owner, Oct 23). */}
                   <th className={th}>{mom ? `${year} average` : "Avg. Turnaround"}</th>
                   <th className={th}>Completed</th>
@@ -1029,7 +1031,7 @@ function TurnaroundByType({ a, mom, year }: { a: Analytics; mom: boolean; year: 
                   let previous: number | null = null;
                   return (
                     <tr key={r.label} className="border-b last:border-0">
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 whitespace-nowrap">{r.label}</td>
+                      <td className="sticky left-0 z-10 max-w-36 bg-inherit px-3 py-2 sm:max-w-none sm:whitespace-nowrap">{r.label}</td>
                       <td className={`${td} font-semibold`}>{days(r.avg)}</td>
                       <td className={td}>{r.completed}</td>
                       {mom &&
