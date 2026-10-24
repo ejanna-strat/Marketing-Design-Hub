@@ -45,8 +45,11 @@ const STAND_COLORS = { Completed: "bg-emerald-600", Open: "bg-sky-600", "On hold
 export function WhereTheyStand({
   title,
   groups,
+  note,
 }: {
   title: string;
+  // What the % is based on (owner, Oct 24).
+  note?: string;
   groups: { label: keyof typeof STAND_COLORS; value: number; detail?: string }[];
 }) {
   const total = groups.reduce((n, g) => n + g.value, 0);
@@ -84,6 +87,7 @@ export function WhereTheyStand({
             </ul>
           </>
         )}
+        {note && <p className="text-xs text-muted-foreground">{note}</p>}
       </CardContent>
     </Card>
   );

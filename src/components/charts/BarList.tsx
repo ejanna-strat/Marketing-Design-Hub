@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 // href: optional page the row opens (e.g. that status's list).
-export type BarDatum = { label: string; value: number; href?: string };
+// muted: a grey bar (e.g. Returned and Cancelled, owner Oct 24).
+export type BarDatum = { label: string; value: number; href?: string; muted?: boolean };
 
 // Horizontal bars in one hue (magnitude). Full category names wrap instead of
 // being shortened (owner, Oct 21); the value (and share) sits at the bar end.
@@ -39,7 +40,7 @@ export function BarList({
           )}
           <span className="flex items-center gap-2">
             {d.value > 0 && (
-              <span className="h-[18px] rounded-r bg-brand" style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />
+              <span className={`h-[18px] rounded-r ${d.muted ? "bg-slate-400 dark:bg-slate-500" : "bg-brand"}`} style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />
             )}
             <span className="shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 dark:text-gray-300 tabular-nums">
               {d.value}

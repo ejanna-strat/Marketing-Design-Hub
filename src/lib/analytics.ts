@@ -42,6 +42,10 @@ export type PeriodTotals = {
   accepted: number;
   completed: number;
   openAtEnd: number;
+  // Accepted work still open at the end, and New requests still waiting for
+  // a designer (owner, Oct 24: Open is a share of Accepted).
+  openAcceptedAtEnd: number;
+  waitingAtEnd: number;
   avgTurnaround: number | null;
   dealRequests: number;
   dealSize: number;
@@ -190,6 +194,8 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       accepted: filed.filter(everAccepted).length,
       completed: done.length,
       openAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e))).length,
+      openAcceptedAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e)) && statusAt(r.id, e) !== "new_request").length,
+      waitingAtEnd: requests.filter((r) => r.created_at < e && statusAt(r.id, e) === "new_request").length,
       avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
       dealRequests: deals.length,
       dealSize: deals.reduce((n, r) => n + (r.deal_size ?? 0), 0),
