@@ -34,6 +34,8 @@ export default async function DashboardPage() {
   await requireStaff();
   const supabase = await createClient();
   const year = todayInManila().slice(0, 4);
+  // This year as list filters (request date).
+  const yearRange = `from=${year}-01-01&to=${todayInManila()}`;
   const yearStart = manilaDayStart(`${year}-01-01`);
 
   const [{ data: requests, error }, { data: open }, { data: feedback }, { data: acceptedLog }] = await Promise.all([
@@ -125,7 +127,8 @@ export default async function DashboardPage() {
             label: "All requests",
             basis: "% of total requests",
             tiles: [
-              { label: "Total requests", value: total, note: "Filed this year", tone: "slate" },
+              // Open the matching list for this year's requests (owner, Oct 24).
+              { label: "Total requests", value: total, note: "Filed this year", tone: "slate", href: `/admin/pipeline?view=all&${yearRange}` },
               {
                 label: "Waiting for a designer",
                 value: waiting,
@@ -134,7 +137,7 @@ export default async function DashboardPage() {
                 tone: "sky",
                 href: "/admin/pendings?status=new_request",
               },
-              { label: "Accepted", value: accepted, rate: rate(accepted), note: "Accepted by a designer", tone: "blue" },
+              { label: "Accepted", value: accepted, rate: rate(accepted), note: "Accepted by a designer", tone: "blue", href: `/admin/pipeline?view=all&${yearRange}` },
               { label: "Inactive", value: inactive, rate: rate(inactive), note: "Returned or cancelled", tone: "grey", href: "/admin/inactive" },
             ],
           },
@@ -143,7 +146,7 @@ export default async function DashboardPage() {
             basis: "% of accepted requests",
             tiles: [
               { label: "Open", value: openNow, rate: rate(openNow, accepted), note: "Still being worked on", tone: "amber", href: "/admin/pendings" },
-              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green" },
+              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green", href: `/admin/pipeline?view=completed&${yearRange}` },
               { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange", href: "/admin/pipeline?view=on_hold" },
               {
                 label: "Average turnaround",
