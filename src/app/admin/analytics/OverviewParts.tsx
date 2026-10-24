@@ -39,7 +39,7 @@ export function RequestFlow({ period, steps, aside }: { period: string; steps: F
   );
 }
 
-const STAND_COLORS = { Completed: "bg-emerald-600", Open: "bg-sky-600", "On hold": "bg-amber-500", "Returned or cancelled": "bg-slate-400" } as const;
+const STAND_COLORS = { Completed: "bg-emerald-600", Open: "bg-sky-600", "On hold": "bg-amber-500" } as const;
 
 // Where the period's requests are now: one stacked bar and a legend.
 export function WhereTheyStand({
