@@ -135,14 +135,22 @@ export default async function AnalyticsPage({
           period={periodLabel}
           steps={[
             { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate" },
+            // Rates and their basis (owner, Oct 24): Accepted of all requests;
+            // Completed and Open of accepted. Open is accepted work only; New
+            // requests not yet accepted show as "waiting".
             { label: "Accepted", value: t.accepted, note: `${shareOf(t.accepted, t.requestsIn)} of requests`, tone: "blue" },
-            { label: "Completed", value: t.completed, note: `${shareOf(t.completed, t.requestsIn)} of requests`, tone: "green" },
-            { label: month ? "Open at month-end" : "Open at the end", value: t.openAtEnd, note: "Still being worked on", tone: "amber" },
+            { label: "Completed", value: t.completed, note: `${shareOf(t.completed, t.accepted)} of accepted`, tone: "green" },
+            {
+              label: month ? "Open at month-end" : "Open at the end",
+              value: t.openAcceptedAtEnd,
+              note: `${shareOf(t.openAcceptedAtEnd, t.accepted)} of accepted${t.waitingAtEnd ? ` · +${t.waitingAtEnd} waiting for a designer` : ""}`,
+              tone: "amber",
+            },
           ]}
           aside={{
             label: "Inactive",
             value: t.returned + t.cancelled,
-            note: `${shareOf(t.returned + t.cancelled, t.requestsIn)} · returned or cancelled`,
+            note: `${shareOf(t.returned + t.cancelled, t.requestsIn)} of requests · returned or cancelled`,
             tone: "grey",
           }}
         />
@@ -176,8 +184,11 @@ export default async function AnalyticsPage({
         {/* Who asked moved here from Brand Team (owner, Oct 23). */}
         {/* items-start: opening the team lists doesn't stretch the left card. */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          <WhereTheyStand title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} ${t.requestsIn} requests stand`} groups={standGroups(a)} />
+          <WhereTheyStand title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} ${t.requestsIn} requests stand`} groups={standGroups(a)}
+            note={`% = share of all ${t.requestsIn} requests. Open here includes New requests still waiting for a designer.`}
+          />
           <WhoAsked title="Who asked" noun="teams" items={a.byTeam} total={t.requestsIn}>
+            <p className="text-xs text-muted-foreground">% = share of all {t.requestsIn} requests.</p>
             <ShowTable label="all teams">
               <ShareCard title="Requests per team" data={a.byTeam} total={t.requestsIn} column="Team" bare />
             </ShowTable>
@@ -373,6 +384,7 @@ export default async function AnalyticsPage({
           <div className="grid items-start gap-4 xl:grid-cols-2">
             <TurnaroundByType a={a} mom={false} year={year} />
             <WhoAsked title="Request types" noun="types" items={a.byType} total={t.requestsIn}>
+              <p className="text-xs text-muted-foreground">% = share of all {t.requestsIn} requests.</p>
               <ShowTable label="all types">
                 <ShareCard title="Request type breakdown" data={a.byType} total={t.requestsIn} column="Type of request" bare />
               </ShowTable>
@@ -840,7 +852,8 @@ function keyTakeaways(a: Analytics, mom: boolean, period: string): string[] {
   const out: string[] = [];
   if (t.requestsIn === 0 && t.completed === 0) return [`No requests in ${mom ? "this year" : "this period"} yet.`];
   out.push(
-    `${t.requestsIn} request${t.requestsIn === 1 ? "" : "s"} came in and ${t.completed} ${t.completed === 1 ? "was" : "were"} completed (${shareOf(t.completed, t.requestsIn)}); ${t.openAtEnd} ${t.openAtEnd === 1 ? "is" : "are"} still open${mom ? "" : ` at the end of ${period}`}.`,
+    // Same basis as the tiles: completed and open as shares of accepted.
+    `${t.requestsIn} request${t.requestsIn === 1 ? "" : "s"} came in and ${t.accepted} ${t.accepted === 1 ? "was" : "were"} accepted; ${t.completed} completed (${shareOf(t.completed, t.accepted)} of accepted) and ${t.openAcceptedAtEnd} still open${mom ? "" : ` at the end of ${period}`}${t.waitingAtEnd ? `, with ${t.waitingAtEnd} waiting for a designer` : ""}.`,
   );
   if (t.feedbackRating !== null) {
     const lower =
