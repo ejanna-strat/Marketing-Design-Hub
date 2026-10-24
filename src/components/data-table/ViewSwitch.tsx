@@ -21,9 +21,11 @@ export function ViewSwitch({ requester = false }: { requester?: boolean }) {
   // One rounded bar with a "Show:" label; the selected option is a filled
   // pill and the others highlight on hover (owner's mock-up, Oct 21).
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border bg-background py-1 pr-1 pl-3 text-sm shadow-sm">
-      <span className="mr-1 text-muted-foreground">Show:</span>
-      <div role="radiogroup" aria-label="Show" className="flex flex-wrap gap-0.5">
+    // Phones (owner, Oct 24): no "Show:" label and tighter pills, so all
+    // the options fit on one line.
+    <div className="inline-flex max-w-full items-center gap-1 rounded-full border bg-background p-1 text-[13px] shadow-sm sm:pl-3 sm:text-sm">
+      <span className="mr-1 hidden text-muted-foreground sm:inline">Show:</span>
+      <div role="radiogroup" aria-label="Show" className="flex gap-0.5">
         {views.map((v) => (
           <button
             key={v.value}
@@ -32,7 +34,7 @@ export function ViewSwitch({ requester = false }: { requester?: boolean }) {
             aria-checked={current === v.value}
             onClick={() => setParams({ view: v.value === "open" ? null : v.value })}
             className={cn(
-              "h-7 cursor-pointer rounded-full px-3 font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "h-7 cursor-pointer rounded-full px-2.5 font-medium whitespace-nowrap sm:px-3 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
               current === v.value
                 ? "bg-brand text-white shadow-sm"
                 : "text-foreground/80 hover:bg-brand-soft hover:text-brand",
