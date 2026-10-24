@@ -1,5 +1,6 @@
 import { TZDate } from "@date-fns/tz";
 import { differenceInBusinessDays, format, parseISO } from "date-fns";
+import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { BarList } from "@/components/charts/BarList";
 import { foldShares } from "@/components/charts/palette";
@@ -143,7 +144,7 @@ export default async function DashboardPage() {
             tiles: [
               { label: "Open", value: openNow, rate: rate(openNow, accepted), note: "Still being worked on", tone: "amber", href: "/admin/pendings" },
               { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green" },
-              { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange" },
+              { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange", href: "/admin/pipeline?view=on_hold" },
               {
                 label: "Average turnaround",
                 value: turnaround === null ? "—" : `${turnaround.toFixed(1)} days`,
@@ -217,7 +218,20 @@ export default async function DashboardPage() {
             <CardTitle>Active requests by status</CardTitle>
             <CardDescription>Where this year&apos;s accepted requests are now</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            {/* New requests nobody has accepted yet, first and number-first so
+                the count sits next to its label (owner, Oct 24). */}
+            <Link
+              href="/admin/pendings?status=new_request"
+              className="flex items-center gap-3 rounded-lg bg-cyan-50 px-4 py-3 text-cyan-950 transition-shadow hover:shadow-md dark:bg-cyan-500/10 dark:text-cyan-100"
+            >
+              <span className="text-2xl font-bold tabular-nums">{waiting}</span>
+              <span className="flex-1 text-sm">
+                new request{waiting === 1 ? "" : "s"} waiting for a designer
+                <span className="block text-xs opacity-75">Not yet accepted, so not in the bars below</span>
+              </span>
+              <ChevronRightIcon className="size-4 opacity-60" aria-hidden />
+            </Link>
             <BarList
               data={ACTIVE_STATUS_ORDER.map((st) => ({
                 label: STATUSES.find((x) => x.value === st)?.label ?? st,
@@ -232,13 +246,6 @@ export default async function DashboardPage() {
                 `; ${accepted - openNow - completed - onHold} of them were later returned or cancelled`}
               .
             </p>
-            <Link
-              href="/admin/pendings?status=new_request"
-              className="flex items-center justify-between rounded-lg bg-cyan-50 px-3 py-2 text-sm text-cyan-950 hover:underline dark:bg-cyan-500/10 dark:text-cyan-100"
-            >
-              <span>New requests waiting for a designer</span>
-              <span className="font-semibold tabular-nums">{waiting}</span>
-            </Link>
           </CardContent>
         </Card>
 

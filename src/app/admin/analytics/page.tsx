@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArchiveIcon,
   ArrowDownIcon,
@@ -99,6 +100,8 @@ export default async function AnalyticsPage({
   }
 
   const a = await loadAnalytics(supabase, from, to, tab === "mom");
+  // The period as list filters (request date), for the clickable tiles.
+  const range = `from=${from}&to=${to}`;
   const t = a.totals;
   const mom = tab === "mom";
   const chartData = a.months.map((m) => ({
@@ -142,31 +145,36 @@ export default async function AnalyticsPage({
               label: "All requests",
               basis: "% of requests in",
               tiles: [
-                { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate" },
-                { label: "Waiting for a designer", value: t.waitingAtEnd, rate: shareOf(t.waitingAtEnd, t.requestsIn), note: "New, not yet accepted", tone: "sky" },
-                { label: "Accepted", value: t.accepted, rate: shareOf(t.accepted, t.requestsIn), note: "Accepted by a designer", tone: "blue" },
-                { label: "Inactive", value: t.returned + t.cancelled, rate: shareOf(t.returned + t.cancelled, t.requestsIn), note: "Returned or cancelled", tone: "grey" },
+                // Each tile opens the matching list for requests filed in this
+                // period (owner, Oct 24).
+                { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate", href: `/admin/pipeline?view=all&${range}` },
+                { label: "Waiting for a designer", value: t.waitingAtEnd, rate: shareOf(t.waitingAtEnd, t.requestsIn), note: "New, not yet accepted", tone: "sky", href: "/admin/pendings?status=new_request" },
+                { label: "Accepted", value: t.accepted, rate: shareOf(t.accepted, t.requestsIn), note: "Accepted by a designer", tone: "blue", href: `/admin/pipeline?view=all&${range}` },
+                { label: "Inactive", value: t.returned + t.cancelled, rate: shareOf(t.returned + t.cancelled, t.requestsIn), note: "Returned or cancelled", tone: "grey", href: `/admin/inactive?${range}` },
               ],
             },
             {
               label: "Accepted work",
               basis: "% of accepted requests",
               tiles: [
-                { label: month ? "Open at month-end" : "Open at the end", value: t.openAcceptedAtEnd, rate: shareOf(t.openAcceptedAtEnd, t.accepted), note: "Still being worked on", tone: "amber" },
-                { label: "Completed", value: t.completed, rate: shareOf(t.completed, t.accepted), note: "Done and turned over", tone: "green" },
-                { label: "On hold", value: t.onHoldAccepted, rate: shareOf(t.onHoldAccepted, t.accepted), note: "Paused", tone: "orange" },
+                { label: month ? "Open at month-end" : "Open at the end", value: t.openAcceptedAtEnd, rate: shareOf(t.openAcceptedAtEnd, t.accepted), note: "Still being worked on", tone: "amber", href: `/admin/pipeline?view=open&${range}` },
+                { label: "Completed", value: t.completed, rate: shareOf(t.completed, t.accepted), note: "Done and turned over", tone: "green", href: `/admin/pipeline?view=completed&${range}` },
+                { label: "On hold", value: t.onHoldAccepted, rate: shareOf(t.onHoldAccepted, t.accepted), note: "Paused", tone: "orange", href: `/admin/pipeline?view=on_hold&${range}` },
                 {
                   label: "Average turnaround",
                   value: t.avgTurnaround === null ? "—" : `${t.avgTurnaround.toFixed(1)} days`,
                   note: "Working days, request to completed",
                   tone: "violet",
+                  href: "#brand",
                 },
               ],
             },
           ]}
         />
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          {/* Same feedback report as the Dashboard (owner, Oct 23). */}
+          {/* Same feedback report as the Dashboard (owner, Oct 23); opens the
+              Feedback page (owner, Oct 24). */}
+          <Link href="/admin/feedback" className="block h-full rounded-xl transition-shadow hover:shadow-md">
           <FeedbackSummary
             title="Feedback"
             overall={t.feedbackRating}
@@ -175,6 +183,7 @@ export default async function AnalyticsPage({
             responses={t.feedbackCount}
             completed={t.completedOutside}
           />
+          </Link>
           <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
         </div>
         {/* Full width under the cards, so opening it doesn't stretch them. */}
