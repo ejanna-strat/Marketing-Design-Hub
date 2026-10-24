@@ -5,6 +5,7 @@ export const TONES = {
   blue: "bg-sky-100/70 text-sky-950 dark:bg-sky-500/15 dark:text-sky-100",
   green: "bg-emerald-100/70 text-emerald-950 dark:bg-emerald-500/15 dark:text-emerald-100",
   amber: "bg-amber-100/70 text-amber-950 dark:bg-amber-500/15 dark:text-amber-100",
+  violet: "bg-violet-100/70 text-violet-950 dark:bg-violet-500/15 dark:text-violet-100",
   grey: "bg-muted text-foreground",
 } as const;
 

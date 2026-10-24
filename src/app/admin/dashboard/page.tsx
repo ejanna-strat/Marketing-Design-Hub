@@ -21,22 +21,34 @@ const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTim
 
 // §7.2 #4: "Marketing Design Pipeline <year> YTD". Counts cover requests
 // filed this year; Pendings cover every open request.
+// Reached Designer assigned or later (same as Analytics' "Accepted").
+const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
+
 export default async function DashboardPage() {
   await requireStaff();
   const supabase = await createClient();
   const year = todayInManila().slice(0, 4);
   const yearStart = manilaDayStart(`${year}-01-01`);
 
-  const [{ data: requests, error }, { data: open }, { data: feedback }] = await Promise.all([
+  const [{ data: requests, error }, { data: open }, { data: feedback }, { data: acceptedLog }] = await Promise.all([
     supabase
       .from("requests")
-      .select("status, created_at, date_completed, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name)")
+      .select("id, status, created_at, date_completed, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name)")
       .gte("created_at", yearStart),
     supabase.from("requests").select("status").in("status", PENDING_TABS.map((t) => t.status)),
     supabase
       .from("feedback")
       .select("process_rating, output_rating, request:requests(team:teams(is_marketing))")
       .gte("submitted_at", yearStart),
+    // This year's requests that ever reached Designer assigned or later, so
+    // Accepted also counts ones later put on hold, returned or cancelled
+    // (same rule as Analytics).
+    supabase
+      .from("activity_log")
+      .select("request_id, request:requests!inner(created_at)")
+      .eq("action", "status")
+      .in("to_value", [...ACCEPTED])
+      .gte("request.created_at", yearStart),
   ]);
   if (error) throw new Error(error.message);
   const rows = requests ?? [];
@@ -74,9 +86,18 @@ export default async function DashboardPage() {
   const overall = processAvg !== null && outputAvg !== null ? (processAvg + outputAvg) / 2 : null;
 
   const total = rows.length;
+  const everAccepted = new Set((acceptedLog ?? []).map((l) => l.request_id));
+  const accepted = rows.filter((r) => ACCEPTED.has(r.status) || everAccepted.has(r.id)).length;
+  // Open = this year's requests still in the Pendings statuses.
+  const openNow = rows.filter((r) => PENDING_TABS.some((t) => t.status === r.status)).length;
   const completed = byStatus.get("completed") ?? 0;
   const inactive = INACTIVE_STATUSES.reduce((n, st) => n + (byStatus.get(st) ?? 0), 0);
   const rate = (n: number, of = total) => (of ? `${Math.round((n / of) * 100)}%` : "—");
+  const withRate = (n: number) => (
+    <>
+      {n} <span className="text-base font-medium opacity-70">· {rate(n)}</span>
+    </>
+  );
   // Feedback response rate: completed requests from outside the Marketing team.
   const completedOutside = rows.filter((r) => r.status === "completed" && !r.team?.is_marketing).length;
   const teams = foldShares(sorted(byTeam));
@@ -91,36 +112,20 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Requests filed this year, open work and feedback at a glance.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Tinted like the Analytics Request flow (owner, Oct 24). */}
-        <Stat tone="slate" title="Requests this year" value={String(total)} note={`${totalPending} still pending`} />
+      {/* Six tiles in the flow's order, tinted like the Analytics Request
+          flow (owner, Oct 24). */}
+      <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        <Stat tone="slate" title="Total requests" value={String(total)} note="Filed this year" />
+        <Stat tone="blue" title="Accepted" value={withRate(accepted)} note="Accepted by a designer" />
+        <Stat tone="amber" title="Open" value={withRate(openNow)} note="Still being worked on" href="/admin/pendings" />
+        <Stat tone="green" title="Completed" value={withRate(completed)} note="Of this year's requests" />
         <Stat
-          tone="green"
-          title="Completed"
-          value={
-            <>
-              {completed} <span className="text-base font-medium opacity-70">· {rate(completed)}</span>
-            </>
-          }
-          note="Completion rate, of this year's requests"
-        />
-        <Stat
-          tone="grey"
-          title="Inactive"
-          value={
-            <>
-              {inactive} <span className="text-base font-medium opacity-70">· {rate(inactive)}</span>
-            </>
-          }
-          note="Cancelled and Returned, of this year's requests"
-          href="/admin/inactive"
-        />
-        <Stat
-          tone="blue"
+          tone="violet"
           title="Average turnaround"
           value={turnaround === null ? "—" : `${turnaround.toFixed(1)} days`}
-          note="Working days, request date to completed"
+          note="Working days, request to completed"
         />
+        <Stat tone="grey" title="Inactive" value={withRate(inactive)} note="Returned or cancelled" href="/admin/inactive" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
