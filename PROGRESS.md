@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 22, 2026 · version 0.43.2_
+_Last updated: Oct 22, 2026 · version 0.44.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -70,6 +70,7 @@ _Last updated: Oct 22, 2026 · version 0.43.2_
 - v0.43.0 (owner, Oct 23): Analytics: rates beside the counts in Where the requests stand and Who asked; Monthly report Brand Team shows Turnaround and Request types side by side (no switch; all types open on request); the inactive table is now "Inactive requests with deals" on both tabs and counts only returned/cancelled requests that had a deal.
 - v0.43.1 (owner, Oct 23): the inactive table is back to counting every returned and cancelled request (titles "Inactive requests by type" / "by month"); its description now says Deal size adds up only the ones that had a deal.
 - v0.43.2 (owner, Oct 23): Turnaround per type table fills its card.
+- v0.44.0 (owner, Oct 24): phones and narrow tablets get a ☰ button in the top bar that opens the Marketing team menu from the left (closes after picking a page, tapping outside or Escape).
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql`, `0014_theme.sql`, `0015_require_acceptance.sql`, `0016_hidden_approvers.sql`, `0017_project_overview.sql`, `0018_designers_take_requests.sql`, `0019_super_admin_role.sql`, `0020_super_admin.sql` (apply 0019 on its own first; 0020 also makes the owner Super Admin) and `0021_staff_cancel_note.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 

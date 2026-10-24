@@ -20,10 +20,12 @@ function roleLabel(user: CurrentUser) {
 
 // Top bar on every signed-in page. Requesters see only Home and My Requests;
 // Marketing staff also get a link to the Design Pipeline.
-export function AppHeader({ user }: { user: CurrentUser }) {
+// `menu`: the staff pages' ☰ button for phones and tablets (MobileMenu).
+export function AppHeader({ user, menu }: { user: CurrentUser; menu?: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
+        {menu}
         <Link href="/" className="flex items-center gap-2">
           <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
           <span className="hidden font-brand font-bold text-brand sm:inline">{theme.appName}</span>
