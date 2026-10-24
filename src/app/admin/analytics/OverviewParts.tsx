@@ -1,45 +1,15 @@
-import { ChevronRightIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TONES } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 // Analytics Overview pieces (owner's mock-up, Oct 23).
 
 
-export type FlowTile = { label: string; value: number; note: string; tone: keyof typeof TONES };
-
-// Request flow as tinted tiles with arrows between the steps. The last tile
-// (Inactive) sits apart, without an arrow: it's not a step in the flow.
-export function RequestFlow({ period, steps, aside }: { period: string; steps: FlowTile[]; aside?: FlowTile }) {
-  const tile = (t: FlowTile) => (
-    <div className={cn("min-w-0 flex-1 rounded-xl px-4 py-3", TONES[t.tone])}>
-      <p className="text-sm font-medium">{t.label}</p>
-      <p className="text-3xl font-bold tabular-nums">{t.value}</p>
-      <p className="text-xs opacity-75">{t.note}</p>
-    </div>
-  );
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle>Request flow</CardTitle>
-        <span className="text-sm text-muted-foreground">{period}</span>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-          {steps.map((t, i) => (
-            <div key={t.label} className="flex min-w-0 flex-1 items-center gap-2">
-              {tile(t)}
-              {i < steps.length - 1 && <ChevronRightIcon className="hidden size-4 shrink-0 text-muted-foreground lg:block" aria-hidden />}
-            </div>
-          ))}
-          {aside && <div className="flex min-w-0 flex-1 lg:ml-3 lg:border-l lg:pl-6">{tile(aside)}</div>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-const STAND_COLORS = { Completed: "bg-emerald-600", Open: "bg-sky-600", "On hold": "bg-amber-500" } as const;
+const STAND_COLORS = {
+  Completed: "bg-emerald-600",
+  Open: "bg-amber-500",
+  "On hold": "bg-slate-400",
+  "Waiting for a designer": "bg-sky-400",
+} as const;
 
 // Where the period's requests are now: one stacked bar and a legend.
 export function WhereTheyStand({
