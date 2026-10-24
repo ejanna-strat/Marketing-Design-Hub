@@ -14,6 +14,7 @@ import { NavLink } from "@/components/shell/NavLink";
 import { PendingsMenu } from "@/components/shell/PendingsMenu";
 import { PipelineMenu } from "@/components/shell/PipelineMenu";
 import { MenuTip } from "@/components/shell/MenuTip";
+import { MobileMenu } from "@/components/shell/MobileMenu";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SIDEBAR_COOKIE } from "@/components/shell/sidebar-cookie";
 import { requireStaff } from "@/lib/auth";
@@ -65,11 +66,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     })),
   ];
 
-  return (
-    <div className="min-h-screen bg-muted/30">
-      <AppHeader user={user} />
-      <div className="flex gap-6 px-4 py-6 sm:px-6">
-        <Sidebar initialCollapsed={collapsed}>
+  // The same menu in the left sidebar (wider screens) and the ☰ slide-out
+  // menu (phones and tablets, owner Oct 24).
+  const menu = (
+    <>
             {menuFor(user.canManageMembers).map((item) =>
               item === "pipeline" ? (
                 <Suspense key="pipeline">
@@ -103,6 +103,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 </div>
               ),
             )}
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <AppHeader
+        user={user}
+        menu={
+          <Suspense>
+            <MobileMenu>{menu}</MobileMenu>
+          </Suspense>
+        }
+      />
+      <div className="flex gap-6 px-4 py-6 sm:px-6">
+        <Sidebar initialCollapsed={collapsed}>
+          {menu}
         </Sidebar>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
