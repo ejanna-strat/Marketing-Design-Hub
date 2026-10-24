@@ -13,6 +13,7 @@ import { one } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
+import { TONES, type Tone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 // Manila calendar date of a timestamp, for counting working days.
@@ -91,27 +92,31 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat title="Requests this year" value={String(total)} note={`${totalPending} still pending`} />
+        {/* Tinted like the Analytics Request flow (owner, Oct 24). */}
+        <Stat tone="slate" title="Requests this year" value={String(total)} note={`${totalPending} still pending`} />
         <Stat
+          tone="green"
           title="Completed"
           value={
             <>
-              {completed} <span className="text-base font-medium text-muted-foreground">· {rate(completed)}</span>
+              {completed} <span className="text-base font-medium opacity-70">· {rate(completed)}</span>
             </>
           }
           note="Completion rate, of this year's requests"
         />
         <Stat
+          tone="grey"
           title="Inactive"
           value={
             <>
-              {inactive} <span className="text-base font-medium text-muted-foreground">· {rate(inactive)}</span>
+              {inactive} <span className="text-base font-medium opacity-70">· {rate(inactive)}</span>
             </>
           }
           note="Cancelled and Returned, of this year's requests"
           href="/admin/inactive"
         />
         <Stat
+          tone="blue"
           title="Average turnaround"
           value={turnaround === null ? "—" : `${turnaround.toFixed(1)} days`}
           note="Working days, request date to completed"
@@ -251,16 +256,29 @@ function statusPage(status: string) {
   return `/admin/inactive?status=${status}`;
 }
 
-function Stat({ title, value, note, href }: { title: string; value: React.ReactNode; note?: string; href?: string }) {
+function Stat({
+  title,
+  value,
+  note,
+  href,
+  tone,
+}: {
+  title: string;
+  value: React.ReactNode;
+  note?: string;
+  href?: string;
+  tone?: Tone;
+}) {
+  // Tinted tiles: the text inherits the tile's colour, softer for the notes.
   const card = (
-    <Card className="h-full">
+    <Card className={cn("h-full border-0", tone && TONES[tone])}>
       <CardHeader>
-        <CardDescription>{title}</CardDescription>
+        <CardDescription className={tone ? "text-current opacity-80" : undefined}>{title}</CardDescription>
         <CardTitle className="text-2xl">{value}</CardTitle>
       </CardHeader>
       {note && (
         <CardContent>
-          <p className="text-xs text-muted-foreground">{note}</p>
+          <p className={cn("text-xs", tone ? "opacity-75" : "text-muted-foreground")}>{note}</p>
         </CardContent>
       )}
     </Card>
