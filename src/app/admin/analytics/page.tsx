@@ -184,8 +184,12 @@ export default async function AnalyticsPage({
         {/* Who asked moved here from Brand Team (owner, Oct 23). */}
         {/* items-start: opening the team lists doesn't stretch the left card. */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          <WhereTheyStand title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} ${t.requestsIn} requests stand`} groups={standGroups(a)}
-            note={`% = share of all ${t.requestsIn} requests. Open here includes New requests still waiting for a designer.`}
+          {/* Active requests only: Returned and Cancelled are left out (owner,
+              Oct 24); they're in the Request flow's Inactive tile. */}
+          <WhereTheyStand
+            title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} active requests stand`}
+            groups={standGroups(a)}
+            note={`% = share of the ${t.requestsIn - t.returned - t.cancelled} active requests (returned and cancelled left out). Open here includes New requests still waiting for a designer.`}
           />
           <WhoAsked title="Who asked" noun="teams" items={a.byTeam} total={t.requestsIn}>
             <p className="text-xs text-muted-foreground">% = share of all {t.requestsIn} requests.</p>
@@ -887,7 +891,8 @@ function KeyTakeaways({ title, lines }: { title: string; lines: string[] }) {
   );
 }
 
-// Where the period's requests are now, in 4 groups (owner's mock-up, Oct 23).
+// Where the period's active requests are now: Completed, Open, On hold
+// (owner's mock-up, Oct 23; Returned and Cancelled left out, Oct 24).
 function standGroups(a: Analytics) {
   const n = (st: string) => a.byStatus.get(st) ?? 0;
   const open = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"];
@@ -898,11 +903,6 @@ function standGroups(a: Analytics) {
     { label: "Completed" as const, value: n("completed") },
     { label: "Open" as const, value: open.reduce((sum, st) => sum + n(st), 0), detail: openParts.join(", ") || undefined },
     { label: "On hold" as const, value: n("on_hold") },
-    {
-      label: "Returned or cancelled" as const,
-      value: n("rejected") + n("cancelled"),
-      detail: `${n("rejected")} returned, ${n("cancelled")} cancelled`,
-    },
   ];
 }
 
