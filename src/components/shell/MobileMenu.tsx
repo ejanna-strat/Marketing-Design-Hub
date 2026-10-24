@@ -6,9 +6,10 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
-// Phones and tablets (owner, Oct 24): the left menu is hidden on narrow
-// screens, so a ☰ button in the top bar opens the same menu, sliding in from
-// the left. Picking a page, tapping outside or pressing Escape closes it.
+// Phones and narrow tablets (owner, Oct 24): a ☰ button in the top bar opens
+// a menu sliding in from the left with the page links (and, for the team,
+// the Marketing team menu). Picking a page, tapping outside or pressing
+// Escape closes it.
 export function MobileMenu({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -62,7 +63,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
               aria-hidden
             />
             <aside
-              aria-label="Marketing team menu"
+              aria-label="Menu"
               aria-hidden={!open}
               inert={!open}
               className={cn(
@@ -73,7 +74,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center justify-between pb-2 pl-3">
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                  Marketing team
+                  Menu
                 </p>
                 <button
                   type="button"
@@ -84,13 +85,27 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
                   <XIcon className="size-4" />
                 </button>
               </div>
-              <nav aria-label="Marketing team" className="space-y-1">
+              <nav aria-label="Menu" className="space-y-1">
                 {children}
               </nav>
             </aside>
           </div>,
           document.body,
         )}
+    </div>
+  );
+}
+
+// Shown while the page is still loading, so the ☰ doesn't pop in late.
+export function MenuButtonPlaceholder() {
+  return (
+    <div className="md:hidden">
+      <span
+        aria-hidden
+        className="-ml-1 flex size-9 items-center justify-center rounded-lg text-muted-foreground"
+      >
+        <MenuIcon className="size-5" />
+      </span>
     </div>
   );
 }
