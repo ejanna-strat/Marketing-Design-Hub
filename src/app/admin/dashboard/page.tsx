@@ -23,6 +23,11 @@ const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTim
 // filed this year; Pendings cover every open request.
 // Reached Designer assigned or later (same as Analytics' "Accepted").
 const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
+// Accepted and still being worked on.
+const OPEN_ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision"]);
+// Requests by status: On hold after Completed, Returned and Cancelled last
+// in grey (owner, Oct 24).
+const STATUS_ORDER = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision", "completed", "on_hold", "rejected", "cancelled"];
 
 export default async function DashboardPage() {
   await requireStaff();
@@ -88,14 +93,16 @@ export default async function DashboardPage() {
   const total = rows.length;
   const everAccepted = new Set((acceptedLog ?? []).map((l) => l.request_id));
   const accepted = rows.filter((r) => ACCEPTED.has(r.status) || everAccepted.has(r.id)).length;
-  // Open = this year's requests still in the Pendings statuses.
-  const openNow = rows.filter((r) => PENDING_TABS.some((t) => t.status === r.status)).length;
+  // Open = accepted work still in progress; New requests not yet accepted
+  // show separately as "waiting for a designer" (owner, Oct 24).
+  const openNow = rows.filter((r) => OPEN_ACCEPTED.has(r.status)).length;
+  const waiting = rows.filter((r) => r.status === "new_request").length;
   const completed = byStatus.get("completed") ?? 0;
   const inactive = INACTIVE_STATUSES.reduce((n, st) => n + (byStatus.get(st) ?? 0), 0);
   const rate = (n: number, of = total) => (of ? `${Math.round((n / of) * 100)}%` : "—");
-  const withRate = (n: number) => (
+  const withRate = (n: number, of = total) => (
     <>
-      {n} <span className="text-base font-medium opacity-70">· {rate(n)}</span>
+      {n} <span className="text-base font-medium opacity-70">· {rate(n, of)}</span>
     </>
   );
   // Feedback response rate: completed requests from outside the Marketing team.
@@ -115,17 +122,25 @@ export default async function DashboardPage() {
       {/* Six tiles in the flow's order, tinted like the Analytics Request
           flow (owner, Oct 24). */}
       <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        {/* Each note says what the rate is based on (owner, Oct 24): Open and
+            Completed are shares of Accepted; the rest of all requests. */}
         <Stat tone="slate" title="Total requests" value={String(total)} note="Filed this year" />
-        <Stat tone="blue" title="Accepted" value={withRate(accepted)} note="Accepted by a designer" />
-        <Stat tone="amber" title="Open" value={withRate(openNow)} note="Still being worked on" href="/admin/pendings" />
-        <Stat tone="green" title="Completed" value={withRate(completed)} note="Of this year's requests" />
+        <Stat tone="blue" title="Accepted" value={withRate(accepted)} note="% of total requests" />
+        <Stat
+          tone="amber"
+          title="Open"
+          value={withRate(openNow, accepted)}
+          note={`% of accepted · still being worked on${waiting ? ` · +${waiting} waiting for a designer` : ""}`}
+          href="/admin/pendings"
+        />
+        <Stat tone="green" title="Completed" value={withRate(completed, accepted)} note="% of accepted requests" />
         <Stat
           tone="violet"
           title="Average turnaround"
           value={turnaround === null ? "—" : `${turnaround.toFixed(1)} days`}
           note="Working days, request to completed"
         />
-        <Stat tone="grey" title="Inactive" value={withRate(inactive)} note="Returned or cancelled" href="/admin/inactive" />
+        <Stat tone="grey" title="Inactive" value={withRate(inactive)} note="% of total requests · returned or cancelled" href="/admin/inactive" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -186,13 +201,19 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Requests by status</CardTitle>
-            <CardDescription>Share of this year&apos;s {total} requests</CardDescription>
+            <CardDescription>Where this year&apos;s requests are now</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <BarList
-              data={STATUSES.map((s) => ({ label: s.label, value: byStatus.get(s.value) ?? 0, href: statusPage(s.value) }))}
+              data={STATUS_ORDER.map((st) => ({
+                label: STATUSES.find((x) => x.value === st)?.label ?? st,
+                value: byStatus.get(st) ?? 0,
+                href: statusPage(st),
+                muted: st === "rejected" || st === "cancelled",
+              }))}
               total={total}
             />
+            <p className="text-xs text-muted-foreground">% = share of this year&apos;s {total} requests.</p>
           </CardContent>
         </Card>
 
@@ -231,6 +252,7 @@ export default async function DashboardPage() {
                 </table>
               </div>
             )}
+            <p className="mt-3 text-xs text-muted-foreground">Rate = share of this year&apos;s {total} requests.</p>
           </CardContent>
         </Card>
 
