@@ -12,8 +12,8 @@ import { manilaDayStart, todayInManila } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
+import { MetricRows } from "@/components/MetricRows";
 import { createClient } from "@/lib/supabase/server";
-import { TONES, type Tone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 // Manila calendar date of a timestamp, for counting working days.
@@ -25,9 +25,9 @@ const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTim
 const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
 // Accepted and still being worked on.
 const OPEN_ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision"]);
-// Requests by status: On hold after Completed, Returned and Cancelled last
-// in grey (owner, Oct 24).
-const STATUS_ORDER = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision", "completed", "on_hold", "rejected", "cancelled"];
+// Active requests by status: accepted work only, On hold after Completed
+// (owner, Oct 24).
+const ACTIVE_STATUS_ORDER = ["designer_assigned", "in_progress", "for_review", "for_revision", "completed", "on_hold"];
 
 export default async function DashboardPage() {
   await requireStaff();
@@ -97,14 +97,10 @@ export default async function DashboardPage() {
   // show separately as "waiting for a designer" (owner, Oct 24).
   const openNow = rows.filter((r) => OPEN_ACCEPTED.has(r.status)).length;
   const waiting = rows.filter((r) => r.status === "new_request").length;
+  const onHold = rows.filter((r) => r.status === "on_hold" && everAccepted.has(r.id)).length;
   const completed = byStatus.get("completed") ?? 0;
   const inactive = INACTIVE_STATUSES.reduce((n, st) => n + (byStatus.get(st) ?? 0), 0);
   const rate = (n: number, of = total) => (of ? `${Math.round((n / of) * 100)}%` : "—");
-  const withRate = (n: number, of = total) => (
-    <>
-      {n} <span className="text-base font-medium opacity-70">· {rate(n, of)}</span>
-    </>
-  );
   // Feedback response rate: completed requests from outside the Marketing team.
   const completedOutside = rows.filter((r) => r.status === "completed" && !r.team?.is_marketing).length;
   const teams = foldShares(sorted(byTeam));
@@ -119,29 +115,45 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Requests filed this year, open work and feedback at a glance.</p>
       </div>
 
-      {/* Six tiles in the flow's order, tinted like the Analytics Request
-          flow (owner, Oct 24). */}
-      <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
-        {/* Each note says what the rate is based on (owner, Oct 24): Open and
-            Completed are shares of Accepted; the rest of all requests. */}
-        <Stat tone="slate" title="Total requests" value={String(total)} note="Filed this year" />
-        <Stat tone="blue" title="Accepted" value={withRate(accepted)} note="% of total requests" />
-        <Stat
-          tone="amber"
-          title="Open"
-          value={withRate(openNow, accepted)}
-          note={`% of accepted · still being worked on${waiting ? ` · +${waiting} waiting for a designer` : ""}`}
-          href="/admin/pendings"
-        />
-        <Stat tone="green" title="Completed" value={withRate(completed, accepted)} note="% of accepted requests" />
-        <Stat
-          tone="violet"
-          title="Average turnaround"
-          value={turnaround === null ? "—" : `${turnaround.toFixed(1)} days`}
-          note="Working days, request to completed"
-        />
-        <Stat tone="grey" title="Inactive" value={withRate(inactive)} note="% of total requests · returned or cancelled" href="/admin/inactive" />
-      </div>
+      {/* Two labelled rows, like Analytics (owner, Oct 24): all requests
+          (% of total), then accepted work (% of accepted). */}
+      <MetricRows
+        period={`${year} year to date`}
+        rows={[
+          {
+            label: "All requests",
+            basis: "% of total requests",
+            tiles: [
+              { label: "Total requests", value: total, note: "Filed this year", tone: "slate" },
+              {
+                label: "Waiting for a designer",
+                value: waiting,
+                rate: rate(waiting),
+                note: "New, not yet accepted",
+                tone: "sky",
+                href: "/admin/pendings?status=new_request",
+              },
+              { label: "Accepted", value: accepted, rate: rate(accepted), note: "Accepted by a designer", tone: "blue" },
+              { label: "Inactive", value: inactive, rate: rate(inactive), note: "Returned or cancelled", tone: "grey", href: "/admin/inactive" },
+            ],
+          },
+          {
+            label: "Accepted work",
+            basis: "% of accepted requests",
+            tiles: [
+              { label: "Open", value: openNow, rate: rate(openNow, accepted), note: "Still being worked on", tone: "amber", href: "/admin/pendings" },
+              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green" },
+              { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange" },
+              {
+                label: "Average turnaround",
+                value: turnaround === null ? "—" : `${turnaround.toFixed(1)} days`,
+                note: "Working days, request to completed",
+                tone: "violet",
+              },
+            ],
+          },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Link href="/admin/feedback" className="block rounded-xl transition-shadow hover:shadow-md">
@@ -200,20 +212,33 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Requests by status</CardTitle>
-            <CardDescription>Where this year&apos;s requests are now</CardDescription>
+            {/* Accepted work only, % of accepted; New requests waiting for a
+                designer in their own box (owner, Oct 24). */}
+            <CardTitle>Active requests by status</CardTitle>
+            <CardDescription>Where this year&apos;s accepted requests are now</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <BarList
-              data={STATUS_ORDER.map((st) => ({
+              data={ACTIVE_STATUS_ORDER.map((st) => ({
                 label: STATUSES.find((x) => x.value === st)?.label ?? st,
-                value: byStatus.get(st) ?? 0,
+                value: st === "on_hold" ? onHold : (byStatus.get(st) ?? 0),
                 href: statusPage(st),
-                muted: st === "rejected" || st === "cancelled",
               }))}
-              total={total}
+              total={accepted}
             />
-            <p className="text-xs text-muted-foreground">% = share of this year&apos;s {total} requests.</p>
+            <p className="text-xs text-muted-foreground">
+              % = share of this year&apos;s {accepted} accepted requests
+              {accepted - openNow - completed - onHold > 0 &&
+                `; ${accepted - openNow - completed - onHold} of them were later returned or cancelled`}
+              .
+            </p>
+            <Link
+              href="/admin/pendings?status=new_request"
+              className="flex items-center justify-between rounded-lg bg-cyan-50 px-3 py-2 text-sm text-cyan-950 hover:underline dark:bg-cyan-500/10 dark:text-cyan-100"
+            >
+              <span>New requests waiting for a designer</span>
+              <span className="font-semibold tabular-nums">{waiting}</span>
+            </Link>
           </CardContent>
         </Card>
 
@@ -283,38 +308,3 @@ function statusPage(status: string) {
   return `/admin/inactive?status=${status}`;
 }
 
-function Stat({
-  title,
-  value,
-  note,
-  href,
-  tone,
-}: {
-  title: string;
-  value: React.ReactNode;
-  note?: string;
-  href?: string;
-  tone?: Tone;
-}) {
-  // Tinted tiles: the text inherits the tile's colour, softer for the notes.
-  const card = (
-    <Card className={cn("h-full border-0", tone && TONES[tone])}>
-      <CardHeader>
-        <CardDescription className={tone ? "text-current opacity-80" : undefined}>{title}</CardDescription>
-        <CardTitle className="text-2xl">{value}</CardTitle>
-      </CardHeader>
-      {note && (
-        <CardContent>
-          <p className={cn("text-xs", tone ? "opacity-75" : "text-muted-foreground")}>{note}</p>
-        </CardContent>
-      )}
-    </Card>
-  );
-  return href ? (
-    <Link href={href} className="block rounded-xl transition-shadow hover:shadow-md">
-      {card}
-    </Link>
-  ) : (
-    card
-  );
-}

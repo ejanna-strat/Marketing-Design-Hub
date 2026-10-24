@@ -25,7 +25,8 @@ import { STATUSES } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
-import { RequestFlow, WhereTheyStand, WhoAsked } from "./OverviewParts";
+import { MetricRows } from "@/components/MetricRows";
+import { WhereTheyStand, WhoAsked } from "./OverviewParts";
 import { SectionViews } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
@@ -128,45 +129,41 @@ export default async function AnalyticsPage({
 
       <section id="overview" className="scroll-mt-32 space-y-4">
         <SectionHeader icon={LayoutDashboardIcon} title="Overview" description="The period at a glance" />
-        {/* Layout from the owner's mock-up (Oct 23): the flow as tiles, then
-            turnaround and feedback, what stands out, where the requests stand
-            and who asked. */}
-        <RequestFlow
+        {/* Two labelled rows (owner, Oct 24): all requests (% of requests
+            in), then accepted work (% of accepted). New requests nobody has
+            accepted yet have their own tile. Then feedback beside what stands
+            out, where the requests stand and who asked. */}
+        <MetricRows
           period={periodLabel}
-          steps={[
-            { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate" },
-            // Rates and their basis (owner, Oct 24): Accepted of all requests;
-            // Completed and Open of accepted. Open is accepted work only; New
-            // requests not yet accepted show as "waiting".
-            { label: "Accepted", value: t.accepted, note: `${shareOf(t.accepted, t.requestsIn)} of requests`, tone: "blue" },
-            { label: "Completed", value: t.completed, note: `${shareOf(t.completed, t.accepted)} of accepted`, tone: "green" },
+          rows={[
             {
-              label: month ? "Open at month-end" : "Open at the end",
-              value: t.openAcceptedAtEnd,
-              note: `${shareOf(t.openAcceptedAtEnd, t.accepted)} of accepted${t.waitingAtEnd ? ` · +${t.waitingAtEnd} waiting for a designer` : ""}`,
-              tone: "amber",
+              label: "All requests",
+              basis: "% of requests in",
+              tiles: [
+                { label: "Requests in", value: t.requestsIn, note: mom ? `Filed in ${year}` : month ? "Filed this month" : "Filed in this period", tone: "slate" },
+                { label: "Waiting for a designer", value: t.waitingAtEnd, rate: shareOf(t.waitingAtEnd, t.requestsIn), note: "New, not yet accepted", tone: "sky" },
+                { label: "Accepted", value: t.accepted, rate: shareOf(t.accepted, t.requestsIn), note: "Accepted by a designer", tone: "blue" },
+                { label: "Inactive", value: t.returned + t.cancelled, rate: shareOf(t.returned + t.cancelled, t.requestsIn), note: "Returned or cancelled", tone: "grey" },
+              ],
+            },
+            {
+              label: "Accepted work",
+              basis: "% of accepted requests",
+              tiles: [
+                { label: month ? "Open at month-end" : "Open at the end", value: t.openAcceptedAtEnd, rate: shareOf(t.openAcceptedAtEnd, t.accepted), note: "Still being worked on", tone: "amber" },
+                { label: "Completed", value: t.completed, rate: shareOf(t.completed, t.accepted), note: "Done and turned over", tone: "green" },
+                { label: "On hold", value: t.onHoldAccepted, rate: shareOf(t.onHoldAccepted, t.accepted), note: "Paused", tone: "orange" },
+                {
+                  label: "Average turnaround",
+                  value: t.avgTurnaround === null ? "—" : `${t.avgTurnaround.toFixed(1)} days`,
+                  note: "Working days, request to completed",
+                  tone: "violet",
+                },
+              ],
             },
           ]}
-          aside={{
-            label: "Inactive",
-            value: t.returned + t.cancelled,
-            note: `${shareOf(t.returned + t.cancelled, t.requestsIn)} of requests · returned or cancelled`,
-            tone: "grey",
-          }}
         />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardDescription>Average turnaround</CardDescription>
-              <CardTitle className="text-3xl tabular-nums">
-                {t.avgTurnaround === null ? "—" : t.avgTurnaround.toFixed(1)}
-                {t.avgTurnaround !== null && <span className="ml-1.5 text-base font-medium text-muted-foreground">working days</span>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">From request to completed, weekends left out</p>
-            </CardContent>
-          </Card>
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Same feedback report as the Dashboard (owner, Oct 23). */}
           <FeedbackSummary
             title="Feedback"
@@ -176,8 +173,8 @@ export default async function AnalyticsPage({
             responses={t.feedbackCount}
             completed={t.completedOutside}
           />
+          <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
         </div>
-        <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
         {/* Full width under the cards, so opening it doesn't stretch them. */}
         {/* Insights are on Month on Month only (owner, Oct 23). */}
         {mom && <Insights label="feedback insights" lines={feedbackInsights(t, a.months)} />}
@@ -189,7 +186,7 @@ export default async function AnalyticsPage({
           <WhereTheyStand
             title={`Where ${mom ? `${year}'s` : month ? `${periodLabel.split(" ")[0]}'s` : "this period's"} active requests stand`}
             groups={standGroups(a)}
-            note={`% = share of the ${t.requestsIn - t.returned - t.cancelled} active requests (returned and cancelled left out). Open here includes New requests still waiting for a designer.`}
+            note={`% = share of the ${t.requestsIn - t.returned - t.cancelled} active requests (returned and cancelled left out).`}
           />
           <WhoAsked title="Who asked" noun="teams" items={a.byTeam} total={t.requestsIn}>
             <p className="text-xs text-muted-foreground">% = share of all {t.requestsIn} requests.</p>
@@ -895,7 +892,7 @@ function KeyTakeaways({ title, lines }: { title: string; lines: string[] }) {
 // (owner's mock-up, Oct 23; Returned and Cancelled left out, Oct 24).
 function standGroups(a: Analytics) {
   const n = (st: string) => a.byStatus.get(st) ?? 0;
-  const open = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"];
+  const open = ["designer_assigned", "in_progress", "for_review", "for_revision"];
   const openParts = open
     .filter((st) => n(st) > 0)
     .map((st) => (STATUSES.find((x) => x.value === st)?.label ?? st).replace(" (not yet started)", "").toLowerCase());
@@ -903,6 +900,8 @@ function standGroups(a: Analytics) {
     { label: "Completed" as const, value: n("completed") },
     { label: "Open" as const, value: open.reduce((sum, st) => sum + n(st), 0), detail: openParts.join(", ") || undefined },
     { label: "On hold" as const, value: n("on_hold") },
+    // New requests nobody has accepted yet (owner, Oct 24).
+    { label: "Waiting for a designer" as const, value: n("new_request") },
   ];
 }
 

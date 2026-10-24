@@ -46,6 +46,8 @@ export type PeriodTotals = {
   // a designer (owner, Oct 24: Open is a share of Accepted).
   openAcceptedAtEnd: number;
   waitingAtEnd: number;
+  // This period's accepted requests on hold at the end.
+  onHoldAccepted: number;
   avgTurnaround: number | null;
   dealRequests: number;
   dealSize: number;
@@ -195,7 +197,9 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       completed: done.length,
       openAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e))).length,
       openAcceptedAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e)) && statusAt(r.id, e) !== "new_request").length,
-      waitingAtEnd: requests.filter((r) => r.created_at < e && statusAt(r.id, e) === "new_request").length,
+      // Of this period's requests (owner, Oct 24: its own tile).
+      waitingAtEnd: filed.filter((r) => statusAt(r.id, e) === "new_request").length,
+      onHoldAccepted: filed.filter((r) => everAccepted(r) && statusAt(r.id, e) === "on_hold").length,
       avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
       dealRequests: deals.length,
       dealSize: deals.reduce((n, r) => n + (r.deal_size ?? 0), 0),
