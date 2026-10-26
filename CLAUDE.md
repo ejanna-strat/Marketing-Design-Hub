@@ -484,7 +484,7 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Reliability:** daily Supabase backups (on a paid tier) or a weekly CSV export job; error tracking is optional (Vercel logs are enough at first).
 - **Performance:** pipeline table usable with 2,000+ requests (server-side pagination/filtering).
 - **Cost:** free tiers for MVP/pilot. Expect ~$20–25/month (Supabase Pro) once in daily use; Resend free tier covers ~3,000 emails/month.
-- **Note:** free Supabase projects pause after 7 days without activity.
+- **Note:** free Supabase projects pause after 7 days without activity. Since Oct 26 a GitHub scheduled job (`.github/workflows/keep-supabase-awake.yml`, on `main`, every 2 days, also runnable by hand from the Actions tab) calls staging and production with the public anon key (GitHub secrets `SUPABASE_{STAGING,PROD}_{URL,ANON_KEY}`); the database's permission-denied answer counts as awake. A project that's already paused must be resumed in the Supabase dashboard first. GitHub turns scheduled jobs off after 60 days without commits to the repo.
 
 ---
 
