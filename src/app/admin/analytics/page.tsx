@@ -12,7 +12,7 @@ import {
 import { MonthBars } from "@/components/charts/MonthBars";
 import { foldShares, type Share } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
-import { FeedbackSummary } from "@/components/feedback/FeedbackSummary";
+import { StarsDisplay } from "@/components/feedback/Stars";
 import { Insights, ShowTable } from "@/components/Insights";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,7 @@ import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
 import { MetricRows } from "@/components/MetricRows";
 import { WhereTheyStand, WhoAsked } from "./OverviewParts";
-import { SectionViews } from "./Views";
+import { FeedbackDetails, SectionViews } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
@@ -171,24 +171,9 @@ export default async function AnalyticsPage({
             },
           ]}
         />
-        <div className="grid items-start gap-4 lg:grid-cols-2">
-          {/* Same feedback report as the Dashboard (owner, Oct 23); opens the
-              Feedback page (owner, Oct 24). */}
-          <Link href="/admin/feedback" className="block h-full rounded-xl transition-shadow hover:shadow-md">
-          <FeedbackSummary
-            title="Feedback"
-            overall={t.feedbackRating}
-            process={t.feedbackProcess}
-            output={t.feedbackOutput}
-            responses={t.feedbackCount}
-            completed={t.completedOutside}
-          />
-          </Link>
-          <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
-        </div>
-        {/* Full width under the cards, so opening it doesn't stretch them. */}
-        {/* Insights are on Month on Month only (owner, Oct 23). */}
-        {mom && <Insights label="feedback insights" lines={feedbackInsights(t, a.months)} />}
+        {/* Order (owner, Oct 26): what stands out, where the requests stand
+            and who asked, then everything about feedback in one card. */}
+        <KeyTakeaways title={`What stands out ${mom ? `in ${year}` : month ? `in ${periodLabel.split(" ")[0]}` : "in this period"}`} lines={keyTakeaways(a, mom, periodLabel)} />
         {/* Who asked moved here from Brand Team (owner, Oct 23). */}
         {/* items-start: opening the team lists doesn't stretch the left card. */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -211,17 +196,41 @@ export default async function AnalyticsPage({
             )}
           </WhoAsked>
         </div>
-        {mom && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Feedback by month</CardTitle>
-              <CardDescription>
-                Feedback submitted each month (Marketing team requesters excluded), against requests completed that month
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Opens on request (Hick's Law, owner Oct 23). */}
-              <ShowTable label="feedback by month">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <CardTitle>Feedback</CardTitle>
+            <Link href="/admin/feedback" className="text-sm font-medium text-brand hover:underline">
+              Open Feedback page →
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Overall</p>
+                {t.feedbackRating === null ? <p className="text-2xl">—</p> : <StarsDisplay value={t.feedbackRating} size="md" />}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Process average</p>
+                {t.feedbackProcess === null ? "—" : <StarsDisplay value={t.feedbackProcess} />}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Output average</p>
+                {t.feedbackOutput === null ? "—" : <StarsDisplay value={t.feedbackOutput} />}
+              </div>
+              <div className="text-sm">
+                <p>
+                  <span className="font-semibold">{t.feedbackCount}</span> of {t.completedOutside} completed requests have
+                  feedback
+                  {t.completedOutside > 0 && <span className="text-muted-foreground"> · {shareOf(t.feedbackCount, t.completedOutside)}</span>}
+                </p>
+                <p className="text-xs text-muted-foreground">Marketing team requesters excluded</p>
+              </div>
+            </div>
+            {mom && (
+              <FeedbackDetails
+                insights={feedbackInsights(t, a.months)}
+                table={
+                  <>
               <div className="overflow-x-auto">
                 <table className="zebra w-full text-sm">
                   <thead>
@@ -259,10 +268,12 @@ export default async function AnalyticsPage({
                   </tbody>
                 </table>
               </div>
-              </ShowTable>
-            </CardContent>
-          </Card>
-        )}
+                  </>
+                }
+              />
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       <section id="brand" className="scroll-mt-32 space-y-4">
