@@ -20,7 +20,10 @@ jobs:
         env:
           URL: ${{ secrets[format('SUPABASE_{0}_URL', matrix.project)] }}
           KEY: ${{ secrets[format('SUPABASE_{0}_ANON_KEY', matrix.project)] }}
+        # Anonymous visitors can't read any table (RLS + no grants), so the
+        # database answers "permission denied" (42501). That answer still
+        # comes from the database, which is the activity Supabase counts.
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" "$URL/rest/v1/teams?select=id&limit=1" -H "apikey: $KEY")
-          echo "HTTP $code"
-          test "$code" = 200
+          body=$(curl -s -w "\nHTTP %{http_code}" "$URL/rest/v1/teams?select=id&limit=1" -H "apikey: $KEY")
+          echo "$body" | tail -1
+          echo "$body" | grep -qE '"code":"42501"|^HTTP 200$'
