@@ -28,7 +28,7 @@ import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
 import { MetricRows } from "@/components/MetricRows";
 import { WhereTheyStand, WhoAsked } from "./OverviewParts";
-import { FeedbackDetails, SectionViews } from "./Views";
+import { SectionViews } from "./Views";
 
 const days = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)} days`);
 const stars = (v: number | null) => (v === null ? "—" : v.toFixed(1));
@@ -196,14 +196,14 @@ export default async function AnalyticsPage({
             )}
           </WhoAsked>
         </div>
+        {/* The whole card opens the Feedback page (owner, Oct 26). */}
+        <Link href="/admin/feedback" className="block rounded-xl transition-shadow hover:shadow-md">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-3">
             <CardTitle>Feedback</CardTitle>
-            <Link href="/admin/feedback" className="text-sm font-medium text-brand hover:underline">
-              Open Feedback page →
-            </Link>
+            <span className="text-sm font-medium text-brand">Open Feedback page →</span>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Overall</p>
@@ -226,11 +226,20 @@ export default async function AnalyticsPage({
                 <p className="text-xs text-muted-foreground">Marketing team requesters excluded</p>
               </div>
             </div>
-            {mom && (
-              <FeedbackDetails
-                insights={feedbackInsights(t, a.months)}
-                table={
-                  <>
+          </CardContent>
+        </Card>
+        </Link>
+        {/* Monthly comparison right under the feedback card, table shown and
+            insights one click away (owner, Oct 26). */}
+        {mom && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Feedback by month</CardTitle>
+              <CardDescription>
+                Feedback submitted each month (Marketing team requesters excluded), against requests completed that month
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="overflow-x-auto">
                 <table className="zebra w-full text-sm">
                   <thead>
@@ -268,12 +277,10 @@ export default async function AnalyticsPage({
                   </tbody>
                 </table>
               </div>
-                  </>
-                }
-              />
-            )}
-          </CardContent>
-        </Card>
+              <Insights label="feedback insights" lines={feedbackInsights(t, a.months)} />
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section id="brand" className="scroll-mt-32 space-y-4">
