@@ -48,7 +48,7 @@ export function N8FinalOutput({
         <>
           <Paragraph>
             We would also appreciate it if you could spare a few minutes to share your feedback on your experience with
-            the Marketing Design Team. Your feedback will help us improve our process and the outputs we deliver.
+            the Marketing Brand Team. Your feedback will help us improve our process and the outputs we deliver.
           </Paragraph>
           <Paragraph>Thank you.</Paragraph>
         </>
