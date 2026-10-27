@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 26, 2026 · version 0.52.0_
+_Last updated: Oct 27, 2026 · version 0.53.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,13 +82,14 @@ _Last updated: Oct 26, 2026 · version 0.52.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.53.0 (owner, Oct 27): renamed to **Marketing Creative Hub**: app title, browser tab, email layout, sender `marketingcreativehub@ejoo.site`, spam notes, sign-in email templates (files) and new link `marketing-creative-hub.vercel.app` (staging `marketing-creative-hub-git-staging-strat-marketing.vercel.app`). Owner to update Supabase sign-in sender, subjects, templates and Site URL in both projects.
 - **Pending on production:** migrations `0007_staff_edits_auto_status.sql`, `0008_specs_status_feedback.sql`, `0009_phase2_workflow.sql`, `0010_deals.sql`, `0011_closed_requests.sql`, `0012_output_link_check.sql`, `0013_requester_cancel.sql`, `0014_theme.sql`, `0015_require_acceptance.sql`, `0016_hidden_approvers.sql`, `0017_project_overview.sql`, `0018_designers_take_requests.sql`, `0019_super_admin_role.sql`, `0020_super_admin.sql` (apply 0019 on its own first; 0020 also makes the owner Super Admin) and `0021_staff_cancel_note.sql` are applied to staging only. `CRON_SECRET` was added to Vercel Production on Oct 22 (sensitive); scheduled jobs only run on Production, so reminders start once `main` is deployed. At release also: create a public `brand` storage bucket with the new `logo.png` (public/brand/logo.png) in production (emails load the logo from it) and paste `docs/emails/*.html` into production's Supabase email templates (they now use the new blue; staging's Supabase templates also still need the new-blue version pasted in).
 - (older note) migration `0007_staff_edits_auto_status.sql` is applied to staging only. Apply it to production when `staging` is merged into `main`. Production's Supabase email templates also still use the old purple button colour (update them from `docs/supabase-auth-setup.md`).
 
 ## Next (owner)
 1. **Vercel:** connect the GitHub repo and set the environment variables for Preview (staging) and Production. See "Owner setup" below.
 2. **Supabase dashboard:** follow `docs/supabase-auth-setup.md` (sign-up hook, redirect URLs, email template, session length).
-3. **Resend (done Oct 16):** sending from `marketingdesignhub@ejoo.site` (owner's domain, verified in Resend). The key is in `.env.local` and Vercel (Sensitive), and test mode still sends every app email to `EMAIL_TEST_RECIPIENT`. **Owner:** set Resend as Supabase's custom SMTP (step 5 of `docs/supabase-auth-setup.md`) so colleagues can receive sign-in emails.
+3. **Resend (done Oct 16):** sending from `marketingcreativehub@ejoo.site` (was `marketingdesignhub@` until Oct 27) (owner's domain, verified in Resend). The key is in `.env.local` and Vercel (Sensitive), and test mode still sends every app email to `EMAIL_TEST_RECIPIENT`. **Owner:** set Resend as Supabase's custom SMTP (step 5 of `docs/supabase-auth-setup.md`) so colleagues can receive sign-in emails.
 4. Click through staging and OK Phase 1 Steps 3–9 (checklist below).
 5. Then Phase 1 Step 10: production (real team emails, production env vars, smoke test).
 
@@ -109,7 +110,7 @@ Vercel → project **marketing-design-hub** → Settings:
 ## Open questions for the owner
 1. **Dates:** the plan's Phase 1 test date (Wed Oct 7) has passed. Please pick new target dates for Phase 1 and later phases.
 2. Real email addresses for Steve, Sofia and Riann: they are placeholders. Fix them in Settings → Members (remove the placeholder, add the real email). Should `marketing-ai@stratpoint.com` stay an admin?
-3. Sender address for emails: `marketingdesignhub@ejoo.site` for now. Move to a Stratpoint address before go-live (needs IT's DNS records).
+3. Sender address for emails: `marketingcreativehub@ejoo.site` for now. Move to a Stratpoint address before go-live (needs IT's DNS records).
 4. Which specification questions are required (current default is in CLAUDE.md §6).
 5. **Before go-live:** rotate the Supabase service role key and the personal access token (both were pasted in chat).
 6. Supabase's built-in email only delivers to members of the Supabase project team, a few per hour. Other colleagues can sign in only after Resend is set as the custom SMTP (step 5 of `docs/supabase-auth-setup.md`).

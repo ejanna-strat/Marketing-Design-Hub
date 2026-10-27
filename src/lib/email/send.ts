@@ -62,7 +62,7 @@ export async function sendEmail({
     if (testMode && !testRecipient) return await finish("failed", "EMAIL_TEST_MODE is on but EMAIL_TEST_RECIPIENT is not set");
 
     const { error } = await new Resend(apiKey).emails.send({
-      from: process.env.EMAIL_FROM || "Marketing Design Hub <onboarding@resend.dev>",
+      from: process.env.EMAIL_FROM || "Marketing Creative Hub <onboarding@resend.dev>",
       to: testMode ? [testRecipient!] : recipients,
       subject: testMode ? `[TEST → ${recipients.join(", ")}] ${subject}` : subject,
       html: await render(email),
