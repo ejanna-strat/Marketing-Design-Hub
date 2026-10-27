@@ -21,7 +21,7 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 
 ## 3. Site URL and redirect URLs
 **Authentication → URL Configuration**
-- **Site URL:** the production address, e.g. `https://marketing-design-hub.vercel.app`. Until production exists, use the staging address.
+- **Site URL:** the production address, e.g. `https://marketing-creative-hub.vercel.app`. Until production exists, use the staging address.
 - **Redirect URLs:** add each of these lines:
   - `http://localhost:3000/**`
   - `https://*-strat-marketing.vercel.app/**` (all Vercel preview and staging links)
@@ -32,8 +32,8 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 
 | Template | Subject | Body |
 |---|---|---|
-| **Confirm signup** | `Confirm your Marketing Design Hub account` | `docs/emails/confirm-signup.html` |
-| **Reset Password** | `Set your Marketing Design Hub password` | `docs/emails/reset-password.html` |
+| **Confirm signup** | `Confirm your Marketing Creative Hub account` | `docs/emails/confirm-signup.html` |
+| **Reset Password** | `Set your Marketing Creative Hub password` | `docs/emails/reset-password.html` |
 
 Before pasting, replace `LOGO_URL` with `<project URL>/storage/v1/object/public/brand/logo.png` (the logo in the project's public **brand** storage folder). Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
 
@@ -46,7 +46,7 @@ On the free plan, sessions refresh automatically while the app is used, so peopl
 ## 6. Email sending (Resend)
 **Authentication → Emails → SMTP Settings → Enable custom SMTP** (done Oct 16)
 - Host `smtp.resend.com`, port `465`, username `resend`, password = your Resend API key
-- Sender email: `marketingdesignhub@ejoo.site`, sender name `Marketing Design Hub`. `ejoo.site` is verified in Resend for now; switch to a Stratpoint address once IT adds the DNS records (`docs/it-dns-request.md`)
+- Sender email: `marketingcreativehub@ejoo.site`, sender name `Marketing Creative Hub`. `ejoo.site` is verified in Resend for now; switch to a Stratpoint address once IT adds the DNS records (`docs/it-dns-request.md`)
 - Then **Authentication → Rate Limits**: raise "Rate limit for sending emails" to about 30 per hour
 
 ## People who signed in before passwords
