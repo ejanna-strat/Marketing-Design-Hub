@@ -195,7 +195,7 @@ Final Approver storage: if "Myself", save the requester's name and email into `f
 ### 6.4 Social Media Materials (dynamic)
 - Target Audience — open text
 - Platform/s — **select all that apply** — Facebook · LinkedIn · Twitter/X · Instagram · TikTok · YouTube
-- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for BRAND team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
+- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for Brand team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
 - Copy — long text — help: "Place detailed text content or link to the document/slides file."
 - Mandatory video requirements — long text — help: "Any specifications required in the video (e.g. music, length of video, animations, video dimensions, etc.) Please provide file links for any required elements."
 - Design pegs/graphics — long text — help: "You may suggest a specific design or provide links to existing assets. If irrelevant, put N/A."
