@@ -20,7 +20,7 @@ export default async function SubmittedPage({ searchParams }: { searchParams: Pr
       <div className="space-y-3 text-left text-sm leading-relaxed">
         <p>
           Please note that submitting a request does not mean it has been accepted or started. All requests are subject
-          to review and approval by the Design Team.
+          to review and approval by the Marketing Brand Team.
         </p>
         <p>You will receive a separate notification once the assigned designer started working on your request.</p>
         <p>

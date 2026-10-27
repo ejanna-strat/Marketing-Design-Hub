@@ -30,7 +30,7 @@ export const FEEDBACK_COPY = {
   comments: {
     heading: "Additional Comments (optional)",
     question:
-      "Do you have any feedback or suggestions about the design request process or the output itself? Share what worked well, what could be improved, or anything you'd like the Marketing Design team to know. You can write your comments in English or Filipino.",
+      "Do you have any feedback or suggestions about the design request process or the output itself? Share what worked well, what could be improved, or anything you'd like the Marketing Brand Team to know. You can write your comments in English or Filipino.",
   },
   thanks:
     "Thank you for your feedback! We really appreciate you taking the time to share your thoughts with us. If you have other design outputs you'd like to share feedback on, you may submit another feedback form.",
