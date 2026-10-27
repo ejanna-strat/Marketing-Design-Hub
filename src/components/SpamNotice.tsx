@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 
 // Our emails come from a non-Stratpoint address for now, so they can land in
 // spam (owner request, Oct 17). Remove once email moves to a Stratpoint domain.
-export const EMAIL_SENDER = "marketingdesignhub@ejoo.site";
-export const EMAIL_SENDER_NAME = "Marketing Design Hub";
+export const EMAIL_SENDER = "marketingcreativehub@ejoo.site";
+export const EMAIL_SENDER_NAME = "Marketing Creative Hub";
 
 // `senderOnOwnLine`: in narrow boxes (sign in / sign up) the sender name and
 // email go on their own line, so there's no big gap before the email

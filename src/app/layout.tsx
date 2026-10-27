@@ -11,7 +11,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// The "Marketing Design Hub" name is set in Inter bold (class `font-brand`).
+// The "Marketing Creative Hub" name is set in Inter bold (class `font-brand`).
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
