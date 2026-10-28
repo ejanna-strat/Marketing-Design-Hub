@@ -4,7 +4,6 @@ import { EyeOffIcon, GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from "
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { FaqAnswer } from "@/components/FaqAnswer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { faqPlainText } from "@/lib/faq-format";
 import { cn } from "@/lib/utils";
 import { deleteFaq, reorderFaqs, saveFaq } from "./actions";
+import { FaqAnswerEditor } from "./FaqAnswerEditor";
 
 export type Faq = {
   id: string;
@@ -181,12 +182,15 @@ export function FaqsManager({ faqs }: { faqs: Faq[] }) {
                     </Badge>
                   )}
                 </p>
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {f.answer.replace(/\*\*|\[|\]\([^)]*\)/g, "").replace(/^- /gm, "• ")}
-                </p>
+                <p className="line-clamp-2 text-sm text-muted-foreground">{faqPlainText(f.answer)}</p>
               </div>
               <div className="flex shrink-0 gap-1">
-                <Button variant="ghost" size="icon-sm" aria-label={`Edit "${f.question}"`} onClick={() => setEditing(f)}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Edit "${f.question}"`}
+                  onClick={() => setEditing(f)}
+                >
                   <PencilIcon />
                 </Button>
                 <Button
@@ -248,6 +252,10 @@ function FaqDialog({ faq, onClose, onSaved }: { faq: Faq; onClose: () => void; o
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(undefined);
+    if (!form.answer.trim()) {
+      setError("Please enter the answer.");
+      return;
+    }
     startTransition(async () => {
       const result = await saveFaq({
         id: form.id || undefined,
@@ -272,7 +280,7 @@ function FaqDialog({ faq, onClose, onSaved }: { faq: Faq; onClose: () => void; o
             <DialogTitle>{isNew ? "Add question" : "Edit question"}</DialogTitle>
             <DialogDescription>
               {isNew
-                ? "New questions go at the bottom of the list. Use the arrows to move them."
+                ? "New questions go at the bottom of the list. Drag them to change the order."
                 : "Changes show on the home page right away."}
             </DialogDescription>
           </DialogHeader>
@@ -291,30 +299,17 @@ function FaqDialog({ faq, onClose, onSaved }: { faq: Faq; onClose: () => void; o
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="faq-answer">Answer</Label>
-            <Textarea
-              id="faq-answer"
-              rows={8}
-              maxLength={5000}
-              value={form.answer}
-              onChange={(e) => setForm({ ...form, answer: e.target.value })}
-              required
+            <Label id="faq-answer-label">Answer</Label>
+            <FaqAnswerEditor
+              labelId="faq-answer-label"
+              initial={faq.answer}
+              onChange={(answer) => setForm((f) => ({ ...f, answer }))}
             />
             <p className="text-xs text-muted-foreground">
-              Leave a blank line between paragraphs. Start a line with &ldquo;- &rdquo; for a bullet. Wrap words in
-              **double stars** for bold. Links: [link text](https://…) or
-              [name@stratpoint.com](mailto:name@stratpoint.com).
+              Highlight words and use the buttons above. Pasted text keeps bold, italic, underline, links and bullets
+              only, so every answer looks the same on the home page.
             </p>
           </div>
-
-          {form.answer.trim() && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Preview</p>
-              <div className="max-h-60 overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm leading-relaxed text-muted-foreground">
-                <FaqAnswer text={form.answer} />
-              </div>
-            </div>
-          )}
 
           <div className="flex items-start gap-2.5">
             <Checkbox
