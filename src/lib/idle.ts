@@ -9,8 +9,15 @@
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 
-export const IDLE_LIMIT_MS = { requester: 2 * HOUR, team: 5 * HOUR };
-export const WARN_BEFORE_MS = 5 * MINUTE;
+// Short times for trying it out (owner, Oct 28): NEXT_PUBLIC_IDLE_TEST=1 in
+// Vercel Preview (staging) only, never Production. Delete it and redeploy
+// staging to go back to the real times.
+const TEST = process.env.NEXT_PUBLIC_IDLE_TEST === "1";
+
+export const IDLE_LIMIT_MS = TEST
+  ? { requester: 3 * MINUTE, team: 5 * MINUTE }
+  : { requester: 2 * HOUR, team: 5 * HOUR };
+export const WARN_BEFORE_MS = TEST ? MINUTE : 5 * MINUTE;
 
 // When the person last did something (milliseconds), in any tab.
 export const ACTIVE_COOKIE = "mdh-active";
