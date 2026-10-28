@@ -97,6 +97,33 @@ export type Database = {
           },
         ]
       }
+      faqs: {
+        Row: {
+          answer: string
+          id: string
+          position: number
+          question: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          answer: string
+          id?: string
+          position: number
+          question: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          answer?: string
+          id?: string
+          position?: number
+          question?: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           comments: string | null
