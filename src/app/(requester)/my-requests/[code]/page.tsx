@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { one } from "@/lib/feedback";
-import { canRequesterEdit, getRequestByCode } from "@/lib/requests/detail";
+import { canRequesterEdit, getRequestByCode, withOwnDetails } from "@/lib/requests/detail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CancelRequestButton } from "./CancelRequestButton";
@@ -30,8 +30,9 @@ export default async function MyRequestDetailPage({
   const { saved } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
-  const request = await getRequestByCode(supabase, code, { requesterId: user.id });
-  if (!request) notFound();
+  const found = await getRequestByCode(supabase, code, { requesterId: user.id });
+  if (!found) notFound();
+  const request = withOwnDetails(found, user);
   const editable = canRequesterEdit(request);
   // Requesters can cancel any time before Completed (owner, Oct 21).
   const cancellable = !["completed", "cancelled", "rejected"].includes(request.status);

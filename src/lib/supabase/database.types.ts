@@ -21,6 +21,7 @@ export type Database = {
         Row: {
           action: string
           actor_id: string | null
+          actor_label: string | null
           created_at: string
           from_value: string | null
           id: string
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           action: string
           actor_id?: string | null
+          actor_label?: string | null
           created_at?: string
           from_value?: string | null
           id?: string
@@ -41,6 +43,7 @@ export type Database = {
         Update: {
           action?: string
           actor_id?: string | null
+          actor_label?: string | null
           created_at?: string
           from_value?: string | null
           id?: string
@@ -131,7 +134,7 @@ export type Database = {
           output_rating: number
           process_rating: number
           request_id: string
-          requester_id: string
+          requester_id: string | null
           submitted_at: string
         }
         Insert: {
@@ -140,7 +143,7 @@ export type Database = {
           output_rating: number
           process_rating: number
           request_id: string
-          requester_id: string
+          requester_id?: string | null
           submitted_at?: string
         }
         Update: {
@@ -149,7 +152,7 @@ export type Database = {
           output_rating?: number
           process_rating?: number
           request_id?: string
-          requester_id?: string
+          requester_id?: string | null
           submitted_at?: string
         }
         Relationships: [
@@ -378,6 +381,7 @@ export type Database = {
           assigned_designer_id: string | null
           cancel_reason: string | null
           cancelled_by: string | null
+          anonymized_at: string | null
           project_overview: string | null
           created_at: string
           date_completed: string | null
@@ -397,7 +401,7 @@ export type Database = {
           request_code: string
           request_type_id: string
           requester_email: string
-          requester_id: string
+          requester_id: string | null
           requester_name: string
           return_reason: string | null
           returned_by: string | null
@@ -410,6 +414,7 @@ export type Database = {
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
+          anonymized_at?: string | null
           project_overview?: string | null
           created_at?: string
           date_completed?: string | null
@@ -429,7 +434,7 @@ export type Database = {
           request_code: string
           request_type_id: string
           requester_email: string
-          requester_id: string
+          requester_id?: string | null
           requester_name: string
           return_reason?: string | null
           returned_by?: string | null
@@ -442,6 +447,7 @@ export type Database = {
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
+          anonymized_at?: string | null
           project_overview?: string | null
           created_at?: string
           date_completed?: string | null
@@ -461,7 +467,7 @@ export type Database = {
           request_code?: string
           request_type_id?: string
           requester_email?: string
-          requester_id?: string
+          requester_id?: string | null
           requester_name?: string
           return_reason?: string | null
           returned_by?: string | null

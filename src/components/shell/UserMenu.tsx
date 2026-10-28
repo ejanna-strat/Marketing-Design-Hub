@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyTheme, isTheme, type Theme, THEME_COOKIE, writeThemeCookie } from "@/lib/theme/shared";
 
-const SYNCED_KEY = "mdh-theme-synced";
+export const SYNCED_KEY = "mdh-theme-synced";
 
 const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: SunIcon },

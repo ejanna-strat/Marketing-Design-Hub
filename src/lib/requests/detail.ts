@@ -27,6 +27,29 @@ export async function getRequestByCode(supabase: Supabase, code: string, options
 
 export type RequestDetail = NonNullable<Awaited<ReturnType<typeof getRequestByCode>>>;
 
+// 5 years after a request closes, its people are replaced with placeholders
+// (0024_anonymize_old_data.sql). On their own old request, the requester sees
+// their current name and email instead (owner, Oct 28), and as the approver
+// too if they approved it themselves.
+export function withOwnDetails<
+  T extends {
+    anonymized_at: string | null;
+    requester_name: string;
+    requester_email: string;
+    final_approver_name: string;
+    final_approver_email: string;
+  },
+>(request: T, me: { fullName: string; email: string }): T {
+  if (!request.anonymized_at) return request;
+  const self = request.final_approver_email === request.requester_email;
+  return {
+    ...request,
+    requester_name: me.fullName,
+    requester_email: me.email,
+    ...(self ? { final_approver_name: me.fullName, final_approver_email: me.email } : {}),
+  };
+}
+
 // Requesters can edit their request until it is accepted: still a New request
 // with no designer assigned. The database checks the same rule.
 export function canRequesterEdit(request: { status: string; assigned_designer_id: string | null }) {

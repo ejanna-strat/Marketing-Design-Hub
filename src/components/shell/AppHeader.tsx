@@ -4,6 +4,7 @@ import { theme } from "@/config/theme";
 import type { CurrentUser } from "@/lib/auth";
 import { HouseIcon, ListChecksIcon } from "lucide-react";
 import { Suspense } from "react";
+import { IdleSignOut } from "./IdleSignOut";
 import { MenuButtonPlaceholder, MobileMenu } from "./MobileMenu";
 import { NavLink } from "./NavLink";
 import { StaffMenu } from "./StaffMenu";
@@ -73,6 +74,8 @@ export function AppHeader({ user }: { user: CurrentUser }) {
         <span className="flex-1 md:hidden" />
         <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
       </div>
+      {/* Any team tag gets the longer limit, even on requester pages. */}
+      <IdleSignOut team={user.isStaff} />
     </header>
   );
 }
