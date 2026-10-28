@@ -1,63 +1,56 @@
 import type { ReactNode } from "react";
+import { type FaqInline, parseFaq } from "@/lib/faq-format";
 
-// FAQ answers are plain text the Marketing team types in Settings → Requester
-// FAQs. Supported: blank line = new paragraph, lines starting with "- " =
-// bullet list, **bold**, [link text](https://… or mailto:…).
-const INLINE = /(\*\*[^*]+\*\*|\[[^\]]+\]\((?:https?:\/\/|mailto:)[^)\s]+\))/g;
-
-function inline(text: string): ReactNode[] {
-  return text.split(INLINE).map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+// Shows an FAQ answer (formatting codes in src/lib/faq-format.ts).
+function inline(nodes: FaqInline[]): ReactNode[] {
+  return nodes.map((n, i) => {
+    if (n.kind === "text") return n.text;
+    const inner = inline(n.children);
+    if (n.kind === "bold") {
       return (
         <strong key={i} className="font-semibold text-foreground">
-          {part.slice(2, -2)}
+          {inner}
         </strong>
       );
     }
-    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (link) {
-      const external = link[2].startsWith("http");
+    if (n.kind === "italic") return <em key={i}>{inner}</em>;
+    if (n.kind === "underline") {
       return (
-        <a
-          key={i}
-          href={link[2]}
-          {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-          className="font-medium text-brand underline underline-offset-2"
-        >
-          {link[1]}
-        </a>
+        <u key={i} className="underline-offset-2">
+          {inner}
+        </u>
       );
     }
-    return part;
+    const external = n.href.startsWith("http");
+    return (
+      <a
+        key={i}
+        href={n.href}
+        {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+        className="font-medium text-brand underline underline-offset-2"
+      >
+        {inner}
+      </a>
+    );
   });
 }
 
 export function FaqAnswer({ text }: { text: string }) {
-  const blocks = text
-    .trim()
-    .split(/\n\s*\n/)
-    .map((b) =>
-      b
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean),
-    );
-
   return (
     <div className="space-y-3">
-      {blocks.map((lines, i) =>
-        lines.every((l) => l.startsWith("- ")) ? (
+      {parseFaq(text).map((b, i) =>
+        b.kind === "ul" ? (
           <ul key={i} className="list-disc space-y-1 pl-5">
-            {lines.map((l, j) => (
-              <li key={j}>{inline(l.slice(2))}</li>
+            {b.items.map((item, j) => (
+              <li key={j}>{inline(item)}</li>
             ))}
           </ul>
         ) : (
           <p key={i}>
-            {lines.map((l, j) => (
+            {b.lines.map((line, j) => (
               <span key={j}>
                 {j > 0 && <br />}
-                {inline(l)}
+                {inline(line)}
               </span>
             ))}
           </p>
