@@ -1,9 +1,11 @@
+import { requireStaff } from "@/lib/auth";
 import { SettingsTabs } from "./SettingsTabs";
 
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireStaff();
   return (
     <div className="space-y-6">
-      <SettingsTabs />
+      <SettingsTabs showFaqs={user.isManager} />
       {children}
     </div>
   );
