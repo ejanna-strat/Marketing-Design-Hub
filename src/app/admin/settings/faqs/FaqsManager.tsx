@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  EyeOffIcon,
-  PencilIcon,
-  PlusIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, EyeOffIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -78,30 +71,17 @@ export function FaqsManager({ faqs }: { faqs: Faq[] }) {
         </Button>
       </div>
 
-      <ol
-        className={cn(
-          "divide-y rounded-xl border bg-background",
-          pending && "opacity-60",
-        )}
-      >
+      <ol className={cn("divide-y rounded-xl border bg-background", pending && "opacity-60")}>
         {faqs.length === 0 ? (
           <li className="p-8 text-center text-muted-foreground">
-            No questions yet. The home page hides the FAQ section until you add
-            one.
+            No questions yet. The home page hides the FAQ section until you add one.
           </li>
         ) : (
           faqs.map((f, i) => (
             <li key={f.id} className="flex items-start gap-3 p-4">
-              <span className="mt-0.5 w-5 shrink-0 text-right text-sm text-muted-foreground">
-                {i + 1}.
-              </span>
+              <span className="mt-0.5 w-5 shrink-0 text-right text-sm text-muted-foreground">{i + 1}.</span>
               <div className="min-w-0 flex-1 space-y-1">
-                <p
-                  className={cn(
-                    "font-medium",
-                    !f.visible && "text-muted-foreground",
-                  )}
-                >
+                <p className={cn("font-medium", !f.visible && "text-muted-foreground")}>
                   {f.question}
                   {!f.visible && (
                     <Badge variant="secondary" className="ml-2 align-middle">
@@ -168,29 +148,20 @@ export function FaqsManager({ faqs }: { faqs: Faq[] }) {
         />
       )}
 
-      <Dialog
-        open={!!deleting}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
+      <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete this question?</DialogTitle>
             <DialogDescription>
-              &ldquo;{deleting?.question}&rdquo; will be removed from the home
-              page and can&apos;t be brought back. To take it off the home page
-              for now, edit it and untick &ldquo;Show on the home page&rdquo;
-              instead.
+              &ldquo;{deleting?.question}&rdquo; will be removed from the home page and can&apos;t be brought back. To
+              take it off the home page for now, edit it and untick &ldquo;Show on the home page&rdquo; instead.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleting(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              disabled={pending}
-              onClick={() => deleting && remove(deleting)}
-            >
+            <Button variant="destructive" disabled={pending} onClick={() => deleting && remove(deleting)}>
               {pending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
@@ -200,15 +171,7 @@ export function FaqsManager({ faqs }: { faqs: Faq[] }) {
   );
 }
 
-function FaqDialog({
-  faq,
-  onClose,
-  onSaved,
-}: {
-  faq: Faq;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
+function FaqDialog({ faq, onClose, onSaved }: { faq: Faq; onClose: () => void; onSaved: () => void }) {
   const isNew = !faq.id;
   const [form, setForm] = useState(faq);
   const [error, setError] = useState<string>();
@@ -228,9 +191,7 @@ function FaqDialog({
         setError(result.error);
         return;
       }
-      toast.success(
-        isNew ? "The question was added" : "The question was updated",
-      );
+      toast.success(isNew ? "The question was added" : "The question was updated");
       onSaved();
     });
   }
@@ -240,9 +201,7 @@ function FaqDialog({
       <DialogContent className="sm:max-w-2xl">
         <form onSubmit={submit} className="space-y-5">
           <DialogHeader>
-            <DialogTitle>
-              {isNew ? "Add question" : "Edit question"}
-            </DialogTitle>
+            <DialogTitle>{isNew ? "Add question" : "Edit question"}</DialogTitle>
             <DialogDescription>
               {isNew
                 ? "New questions go at the bottom of the list. Use the arrows to move them."
@@ -274,9 +233,8 @@ function FaqDialog({
               required
             />
             <p className="text-xs text-muted-foreground">
-              Leave a blank line between paragraphs. Start a line with &ldquo;-
-              &rdquo; for a bullet. Wrap words in **double stars** for bold.
-              Links: [link text](https://…) or
+              Leave a blank line between paragraphs. Start a line with &ldquo;- &rdquo; for a bullet. Wrap words in
+              **double stars** for bold. Links: [link text](https://…) or
               [name@stratpoint.com](mailto:name@stratpoint.com).
             </p>
           </div>
@@ -294,15 +252,10 @@ function FaqDialog({
             <Checkbox
               id="faq-visible"
               checked={form.visible}
-              onCheckedChange={(on) =>
-                setForm({ ...form, visible: on === true })
-              }
+              onCheckedChange={(on) => setForm({ ...form, visible: on === true })}
               className="mt-0.5"
             />
-            <Label
-              htmlFor="faq-visible"
-              className="block font-normal leading-snug"
-            >
+            <Label htmlFor="faq-visible" className="block font-normal leading-snug">
               <span className="font-medium">Show on the home page</span>
               <span className="block text-xs text-muted-foreground">
                 Untick to hide it for now without deleting it.
