@@ -2,16 +2,15 @@
 
 import { NavLink } from "@/components/shell/NavLink";
 
-const TABS = [
-  { href: "/admin/settings/members", label: "Members" },
-  { href: "/admin/settings/faqs", label: "Requester FAQs" },
-];
-
-// Settings pages, one tab each.
-export function SettingsTabs() {
+// Settings pages, one tab each. Requester FAQs: Super Admins and Lead Designers.
+export function SettingsTabs({ showFaqs }: { showFaqs: boolean }) {
+  const tabs = [
+    { href: "/admin/settings/members", label: "Members" },
+    ...(showFaqs ? [{ href: "/admin/settings/faqs", label: "Requester FAQs" }] : []),
+  ];
   return (
     <nav aria-label="Settings" className="flex gap-1 overflow-x-auto border-b">
-      {TABS.map((t) => (
+      {tabs.map((t) => (
         <NavLink
           key={t.href}
           href={t.href}
