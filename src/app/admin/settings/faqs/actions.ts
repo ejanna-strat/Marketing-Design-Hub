@@ -7,8 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-const NOT_ALLOWED =
-  "Only Super Admins, Admins and Lead Designers can edit the FAQs.";
+const NOT_ALLOWED = "Only Super Admins, Admins and Lead Designers can edit the FAQs.";
 
 const faqSchema = z.object({
   id: z.string().uuid().optional(),
@@ -69,14 +68,12 @@ export async function saveFaq(input: FaqInput): Promise<Result> {
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { error } = await supabase
-      .from("faqs")
-      .insert({
-        question,
-        answer,
-        visible,
-        position: (last?.position ?? 0) + 1,
-      });
+    const { error } = await supabase.from("faqs").insert({
+      question,
+      answer,
+      visible,
+      position: (last?.position ?? 0) + 1,
+    });
     if (error) return failed(error);
   }
 
@@ -100,8 +97,7 @@ export async function deleteFaq(id: string): Promise<Result> {
 export async function reorderFaqs(ids: string[]): Promise<Result> {
   const user = await getCurrentUser();
   if (!user?.canManageMembers) return { ok: false, error: NOT_ALLOWED };
-  if (!z.array(z.string().uuid()).safeParse(ids).success)
-    return { ok: false, error: "Please try again." };
+  if (!z.array(z.string().uuid()).safeParse(ids).success) return { ok: false, error: "Please try again." };
 
   const supabase = await createClient();
   const results = await Promise.all(
