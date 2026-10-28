@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 28, 2026 · version 0.54.0_
+_Last updated: Oct 28, 2026 · version 0.55.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Oct 28, 2026 · version 0.54.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.55.0 (owner, Oct 28): Requester FAQs are edited by **Super Admins and Lead Designers only** (Admins don't see the tab; `is_manager()` in `0023_faqs.sql`, staging policies updated). Reorder by dragging the grip (mouse or touch; up/down arrow keys on a focused grip) instead of arrow buttons.
 - v0.54.0 (owner, Oct 28): **Frequently Asked Questions** on the home page for requesters (8 drafted answers, click to open), edited by Super Admins, Admins and Lead Designers in **Settings → Requester FAQs** (add, edit with preview, reorder, hide, delete). Home "New Design Request" says "Tell the Brand team what you need." Migration `0023_faqs.sql` (staging; production at go-live).
 - v0.53.2 (owner, Oct 27): request form option "First cut of full video production (for Brand team)" (was "for Design Team"; v0.53.3 fixed the casing from "BRAND"), migration `0022_brand_team_option.sql` (staging; production at go-live).
 - v0.53.1 (owner, Oct 27): team name is now **Marketing Brand Team** in the final-output email, the feedback form comments question and the request-submitted page. "Marketing Design Pipeline", the feedback form title and `MDR-` IDs stay.

@@ -1,5 +1,5 @@
--- Owner, Oct 28: FAQs for requesters on the home page. Super Admins, Admins
--- and Lead Designers edit them in Settings → Requester FAQs.
+-- Owner, Oct 28: FAQs for requesters on the home page. Super Admins and
+-- Lead Designers (is_manager()) edit them in Settings → Requester FAQs.
 -- Answers allow **bold**, [link text](https://…), "- " bullet lines and
 -- blank lines between paragraphs (src/components/FaqAnswer.tsx).
 
@@ -16,13 +16,13 @@ create index faqs_position_idx on public.faqs (position);
 alter table public.faqs enable row level security;
 revoke all on public.faqs from anon;
 create policy "faqs: read" on public.faqs for select to authenticated
-  using (visible or (select public.can_manage_members()));
+  using (visible or (select public.is_manager()));
 create policy "faqs: manager insert" on public.faqs for insert to authenticated
-  with check ((select public.can_manage_members()));
+  with check ((select public.is_manager()));
 create policy "faqs: manager update" on public.faqs for update to authenticated
-  using ((select public.can_manage_members())) with check ((select public.can_manage_members()));
+  using ((select public.is_manager())) with check ((select public.is_manager()));
 create policy "faqs: manager delete" on public.faqs for delete to authenticated
-  using ((select public.can_manage_members()));
+  using ((select public.is_manager()));
 
 insert into public.faqs (position, question, answer) values
 (1, 'How do I submit a design request?', $$Click **New Design Request** on the home page.

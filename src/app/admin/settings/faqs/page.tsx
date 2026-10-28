@@ -1,9 +1,12 @@
+import { redirect } from "next/navigation";
 import { requireMembersManager } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FaqsManager } from "./FaqsManager";
 
 export default async function FaqsPage() {
-  await requireMembersManager();
+  // Super Admins and Lead Designers only; Admins stay on Members.
+  const user = await requireMembersManager();
+  if (!user.isManager) redirect("/admin/settings/members");
   const supabase = await createClient();
 
   const { data: faqs, error } = await supabase.from("faqs").select("id, question, answer, visible").order("position");

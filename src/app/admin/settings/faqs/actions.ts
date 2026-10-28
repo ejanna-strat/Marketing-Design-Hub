@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-const NOT_ALLOWED = "Only Super Admins, Admins and Lead Designers can edit the FAQs.";
+const NOT_ALLOWED = "Only Super Admins and Lead Designers can edit the FAQs.";
 
 const faqSchema = z.object({
   id: z.string().uuid().optional(),
@@ -39,7 +39,7 @@ function refresh() {
 // Adds an FAQ at the bottom of the list, or saves changes to one.
 export async function saveFaq(input: FaqInput): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.canManageMembers) return { ok: false, error: NOT_ALLOWED };
+  if (!user?.isManager) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = faqSchema.safeParse(input);
   if (!parsed.success)
@@ -83,7 +83,7 @@ export async function saveFaq(input: FaqInput): Promise<Result> {
 
 export async function deleteFaq(id: string): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.canManageMembers) return { ok: false, error: NOT_ALLOWED };
+  if (!user?.isManager) return { ok: false, error: NOT_ALLOWED };
 
   const supabase = await createClient();
   const { error } = await supabase.from("faqs").delete().eq("id", id);
@@ -96,7 +96,7 @@ export async function deleteFaq(id: string): Promise<Result> {
 // Saves a new order: the FAQ ids from top to bottom.
 export async function reorderFaqs(ids: string[]): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.canManageMembers) return { ok: false, error: NOT_ALLOWED };
+  if (!user?.isManager) return { ok: false, error: NOT_ALLOWED };
   if (!z.array(z.string().uuid()).safeParse(ids).success) return { ok: false, error: "Please try again." };
 
   const supabase = await createClient();
