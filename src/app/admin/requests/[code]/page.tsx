@@ -36,7 +36,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase
       .from("activity_log")
-      .select("id, action, from_value, to_value, note, created_at, actor:profiles(full_name), request:requests!inner(request_code)")
+      .select("id, action, from_value, to_value, note, created_at, actor_label, actor:profiles(full_name), request:requests!inner(request_code)")
       .eq("request.request_code", code.toUpperCase())
       .order("created_at", { ascending: false }),
     supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
@@ -187,7 +187,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   );
 }
 
-type LogEntry = Pick<Tables<"activity_log">, "id" | "action" | "from_value" | "to_value" | "note" | "created_at"> & {
+type LogEntry = Pick<Tables<"activity_log">, "id" | "action" | "from_value" | "to_value" | "note" | "created_at" | "actor_label"> & {
   actor: { full_name: string } | null;
 };
 
@@ -230,7 +230,7 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
         <li key={e.id} className="relative text-sm">
           <span className="absolute top-1.5 -left-[25px] size-2.5 rounded-full border-2 border-background bg-brand" />
           <p>
-            <span className="font-medium">{e.actor?.full_name ?? "System"}</span>{" "}
+            <span className="font-medium">{e.actor?.full_name ?? e.actor_label ?? "System"}</span>{" "}
             {SENTENCES[e.action] ? (
               SENTENCES[e.action]
             ) : e.action === "feedback" ? (
