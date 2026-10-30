@@ -126,5 +126,5 @@ Vercel → project **marketing-design-hub** → Settings:
 2. Real email addresses for Steve, Sofia and Riann: they are placeholders. Fix them in Settings → Members (remove the placeholder, add the real email). Should `marketing-ai@stratpoint.com` stay an admin?
 3. Sender address for emails: `marketingcreativehub@ejoo.site` for now. Move to a Stratpoint address before go-live (needs IT's DNS records).
 4. Which specification questions are required (current default is in CLAUDE.md §6).
-5. **Before go-live:** rotate the Supabase service role key and the personal access token (both were pasted in chat).
+5. **Keys replaced (owner, Oct 30):** new Supabase publishable + secret keys (both projects) in Vercel, GitHub Actions secrets and `.env.local`; new Resend key (Vercel + both projects' SMTP); new `CRON_SECRET`. Still to do: disable the legacy JWT keys in both projects, delete the old Resend key ("Onboarding"), and replace the Supabase personal access token after go-live.
 6. Supabase's built-in email only delivers to members of the Supabase project team, a few per hour. Other colleagues can sign in only after Resend is set as the custom SMTP (step 5 of `docs/supabase-auth-setup.md`).
