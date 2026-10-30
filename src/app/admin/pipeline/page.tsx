@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { DataTableToolbar } from "@/components/data-table/DataTableToolbar";
 import { RememberList } from "@/components/data-table/ListMemory";
 import { ViewSwitch } from "@/components/data-table/ViewSwitch";
@@ -17,6 +18,15 @@ export default async function PipelinePage({
   const user = await requireStaff();
   const sp = await searchParams;
   const params = parseListParams(sp);
+  // Completed requests moved to their own page (owner, Oct 30); old links
+  // keep their other filters.
+  if (params.view === "completed") {
+    const rest = new URLSearchParams();
+    for (const [key, value] of Object.entries(sp)) {
+      if (key !== "view" && typeof value === "string") rest.set(key, value);
+    }
+    redirect(`/admin/completed${rest.size ? `?${rest}` : ""}`);
+  }
   // Everyone opens on All + Open, so new requests are seen at once (owner,
   // Oct 21; replaces "designers open on their own tab").
   const supabase = await createClient();
@@ -47,7 +57,11 @@ export default async function PipelinePage({
         <h1 className="text-2xl font-bold">Marketing Design Pipeline</h1>
         <p className="text-muted-foreground">
           <span className="font-semibold text-foreground">{counts.all} open requests</span>
-          {counts.none ? ` · ${counts.none} unassigned` : ""} · Cancelled and returned requests are on{" "}
+          {counts.none ? ` · ${counts.none} unassigned` : ""} · Finished requests are on{" "}
+          <Link href="/admin/completed" className="text-brand hover:underline">
+            Completed Requests
+          </Link>
+          , cancelled and returned ones on{" "}
           <Link href="/admin/inactive" className="text-brand hover:underline">
             Inactive Requests
           </Link>

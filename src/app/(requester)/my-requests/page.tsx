@@ -43,7 +43,7 @@ export default async function MyRequestsPage({
       </div>
       <RememberList label="My Design Requests" />
       <DataTableToolbar
-        leading={<ViewSwitch requester />}
+        leading={<ViewSwitch list="requester" />}
         filters={[
           // Options with none of your requests in the current view are greyed out (owner, Oct 21).
           { key: "status", label: "Status", options: markAvailable(statusOptions("requester"), facets.status) },

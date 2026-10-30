@@ -33,6 +33,10 @@ export const PENDING_TABS: { status: RequestStatus; label: string }[] = [
   { status: "for_revision", label: "For Revision" },
 ];
 
+// Reached Designer assigned or later: "Accepted" on the Dashboard and the
+// Completed Requests page (the rate's basis).
+export const ACCEPTED_STATUSES = ["designer_assigned", "in_progress", "for_review", "for_revision", "completed"] as const;
+
 // Statuses that need an assigned designer first (owner, Oct 18; the
 // database enforces this too).
 export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", "for_review", "for_revision", "completed"]);

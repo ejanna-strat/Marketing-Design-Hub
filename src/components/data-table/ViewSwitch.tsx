@@ -3,19 +3,22 @@
 import { cn } from "@/lib/utils";
 import { useUrlParams } from "./use-url-params";
 
-const PIPELINE_VIEWS = [
-  { value: "open", label: "Open" },
-  { value: "on_hold", label: "On Hold" },
-  { value: "completed", label: "Completed" },
-  { value: "all", label: "All" },
-];
-// My Requests also has Inactive (owner, Oct 21).
-const REQUESTER_VIEWS = [...PIPELINE_VIEWS.slice(0, 3), { value: "inactive", label: "Inactive" }, PIPELINE_VIEWS[3]];
+const OPEN = { value: "open", label: "Open" };
+const ON_HOLD = { value: "on_hold", label: "On Hold" };
+const COMPLETED = { value: "completed", label: "Completed" };
+const ALL = { value: "all", label: "All" };
+const VIEWS = {
+  // Completed requests have their own page (owner, Oct 30).
+  pipeline: [OPEN, ON_HOLD, ALL],
+  deals: [OPEN, ON_HOLD, COMPLETED, ALL],
+  // My Requests also has Inactive (owner, Oct 21).
+  requester: [OPEN, ON_HOLD, COMPLETED, { value: "inactive", label: "Inactive" }, ALL],
+};
 
-// Open (default) / On Hold / Completed / All for the pipeline tabs (owner,
-// Oct 20; On Hold added Oct 21).
-export function ViewSwitch({ requester = false }: { requester?: boolean }) {
-  const views = requester ? REQUESTER_VIEWS : PIPELINE_VIEWS;
+// Open (default) / On Hold / All for the pipeline tabs (owner, Oct 20; On
+// Hold added Oct 21); Deal Requests and My Requests also have Completed.
+export function ViewSwitch({ list = "pipeline" }: { list?: keyof typeof VIEWS }) {
+  const views = VIEWS[list];
   const { get, setParams } = useUrlParams();
   const current = get("view") || "open";
   // One rounded bar with a "Show:" label; the selected option is a filled

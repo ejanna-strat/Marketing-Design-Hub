@@ -102,8 +102,9 @@ type ListOptions = {
   searchRequester?: boolean;
   // "pipeline": active requests only, with the Open / Completed / All view.
   // "inactive": Cancelled and Returned only. "requester": My Requests, with
-  // the Open / On Hold / Completed / Inactive / All view. Default: everything.
-  scope?: "pipeline" | "inactive" | "requester";
+  // the Open / On Hold / Completed / Inactive / All view. "completed":
+  // Completed only (owner, Oct 30). Default: everything.
+  scope?: "pipeline" | "inactive" | "requester" | "completed";
   dealsOnly?: boolean;
 };
 
@@ -153,6 +154,7 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
     if (params.view === "completed") query = query.eq("status", "completed");
   }
   if (options.scope === "inactive") query = query.in("status", INACTIVE_STATUSES);
+  if (options.scope === "completed") query = query.eq("status", "completed");
   if (options.scope === "requester") {
     if (params.view === "open") query = query.not("status", "in", `(completed,on_hold,${INACTIVE_STATUSES.join(",")})`);
     if (params.view === "on_hold") query = query.eq("status", "on_hold");

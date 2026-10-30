@@ -63,7 +63,7 @@ export default async function DealRequestsPage({
         />
       </div>
       <DataTableToolbar
-        leading={<ViewSwitch />}
+        leading={<ViewSwitch list="deals" />}
         filters={[
           {
             key: "status",
