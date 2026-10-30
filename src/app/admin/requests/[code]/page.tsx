@@ -18,7 +18,7 @@ import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
-import { designerChoice, statusLabel } from "@/lib/statuses";
+import { designerChoice, holdOrCancelOnly, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -105,11 +105,12 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       hasDesigner={!!request.assigned_designer_id}
                       hasLink={!!request.link_to_output}
                       accepted={!!request.assigned_designer_id && request.designer_response === "accepted"}
+                      holdOrCancelOnly={holdOrCancelOnly(viewer)}
                     />} />
                 <Item
                   label="Assigned Designer"
                   value={
-                    user.isManager || user.isAdmin || user.designerId ? (
+                    user.isManager || user.designerId ? (
                       <DesignerSelect
                         requestId={request.id}
                         value={request.assigned_designer_id}

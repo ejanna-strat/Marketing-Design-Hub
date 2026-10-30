@@ -15,6 +15,7 @@ import {
   notifyReturned,
 } from "@/lib/email/notifications";
 import { buildAnswersSchema, QUESTION_COLUMNS, toAnswersPayload, toFormQuestion } from "@/lib/requests/schema";
+import { ADMIN_STATUSES, holdOrCancelOnly } from "@/lib/statuses";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -76,11 +77,20 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     .eq("id", requestId)
     .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
-  // Designers and Admins (owner, Oct 22): take an unassigned request for
-  // yourself, or change the designer to anyone once it has one. The database
-  // checks too.
+  // Admins who don't design: On hold only here (Cancel has its own note
+  // pop-up) (owner, Oct 30).
+  const newStatus = changes.status;
+  if (holdOrCancelOnly(user) && newStatus && newStatus !== before.status && !ADMIN_STATUSES.has(newStatus)) {
+    return {
+      ok: false,
+      error: "Admins can put a request On hold or cancel it; the designer changes the other statuses.",
+    };
+  }
+  // Designers (owner, Oct 22): take an unassigned request for yourself, or
+  // change the designer to anyone once it has one. Admins who don't design
+  // can't (owner, Oct 30). The database checks too.
   if (!user.isManager && "assigned_designer_id" in changes) {
-    if (!user.designerId && !user.isAdmin) return { ok: false, error: "Only the Design team can assign designers." };
+    if (!user.designerId) return { ok: false, error: "Only the Design team can assign designers." };
     if (changes.assigned_designer_id === null) {
       return { ok: false, error: "Only Super Admins and Lead Designers can remove the designer." };
     }
