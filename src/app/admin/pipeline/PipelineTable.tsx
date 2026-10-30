@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/dates";
 import { one, overallRating } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import type { RequestListRow } from "@/lib/requests/list";
-import { designerChoice, type DesignerViewer } from "@/lib/statuses";
+import { designerChoice, type DesignerViewer, holdOrCancelOnly } from "@/lib/statuses";
 
 const col = columnHelper<RequestListRow>();
 const INACTIVE = new Set(["cancelled", "rejected"]);
@@ -143,6 +143,7 @@ export function PipelineTable({
                   hasDesigner={!!r.assigned_designer_id}
                   hasLink={!!r.link_to_output}
                   accepted={!!r.assigned_designer_id && r.designer_response === "accepted"}
+                  holdOrCancelOnly={holdOrCancelOnly(viewer)}
                 />
               )}
               {note && <p className="max-w-56 text-xs whitespace-normal text-muted-foreground">{note}</p>}
@@ -155,7 +156,7 @@ export function PipelineTable({
         id: "designer",
         header: "Assigned Designer",
         cell: (info) =>
-          !readOnly && (viewer.designerId || viewer.isManager || viewer.isAdmin) ? (
+          !readOnly && (viewer.designerId || viewer.isManager) ? (
             <DesignerSelect
               requestId={info.row.original.id}
               value={info.getValue()}

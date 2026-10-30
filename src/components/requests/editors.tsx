@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDate } from "@/lib/dates";
 import { isOutputLink, OUTPUT_LINK_ERROR } from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
-import { NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
+import { ADMIN_STATUSES, NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
 
 // Inline editors for pipeline fields, used in the Pipeline table and on the
@@ -87,6 +87,7 @@ export function StatusSelect({
   hasDesigner = true,
   hasLink = true,
   accepted = false,
+  holdOrCancelOnly = false,
 }: {
   requestId: string;
   value: string;
@@ -95,6 +96,8 @@ export function StatusSelect({
   hasLink?: boolean;
   // The assigned designer has accepted the task.
   accepted?: boolean;
+  // Admins who don't design: only On hold and Cancelled (owner, Oct 30).
+  holdOrCancelOnly?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -140,7 +143,12 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent position="popper">
         {STATUSES.map((s) => {
-          const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink, accepted);
+          const reason =
+            s.value === current
+              ? null
+              : holdOrCancelOnly && !ADMIN_STATUSES.has(s.value)
+                ? "the designer sets this"
+                : lockReason(s.value, hasDesigner, hasLink, accepted);
           return (
             <SelectItem key={s.value} value={s.value} disabled={!!reason}>
               {s.label}
