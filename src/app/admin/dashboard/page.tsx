@@ -12,7 +12,7 @@ import { requireStaff } from "@/lib/auth";
 import { manilaDayStart, todayInManila } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
-import { INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
+import { ACCEPTED_STATUSES, INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
 import { MetricRows } from "@/components/MetricRows";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTim
 // §7.2 #4: "Marketing Design Pipeline <year> YTD". Counts cover requests
 // filed this year; Pendings cover every open request.
 // Reached Designer assigned or later (same as Analytics' "Accepted").
-const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
+const ACCEPTED = new Set<string>(ACCEPTED_STATUSES);
 // Accepted and still being worked on.
 const OPEN_ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision"]);
 // Active requests by status: accepted work only, On hold after Completed
@@ -146,7 +146,7 @@ export default async function DashboardPage() {
             basis: "% of accepted requests",
             tiles: [
               { label: "Open", value: openNow, rate: rate(openNow, accepted), note: "Still being worked on", tone: "amber", href: "/admin/pendings" },
-              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green", href: `/admin/pipeline?view=completed&${yearRange}` },
+              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green", href: `/admin/completed?${yearRange}` },
               { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange", href: "/admin/pipeline?view=on_hold" },
               {
                 label: "Average turnaround",
@@ -309,11 +309,11 @@ export default async function DashboardPage() {
 }
 
 // Where each status in "Requests by status" opens (owner, Oct 21): pending
-// statuses → their Pendings tab, Completed / On hold → that pipeline view,
-// Returned / Cancelled → Inactive Requests.
+// statuses → their Pendings tab, Completed → Completed Requests, On hold →
+// that pipeline view, Returned / Cancelled → Inactive Requests.
 function statusPage(status: string) {
   if ((PENDING_TABS as { status: string }[]).some((t) => t.status === status)) return `/admin/pendings?status=${status}`;
-  if (status === "completed") return "/admin/pipeline?view=completed";
+  if (status === "completed") return "/admin/completed";
   if (status === "on_hold") return "/admin/pipeline?view=on_hold";
   return `/admin/inactive?status=${status}`;
 }
