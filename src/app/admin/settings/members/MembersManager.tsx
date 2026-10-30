@@ -135,13 +135,13 @@ export function MembersManager({
                           {m.copyLeadEmails && (
                             <span className="inline-flex items-center gap-1">
                               <MailIcon className="size-3.5 text-brand" />
-                              Lead Designer
+                              Lead&apos;s email
                             </span>
                           )}
                           {m.copyRequesterEmails && (
                             <span className="inline-flex items-center gap-1">
                               <MailIcon className="size-3.5 text-brand" />
-                              Requester
+                              Requester&apos;s email
                             </span>
                           )}
                         </span>
@@ -373,37 +373,51 @@ function MemberDialog({
             </div>
           )}
 
-          {!isLead && (
-            <div className="flex items-start gap-2.5">
+          {/* Not tags: kept apart so nobody mistakes them for a role (owner, Oct 30). */}
+          <fieldset className="space-y-3 border-t pt-4">
+            <legend className="float-left mb-3 w-full">
+              <span className="block text-sm font-medium">Email copies</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                Optional, and not a tag: these only send them extra emails.
+              </span>
+            </legend>
+            {isLead ? (
+              <p className="clear-left text-xs text-muted-foreground">
+                Lead Designers already get the Lead&apos;s emails.
+              </p>
+            ) : (
+              <div className="clear-left flex items-start gap-2.5">
+                <Checkbox
+                  id="member-lead-emails"
+                  checked={form.copyLeadEmails}
+                  onCheckedChange={(on) => setForm({ ...form, copyLeadEmails: on === true })}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="member-lead-emails" className="block font-normal leading-snug">
+                  <span className="font-medium">Copy on Lead&apos;s email</span>
+                  <span className="block text-xs text-muted-foreground">
+                    New Design Request, the daily New Request Reminder and the 3-day Deadline reminder, for every request.
+                  </span>
+                </Label>
+              </div>
+            )}
+
+            <div className="clear-left flex items-start gap-2.5">
               <Checkbox
-                id="member-lead-emails"
-                checked={form.copyLeadEmails}
-                onCheckedChange={(on) => setForm({ ...form, copyLeadEmails: on === true })}
+                id="member-requester-emails"
+                checked={form.copyRequesterEmails}
+                onCheckedChange={(on) => setForm({ ...form, copyRequesterEmails: on === true })}
                 className="mt-0.5"
               />
-              <Label htmlFor="member-lead-emails" className="block font-normal leading-snug">
-                <span className="font-medium">Copy me on Lead Designer emails</span>
+              <Label htmlFor="member-requester-emails" className="block font-normal leading-snug">
+                <span className="font-medium">Copy on requester&apos;s email</span>
                 <span className="block text-xs text-muted-foreground">
-                  New Design Request, the daily New Request Reminder and the 3-day Deadline reminder, for every request.
+                  Designer accepted and Designer changed, the emails requesters get about who&apos;s working on their
+                  request.
                 </span>
               </Label>
             </div>
-          )}
-
-          <div className="flex items-start gap-2.5">
-            <Checkbox
-              id="member-requester-emails"
-              checked={form.copyRequesterEmails}
-              onCheckedChange={(on) => setForm({ ...form, copyRequesterEmails: on === true })}
-              className="mt-0.5"
-            />
-            <Label htmlFor="member-requester-emails" className="block font-normal leading-snug">
-              <span className="font-medium">Copy me on requester emails</span>
-              <span className="block text-xs text-muted-foreground">
-                Designer accepted and Designer changed, the emails requesters get about who&apos;s working on their request.
-              </span>
-            </Label>
-          </div>
+          </fieldset>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

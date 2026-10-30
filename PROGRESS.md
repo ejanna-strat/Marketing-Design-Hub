@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 30, 2026 · version 0.60.0_
+_Last updated: Oct 30, 2026 · version 0.60.1_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Oct 30, 2026 · version 0.60.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.60.1 (owner, Oct 30): the copy boxes sit in their own **Email copies** section below a line ("Optional, and not a tag"), renamed **Copy on Lead's email** and **Copy on requester's email** to match the orientation deck; Lead Designers see "Lead Designers already get the Lead's emails" instead of the first box.
 - v0.60.0 (owner, Oct 30): **Copy me** in Settings → Members is now two boxes: **Copy me on Lead Designer emails** (New Design Request, New Request Reminder, Deadline reminder; hidden for Lead Designers, who get them) and **Copy me on requester emails** (Designer accepted, Designer changed). Nobody is copied on "Assigned to you" any more. The Deadline reminder goes to every Lead Designer (was Jerome only, set in code) + the assigned designer + box 1 members. Both boxes start unticked (Jerome and Sofia had the old box on staging). Admin tag description updated for v0.59.0. Migration `0026_copy_me_two_boxes.sql` (staging, tested in a rolled-back transaction; production at go-live).
 - v0.59.0 (owner, Oct 30): **Admins who don't design** (no Designer, Lead Designer or Super Admin tag) can only put a request On hold or cancel it (with a note); the other statuses are greyed out with "the designer sets this", and they can no longer change the designer. They still edit details and the Link to Output. An Admin who is also a Designer keeps the Designer's rights. Enforced in the database too (`0025_admin_status_limits.sql`).
 - v0.58.0 (owner, Oct 30): **Completed Requests** page (`/admin/completed`), in the menu right after Pendings: a Total completed box with its rate (same as the Dashboard's Completed tile: this year's requests, % of accepted), and filters Team, Type, Request date and Designer (plus search). The Design Pipeline's Show switch is now Open / On Hold / All; old `?view=completed` links open Completed Requests, and the Dashboard and Analytics Completed tiles link there. Deal Requests and My Requests keep their Completed view.
