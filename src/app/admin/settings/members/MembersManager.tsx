@@ -256,6 +256,8 @@ function MemberDialog({
   const isDesigner = form.roles.includes("designer") || form.roles.includes("lead_designer");
   // Lead Designers already get the Lead Designer emails.
   const isLead = form.roles.includes("lead_designer");
+  // Email copies need a tag first (owner, Oct 30).
+  const hasTag = form.roles.length > 0;
   const firstName = form.fullName.trim().split(/\s+/)[0] ?? "";
 
   function toggle(role: MemberRole, on: boolean) {
@@ -271,8 +273,8 @@ function MemberDialog({
         fullName: form.fullName,
         roles: form.roles,
         designerName: isDesigner ? form.designerName : "",
-        copyLeadEmails: !isLead && form.copyLeadEmails,
-        copyRequesterEmails: form.copyRequesterEmails,
+        copyLeadEmails: hasTag && !isLead && form.copyLeadEmails,
+        copyRequesterEmails: hasTag && form.copyRequesterEmails,
       });
       if (!result.ok) {
         setError(result.error);
@@ -374,11 +376,13 @@ function MemberDialog({
           )}
 
           {/* Not tags: kept apart so nobody mistakes them for a role (owner, Oct 30). */}
-          <fieldset className="space-y-3 border-t pt-4">
+          <fieldset disabled={!hasTag} className="space-y-3 border-t pt-4">
             <legend className="float-left mb-3 w-full">
               <span className="block text-sm font-medium">Email copies</span>
               <span className="block text-xs font-normal text-muted-foreground">
-                Optional, and not a tag: these only send them extra emails.
+                {hasTag
+                  ? "Optional, and not a tag: these only send them extra emails."
+                  : "Choose a tag first. These are only for members with a tag."}
               </span>
             </legend>
             {isLead ? (
@@ -386,10 +390,11 @@ function MemberDialog({
                 Lead Designers already get the Lead&apos;s emails.
               </p>
             ) : (
-              <div className="clear-left flex items-start gap-2.5">
+              <div className={cn("clear-left flex items-start gap-2.5", !hasTag && "opacity-50")}>
                 <Checkbox
                   id="member-lead-emails"
-                  checked={form.copyLeadEmails}
+                  checked={hasTag && form.copyLeadEmails}
+                  disabled={!hasTag}
                   onCheckedChange={(on) => setForm({ ...form, copyLeadEmails: on === true })}
                   className="mt-0.5"
                 />
@@ -402,10 +407,11 @@ function MemberDialog({
               </div>
             )}
 
-            <div className="clear-left flex items-start gap-2.5">
+            <div className={cn("clear-left flex items-start gap-2.5", !hasTag && "opacity-50")}>
               <Checkbox
                 id="member-requester-emails"
-                checked={form.copyRequesterEmails}
+                checked={hasTag && form.copyRequesterEmails}
+                disabled={!hasTag}
                 onCheckedChange={(on) => setForm({ ...form, copyRequesterEmails: on === true })}
                 className="mt-0.5"
               />
