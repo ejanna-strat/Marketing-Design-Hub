@@ -57,7 +57,7 @@ Roles updated Oct 16 (owner's role table). Every role can also file its own requ
 
 - A person can hold more than one tag (e.g. Admin + Designer).
 - **Settings → Members** (`/admin/settings/members`) is the team list. Admins and Lead Designers add, edit or remove members there; only Admins can give or remove the Admin tag, and nobody can remove themselves. Removing a member makes them a Requester again.
-- Two copy boxes on a member (Oct 30): "Copy me on Lead Designer emails" (N1, New Request Reminder, N10; hidden for Lead Designers) and "Copy me on requester emails" (N4, N6).
+- Two copy boxes on a member (Oct 30), in an "Email copies" section apart from the tags: "Copy on Lead's email" (N1, New Request Reminder, N10; hidden for Lead Designers) and "Copy on requester's email" (N4, N6).
 - **"Reviewers"** (who accept/return new requests) = Lead Designers and Super Admins (`is_manager()`; Admins no longer, Oct 22).
 - **Marketing team exclusion:** feedback from requesters whose team is "Marketing" is excluded from feedback averages (Phase 3+).
 - **One link for everyone.** After sign-in, the UI shows each user only the screens their role allows.
