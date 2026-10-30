@@ -16,7 +16,8 @@ const memberSchema = z.object({
   fullName: z.string().trim().min(1, "Please enter the member's name.").max(200),
   roles: z.array(z.enum(["super_admin", "admin", "lead_designer", "designer"])).min(1, "Please choose at least one tag."),
   designerName: z.string().trim().max(60),
-  getsTeamEmails: z.boolean(),
+  copyLeadEmails: z.boolean(),
+  copyRequesterEmails: z.boolean(),
 });
 
 export type MemberInput = z.input<typeof memberSchema>;
@@ -47,7 +48,8 @@ export async function saveMember(input: MemberInput): Promise<Result> {
     p_full_name: m.fullName,
     p_roles: [...new Set(m.roles)],
     p_designer_name: m.designerName,
-    p_gets_team_emails: m.getsTeamEmails,
+    p_copy_lead_emails: m.copyLeadEmails,
+    p_copy_requester_emails: m.copyRequesterEmails,
   });
   if (error) return { ok: false, error: friendly(error) };
 

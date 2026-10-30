@@ -9,7 +9,7 @@ export const MEMBER_ROLES: { value: MemberRole; label: string; description: stri
     value: "lead_designer",
     label: "Lead Designer",
     description:
-      "Reviews new requests, approves or returns them, assigns designers and manages members. Gets new-request emails and can be assigned requests.",
+      "Reviews new requests, approves or returns them, assigns designers and manages members. Gets the new-request, reminder and deadline emails and can be assigned requests.",
   },
   {
     value: "designer",
@@ -20,7 +20,7 @@ export const MEMBER_ROLES: { value: MemberRole; label: string; description: stri
     value: "admin",
     label: "Admin",
     description:
-      "Sees everything and manages members. Works on requests like a Designer, but can't accept, assign or return new requests.",
+      "Sees everything and manages members. Edits request details and the output link, and can put a request on hold or cancel it.",
   },
   {
     value: "super_admin",

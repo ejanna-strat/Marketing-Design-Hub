@@ -11,7 +11,6 @@ import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
 import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
-import { DUE_REMINDER_LEAD_EMAIL } from "@/config/links";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,14 +29,14 @@ async function loadRequest(requestId: string) {
   return data;
 }
 
-// N1 — Lead Designers + members ticked "Gets team emails" (e.g. Riann).
+// N1 — Lead Designers + members ticked "Copy me on Lead Designer emails".
 export async function notifyNewRequest(requestId: string, appUrl: string) {
   try {
     const request = await loadRequest(requestId);
     const { data: members, error } = await createAdminClient()
       .from("team_members")
       .select("email")
-      .or("roles.cs.{lead_designer},gets_team_emails.eq.true");
+      .or("roles.cs.{lead_designer},copy_lead_emails.eq.true");
     if (error) throw new Error(`Could not load the team: ${error.message}`);
     const to = (members ?? []).map((m) => m.email);
 
@@ -86,9 +85,19 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
   }
 }
 
-// Members ticked "Gets team emails" (e.g. Riann).
-async function teamEmailRecipients() {
-  const { data } = await createAdminClient().from("team_members").select("email").eq("gets_team_emails", true);
+// Lead Designers + members ticked "Copy me on Lead Designer emails".
+async function leadEmailRecipients() {
+  const { data, error } = await createAdminClient()
+    .from("team_members")
+    .select("email")
+    .or("roles.cs.{lead_designer},copy_lead_emails.eq.true");
+  if (error) throw new Error(`Could not load the team: ${error.message}`);
+  return (data ?? []).map((m) => m.email);
+}
+
+// Members ticked "Copy me on requester emails" (owner, Oct 30).
+async function requesterCopyRecipients() {
+  const { data } = await createAdminClient().from("team_members").select("email").eq("copy_requester_emails", true);
   return (data ?? []).map((m) => m.email);
 }
 
@@ -120,7 +129,7 @@ export async function notifyReturned(requestId: string, appUrl: string) {
   }
 }
 
-// N3 — the newly assigned designer (+ "Gets team emails"), once per designer.
+// N3 — the newly assigned designer only (owner, Oct 30), once per designer.
 export async function notifyAssigned(requestId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
@@ -128,7 +137,7 @@ export async function notifyAssigned(requestId: string, appUrl: string) {
     await sendEmail({
       key: `N3_ASSIGNED:${r.assigned_designer_id}`,
       requestId,
-      to: [r.designer.email, ...(await teamEmailRecipients())],
+      to: [r.designer.email],
       subject: n3Subject(),
       email: N3Assigned({
         title: r.title,
@@ -145,7 +154,7 @@ export async function notifyAssigned(requestId: string, appUrl: string) {
   }
 }
 
-// N4 — the requester (+ "Gets team emails") when the designer accepts, or
+// N4 — the requester (+ "Copy me on requester emails") when the designer accepts, or
 // when a designer takes the request themselves. `skipEmail`: the person who
 // took their own request doesn't get an email about it (owner, Oct 22).
 export async function notifyDesignerAccepted(requestId: string, appUrl: string, skipEmail?: string) {
@@ -153,7 +162,7 @@ export async function notifyDesignerAccepted(requestId: string, appUrl: string, 
     const r = await loadRequest(requestId);
     if (!r.assigned_designer_id) return;
     const skip = skipEmail?.toLowerCase();
-    const to = [r.requester_email, ...(await teamEmailRecipients())].filter((e) => e.toLowerCase() !== skip);
+    const to = [r.requester_email, ...(await requesterCopyRecipients())].filter((e) => e.toLowerCase() !== skip);
     if (to.length === 0) return;
     await sendEmail({
       key: `N4_ACCEPTED:${r.assigned_designer_id}`,
@@ -172,8 +181,9 @@ export async function notifyDesignerAccepted(requestId: string, appUrl: string, 
   }
 }
 
-// N6 — the requester when the designer is changed (owner, Oct 22: requester
-// only; a new designer picked by someone else gets the assigned email).
+// N6 — the requester (+ "Copy me on requester emails", owner Oct 30) when the
+// designer is changed; a new designer picked by someone else gets the
+// assigned email.
 export async function notifyReassigned(requestId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
@@ -181,7 +191,7 @@ export async function notifyReassigned(requestId: string, appUrl: string) {
     await sendEmail({
       key: `N6_REASSIGNED:${r.assigned_designer_id}`,
       requestId,
-      to: [r.requester_email],
+      to: [r.requester_email, ...(await requesterCopyRecipients())],
       subject: n6Subject(r.title),
       email: N6Reassigned({
         title: r.title,
@@ -223,7 +233,8 @@ export async function notifyForReview(requestId: string, appUrl: string) {
 const REMIND_STATUSES = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"] as const;
 
 // N10 — run every weekday at 8AM (Manila) by Vercel Cron. Sends once per
-// request and Date Needed to Jerome + the assigned designer, for requests due
+// request and Date Needed to Lead Designers, "Copy me on Lead Designer
+// emails" members (owner, Oct 30) + the assigned designer, for requests due
 // within the next 3 days (so weekends aren't skipped). A changed Date Needed
 // gets its own reminder.
 export async function sendDueReminders(appUrl: string) {
@@ -238,11 +249,13 @@ export async function sendDueReminders(appUrl: string) {
   if (error) throw new Error(error.message);
 
   const results: Record<string, string> = {};
-  for (const r of data ?? []) {
+  if (!data?.length) return results;
+  const leads = await leadEmailRecipients();
+  for (const r of data) {
     results[r.request_code] = await sendEmail({
       key: `N10_DUE_SOON:${r.date_needed}`,
       requestId: r.id,
-      to: [DUE_REMINDER_LEAD_EMAIL, ...(r.designer?.email ? [r.designer.email] : [])],
+      to: [...leads, ...(r.designer?.email ? [r.designer.email] : [])],
       subject: n10Subject(),
       email: N10DueSoon({
         title: r.title,
@@ -286,8 +299,8 @@ export async function notifyCancelled(requestId: string, appUrl: string) {
 // reminder. A New request with no designer gets its first reminder at the
 // SECOND weekday 8AM check after it started waiting (filed, or its designer
 // removed / asked to reassign) — e.g. filed Mon 10PM → Wed 8AM — then one
-// every weekday until a designer is assigned. Goes to Lead Designers, "Gets
-// team emails" members and every designer, who can take it (owner, Oct 22).
+// every weekday until a designer is assigned. Goes to Lead Designers, "Copy
+// me on Lead Designer emails" members and every designer, who can take it (owner, Oct 22).
 export async function sendUnassignedReminders(appUrl: string) {
   const db = createAdminClient();
   const { data, error } = await db
@@ -311,7 +324,7 @@ export async function sendUnassignedReminders(appUrl: string) {
   }
 
   const [{ data: members, error: membersError }, { data: designers }] = await Promise.all([
-    db.from("team_members").select("email").or("roles.cs.{lead_designer},gets_team_emails.eq.true"),
+    db.from("team_members").select("email").or("roles.cs.{lead_designer},copy_lead_emails.eq.true"),
     db.from("designers").select("email").eq("active", true),
   ]);
   if (membersError) throw new Error(membersError.message);

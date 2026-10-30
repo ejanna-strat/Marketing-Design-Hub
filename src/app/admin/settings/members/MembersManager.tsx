@@ -26,7 +26,8 @@ export type Member = {
   fullName: string;
   roles: MemberRole[];
   designerName: string;
-  getsTeamEmails: boolean;
+  copyLeadEmails: boolean;
+  copyRequesterEmails: boolean;
   signedIn: boolean;
 };
 
@@ -37,7 +38,11 @@ const TAG_STYLES: Record<string, string> = {
   designer: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300",
 };
 
-const EMPTY: Member = { email: "", fullName: "", roles: [], designerName: "", getsTeamEmails: false, signedIn: false };
+const EMPTY: Member = { email: "", fullName: "", roles: [], designerName: "",
+  copyLeadEmails: false,
+  copyRequesterEmails: false,
+  signedIn: false,
+};
 
 export function MembersManager({
   members,
@@ -86,7 +91,7 @@ export function MembersManager({
               <TableHead className="text-xs font-semibold">Member</TableHead>
               <TableHead className="text-xs font-semibold">Tags</TableHead>
               <TableHead className="text-xs font-semibold">Name in Designer list</TableHead>
-              <TableHead className="text-xs font-semibold">Copied on updates</TableHead>
+              <TableHead className="text-xs font-semibold">Copied on emails</TableHead>
               <TableHead className="text-xs font-semibold">Signed in</TableHead>
               <TableHead className="w-24" />
             </TableRow>
@@ -125,10 +130,20 @@ export function MembersManager({
                     </TableCell>
                     <TableCell>{m.designerName || <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>
-                      {m.getsTeamEmails ? (
-                        <span className="inline-flex items-center gap-1 text-sm">
-                          <MailIcon className="size-3.5 text-brand" />
-                          Yes
+                      {m.copyLeadEmails || m.copyRequesterEmails ? (
+                        <span className="inline-flex flex-col gap-0.5 text-sm">
+                          {m.copyLeadEmails && (
+                            <span className="inline-flex items-center gap-1">
+                              <MailIcon className="size-3.5 text-brand" />
+                              Lead Designer
+                            </span>
+                          )}
+                          {m.copyRequesterEmails && (
+                            <span className="inline-flex items-center gap-1">
+                              <MailIcon className="size-3.5 text-brand" />
+                              Requester
+                            </span>
+                          )}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -239,6 +254,8 @@ function MemberDialog({
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const isDesigner = form.roles.includes("designer") || form.roles.includes("lead_designer");
+  // Lead Designers already get the Lead Designer emails.
+  const isLead = form.roles.includes("lead_designer");
   const firstName = form.fullName.trim().split(/\s+/)[0] ?? "";
 
   function toggle(role: MemberRole, on: boolean) {
@@ -254,7 +271,8 @@ function MemberDialog({
         fullName: form.fullName,
         roles: form.roles,
         designerName: isDesigner ? form.designerName : "",
-        getsTeamEmails: form.getsTeamEmails,
+        copyLeadEmails: !isLead && form.copyLeadEmails,
+        copyRequesterEmails: form.copyRequesterEmails,
       });
       if (!result.ok) {
         setError(result.error);
@@ -355,17 +373,34 @@ function MemberDialog({
             </div>
           )}
 
+          {!isLead && (
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id="member-lead-emails"
+                checked={form.copyLeadEmails}
+                onCheckedChange={(on) => setForm({ ...form, copyLeadEmails: on === true })}
+                className="mt-0.5"
+              />
+              <Label htmlFor="member-lead-emails" className="block font-normal leading-snug">
+                <span className="font-medium">Copy me on Lead Designer emails</span>
+                <span className="block text-xs text-muted-foreground">
+                  New Design Request, the daily New Request Reminder and the 3-day Deadline reminder, for every request.
+                </span>
+              </Label>
+            </div>
+          )}
+
           <div className="flex items-start gap-2.5">
             <Checkbox
-              id="member-team-emails"
-              checked={form.getsTeamEmails}
-              onCheckedChange={(on) => setForm({ ...form, getsTeamEmails: on === true })}
+              id="member-requester-emails"
+              checked={form.copyRequesterEmails}
+              onCheckedChange={(on) => setForm({ ...form, copyRequesterEmails: on === true })}
               className="mt-0.5"
             />
-            <Label htmlFor="member-team-emails" className="block font-normal leading-snug">
-              <span className="font-medium">Copy me on request updates</span>
+            <Label htmlFor="member-requester-emails" className="block font-normal leading-snug">
+              <span className="font-medium">Copy me on requester emails</span>
               <span className="block text-xs text-muted-foreground">
-                Also gets the emails Lead Designers get: New Design Request, the daily New Request Reminder, designer assigned and designer accepted.
+                Designer accepted and Designer changed, the emails requesters get about who&apos;s working on their request.
               </span>
             </Label>
           </div>
