@@ -158,7 +158,7 @@ export default async function AnalyticsPage({
               basis: "% of accepted requests",
               tiles: [
                 { label: month ? "Open at month-end" : "Open at the end", value: t.openAcceptedAtEnd, rate: shareOf(t.openAcceptedAtEnd, t.accepted), note: "Still being worked on", tone: "amber", href: `/admin/pipeline?view=open&${range}` },
-                { label: "Completed", value: t.completed, rate: shareOf(t.completed, t.accepted), note: "Done and turned over", tone: "green", href: `/admin/pipeline?view=completed&${range}` },
+                { label: "Completed", value: t.completed, rate: shareOf(t.completed, t.accepted), note: "Done and turned over", tone: "green", href: `/admin/completed?${range}` },
                 { label: "On hold", value: t.onHoldAccepted, rate: shareOf(t.onHoldAccepted, t.accepted), note: "Paused", tone: "orange", href: `/admin/pipeline?view=on_hold&${range}` },
                 {
                   label: "Average turnaround",
