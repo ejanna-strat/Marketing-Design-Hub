@@ -1,0 +1,545 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format, parseISO } from "date-fns";
+import { CalendarIcon, InfoIcon, LightbulbIcon } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Controller, type Resolver, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { type Approver, ApproverNameInput } from "@/components/form/ApproverNameInput";
+import { DynamicQuestion } from "@/components/form/DynamicQuestion";
+import { UnsavedChangesGuard } from "@/components/form/UnsavedChangesGuard";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { links } from "@/config/links";
+import { PROJECT_OVERVIEW_HELP } from "@/lib/requests/schema";
+import { formatDate, todayInManila } from "@/lib/dates";
+import { digitsOnly } from "@/lib/money";
+import {
+  buildRequestSchema,
+  FINAL_APPROVER,
+  type FormQuestion,
+  type RequestFormValues,
+} from "@/lib/requests/schema";
+import { updateMyRequest } from "../../my-requests/[code]/edit/actions";
+import { submitRequest } from "./actions";
+
+type Option = { id: string; name: string };
+
+// The New Design Request form. With `edit`, the same form edits one of the
+// requester's own requests (before it is accepted); the type is fixed.
+export function NewRequestForm({
+  user,
+  teams,
+  requestTypes,
+  questions,
+  edit,
+  recentApprovers = [],
+}: {
+  user: { name: string; email: string; teamId: string | null };
+  teams: Option[];
+  requestTypes: Option[];
+  questions: FormQuestion[];
+  edit?: { requestId: string; code: string; values: RequestFormValues };
+  // The requester's last 5 approvers, suggested under Approver Name.
+  recentApprovers?: Approver[];
+}) {
+  const today = useMemo(() => todayInManila(), []);
+  const [dateOpen, setDateOpen] = useState(false);
+
+  const questionsByType = useMemo(() => {
+    const map = new Map<string, FormQuestion[]>();
+    for (const q of questions) map.set(q.requestTypeId, [...(map.get(q.requestTypeId) ?? []), q]);
+    return map;
+  }, [questions]);
+
+  // The rules depend on the chosen type, so build the schema at check time.
+  const resolver = useCallback<Resolver<RequestFormValues>>(
+    (values, context, options) =>
+      zodResolver(
+        buildRequestSchema(questionsByType.get(values.request_type_id) ?? [], today, edit?.values.date_needed),
+      )(
+        values,
+        context,
+        options,
+      ) as ReturnType<Resolver<RequestFormValues>>,
+    [questionsByType, today, edit?.values.date_needed],
+  );
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    clearErrors,
+    formState: { errors, isSubmitting, isDirty },
+  } = useForm<RequestFormValues>({
+    resolver,
+    defaultValues: edit?.values ?? {
+      requester_name: user.name,
+      title: "",
+      project_overview: "",
+      team_id: teams.some((t) => t.id === user.teamId) ? user.teamId! : "",
+      request_type_id: "",
+      date_needed: "",
+      final_approver: "myself",
+      approver_name: "",
+      approver_email: "",
+      // Required Yes / No (owner, Oct 21): no answer until the requester picks one.
+      is_deal: "" as never,
+      deal_name: "",
+      deal_size: "",
+      answers: {},
+    },
+  });
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const typeId = watch("request_type_id");
+  const approver = watch("final_approver");
+  const isDeal = watch("is_deal") === "yes";
+  const typeQuestions = questionsByType.get(typeId) ?? [];
+  const typeName = requestTypes.find((t) => t.id === typeId)?.name;
+  const answerErrors = errors.answers as Record<string, { message?: string }> | undefined;
+
+  const onSubmit = handleSubmit(
+    async (values) => {
+      const result = edit ? await updateMyRequest(edit.requestId, values) : await submitRequest(values);
+      if (result?.error) toast.error(result.error);
+    },
+    () => {
+      toast.error("Please check the highlighted fields.");
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>("[aria-invalid=true]")?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      );
+    },
+  );
+
+  return (
+    <form ref={formRef} onSubmit={onSubmit} noValidate autoComplete="off" className="mx-auto max-w-3xl space-y-6">
+      {edit ? (
+        <UnsavedChangesGuard active={isDirty && !isSubmitting} onSave={() => formRef.current?.requestSubmit()} />
+      ) : (
+        <UnsavedChangesGuard
+          active={isDirty && !isSubmitting}
+          title="Leave this request?"
+          description="You haven't submitted your request yet. If you leave now, what you've filled in will be lost."
+          stayLabel="Continue filling out my request"
+          leaveLabel="Leave without submitting"
+        />
+      )}
+      {edit ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-sm text-muted-foreground">{edit.code}</p>
+            <h1 className="text-2xl font-bold">Edit Request</h1>
+          </div>
+          <p className="rounded-xl border border-brand/20 bg-brand-soft/60 p-4 text-sm leading-relaxed">
+            You can edit your request until it is accepted by the reviewer. The type of design request can&apos;t be
+            changed. If you need a different type, please cancel this request and file a new design request.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">New Design Request</h1>
+          <p className="text-muted-foreground">Marketing Design Request Form</p>
+        </div>
+      )}
+
+      {!edit && (
+      <div className="space-y-3 rounded-xl border border-brand/20 bg-brand-soft/60 p-5 text-sm leading-relaxed">
+        <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
+        <p>
+          Please allow us one working day to acknowledge receipt of your request. If you do not receive a response
+          within this time, please follow up with <span className="font-bold">Jerome Casupanan</span> via Google Chat or email at{" "}
+          <a className="font-medium text-brand underline" href="mailto:jerome.casupanan@stratpoint.com">
+            jerome.casupanan@stratpoint.com
+          </a>
+          .
+        </p>
+        <p>
+          <span className="font-medium">Please note:</span> All requests are subject to review and approval. Submission
+          does not mean work has started. Your request will only be considered in progress once you receive
+          confirmation from one of our designers.
+        </p>
+        <p>Thank you!</p>
+        <div className="space-y-1 border-t border-brand/20 pt-3">
+          <p className="flex gap-2 font-medium">
+            <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+            Please submit a separate request for each design type.
+          </p>
+          <p className="flex gap-2 font-medium">
+            <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+            <span>
+              Reminder: Please review our <SlaLink /> to set expectations for request turnaround times.
+            </span>
+          </p>
+        </div>
+      </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>General Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Name" htmlFor="requester_name" required error={errors.requester_name?.message}>
+              <Input id="requester_name" autoComplete="name" aria-invalid={!!errors.requester_name || undefined} {...register("requester_name")} />
+            </Field>
+            <Field label="Email" htmlFor="email" required>
+              <Input id="email" value={user.email} readOnly disabled />
+            </Field>
+          </div>
+
+          <Field label="Business Unit" htmlFor="team_id" required error={errors.team_id?.message}>
+            <Controller
+              control={control}
+              name="team_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="team_id" className="w-full" aria-invalid={!!errors.team_id || undefined}>
+                    <SelectValue placeholder="Select your business unit" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+
+          <Field
+            label="Request Title"
+            htmlFor="title"
+            required
+            help='A short, descriptive title of your request (e.g. "Pitch Deck - GCash", "AICON Event Visual Identity", "Blog Launch: 5 Tips on How to Code")'
+            error={errors.title?.message}
+          >
+            <Input id="title" aria-invalid={!!errors.title || undefined} {...register("title")} />
+          </Field>
+
+          {/* Moved here from the specifications so every type asks it (owner, Oct 22). */}
+          <Field
+            label="Project Overview and Objective"
+            htmlFor="project_overview"
+            required
+            help={PROJECT_OVERVIEW_HELP}
+            error={errors.project_overview?.message}
+          >
+            <Textarea
+              id="project_overview"
+              rows={4}
+              aria-invalid={!!errors.project_overview || undefined}
+              {...register("project_overview")}
+            />
+          </Field>
+
+          <Field
+            label="Date Needed"
+            htmlFor="date_needed"
+            required
+            help={
+              <>
+                Select the date when you need the final design output delivered. For guidance on turnaround times,
+                please refer to our <SlaLink />.
+              </>
+            }
+            error={errors.date_needed?.message}
+          >
+            <Controller
+              control={control}
+              name="date_needed"
+              render={({ field }) => (
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date_needed"
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start font-normal sm:w-64"
+                      aria-invalid={!!errors.date_needed || undefined}
+                    >
+                      <CalendarIcon className="text-muted-foreground" />
+                      {field.value ? formatDate(field.value) : <span className="text-muted-foreground">Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? parseISO(field.value) : undefined}
+                      defaultMonth={field.value ? parseISO(field.value) : parseISO(today)}
+                      disabled={{ before: parseISO(today) }}
+                      onSelect={(d) => {
+                        if (!d) return;
+                        field.onChange(format(d, "yyyy-MM-dd"));
+                        setDateOpen(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            />
+          </Field>
+
+          <Field label="Final Approver of the Design" htmlFor="final_approver" required error={errors.final_approver?.message}>
+            <Controller
+              control={control}
+              name="final_approver"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="final_approver" className="w-full sm:w-80">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="myself">{FINAL_APPROVER.myself}</SelectItem>
+                    <SelectItem value="other">{FINAL_APPROVER.other}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+          {approver === "other" && (
+            <div className="grid gap-5 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
+              <Field label="Approver Name" htmlFor="approver_name" required error={errors.approver_name?.message}>
+                <Controller
+                  control={control}
+                  name="approver_name"
+                  render={({ field }) => (
+                    <ApproverNameInput
+                      id="approver_name"
+                      value={field.value}
+                      onChange={field.onChange}
+                      recent={recentApprovers}
+                      invalid={!!errors.approver_name}
+                      onPick={(a) => {
+                        const opts = { shouldDirty: true, shouldValidate: true };
+                        setValue("approver_name", a.name, opts);
+                        setValue("approver_email", a.email, opts);
+                      }}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Approver Email" htmlFor="approver_email" required error={errors.approver_email?.message}>
+                <Input
+                  id="approver_email"
+                  type="email"
+                  aria-invalid={!!errors.approver_email || undefined}
+                  {...register("approver_email")}
+                />
+              </Field>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Field
+              label="Is this design request associated with a deal?"
+              htmlFor="is_deal"
+              required
+              help="Select Yes if this design supports an active sales deal or client opportunity (e.g. a proposal deck or pitch for a prospect). Add the deal name and its estimated size in Philippine pesos."
+              error={errors.is_deal?.message}
+            >
+              <Controller
+                control={control}
+                name="is_deal"
+                render={({ field }) => (
+                  <RadioGroup
+                    id="is_deal"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="flex gap-6"
+                    aria-invalid={!!errors.is_deal || undefined}
+                  >
+                    {(["yes", "no"] as const).map((v) => (
+                      <div key={v} className="flex items-center gap-2">
+                        <RadioGroupItem id={`is_deal-${v}`} value={v} />
+                        <Label htmlFor={`is_deal-${v}`} className="font-normal">
+                          {v === "yes" ? "Yes" : "None"}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </Field>
+            {isDeal && (
+              <div className="grid gap-5 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
+                <Field label="Deal Name Associated" htmlFor="deal_name" required error={errors.deal_name?.message}>
+                  <Input id="deal_name" aria-invalid={!!errors.deal_name || undefined} {...register("deal_name")} />
+                </Field>
+                <Field label="Deal Size Associated (PHP)" htmlFor="deal_size" required error={errors.deal_size?.message}>
+                  <Controller
+                    control={control}
+                    name="deal_size"
+                    render={({ field }) => (
+                      <div className="relative">
+                        <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">
+                          ₱
+                        </span>
+                        <Input
+                          id="deal_size"
+                          inputMode="numeric"
+                          placeholder="1,250,000"
+                          className="pl-6"
+                          aria-invalid={!!errors.deal_size || undefined}
+                          value={field.value ? Number(field.value).toLocaleString("en-PH") : ""}
+                          onChange={(e) => field.onChange(digitsOnly(e.target.value).slice(0, 15))}
+                        />
+                      </div>
+                    )}
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
+
+          <Field label="Type of Design Request" htmlFor="request_type_id" required error={errors.request_type_id?.message}>
+            <Controller
+              control={control}
+              name="request_type_id"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  disabled={!!edit}
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    clearErrors("answers");
+                  }}
+                >
+                  <SelectTrigger id="request_type_id" className="w-full" aria-invalid={!!errors.request_type_id || undefined}>
+                    <SelectValue placeholder="Select the type of design request" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {requestTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {/* The type can't change on an edit (owner, Oct 21). */}
+            {edit && (
+              <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                <InfoIcon className="mt-0.5 size-4 shrink-0" />
+                The type of design request can&apos;t be changed. To change it, please cancel this request and file a new
+                design request.
+              </p>
+            )}
+          </Field>
+        </CardContent>
+      </Card>
+
+      {typeName && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Request Specifications</CardTitle>
+            <CardDescription>{typeName}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {typeQuestions.map((q) => (
+              <Controller
+                key={q.id}
+                control={control}
+                name={`answers.${q.id}`}
+                render={({ field }) => (
+                  <DynamicQuestion
+                    question={q}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={answerErrors?.[q.id]?.message}
+                  />
+                )}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {!edit && (
+        <div className="flex gap-3 rounded-xl border bg-background p-4 text-sm leading-relaxed">
+          <LightbulbIcon className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+          <p>
+            <span className="font-medium">Need to make changes after submitting?</span> You can edit your request
+            details anytime before the request is accepted by the reviewer. Just go to{" "}
+            <Link href="/my-requests" className="font-bold text-brand hover:underline">
+              Track My Request
+            </Link>
+            .
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-end gap-3">
+        <p className="text-sm text-muted-foreground">
+          <span className="text-destructive">*</span> Required
+        </p>
+        {edit && (
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/my-requests/${edit.code}`}>Cancel</Link>
+          </Button>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting || (!!edit && !isDirty)}
+          title={edit && !isDirty ? "No changes to save yet" : undefined}
+        >
+          {edit ? (isSubmitting ? "Saving…" : "Save changes") : isSubmitting ? "Submitting…" : "Submit Request"}
+        </Button>
+      </div>
+
+    </form>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  required,
+  help,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  required?: boolean;
+  help?: React.ReactNode;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required && <span className="text-destructive" aria-hidden> *</span>}
+      </Label>
+      {help && <p className="text-sm text-muted-foreground">{help}</p>}
+      {children}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+// "SLAs", linked to the Marketing Hub service-level agreement page.
+function SlaLink() {
+  return (
+    <a href={links.designSlas} target="_blank" rel="noreferrer" className="font-medium text-brand underline underline-offset-2">
+      SLAs
+    </a>
+  );
+}

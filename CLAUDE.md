@@ -1,4 +1,4 @@
-# Marketing Design Hub — Business Plan & Build Spec
+# Marketing Creative Hub (formerly Marketing Design Hub) — Business Plan & Build Spec
 
 > **For Claude Code:** This file is the source of truth for the project. Save it as `CLAUDE.md` in the project root. Read it fully at the start of every session.
 > Owner: Stratpoint Marketing (marketing-ai@stratpoint.com) · Version 1.0 · 2026-10-01
@@ -43,17 +43,22 @@
 
 ## 2. Users & roles
 
-Everyone signs in with an **email magic link** sent to their **@stratpoint.com** address. Requests are tied to the signed-in email. Tell users to always use their main email (not an alias). Phase 5 adds an admin tool to merge duplicate accounts.
+Everyone signs up and signs in with their **@stratpoint.com** email and a **password** (changed from email links on Oct 16). New accounts confirm their email once before they can sign in. Requests are tied to the signed-in email. Tell users to always use their main email (not an alias). Phase 5 adds an admin tool to merge duplicate accounts.
 
-| Role | People (initial seed) | Can do |
+Roles updated Oct 16 (owner's role table). Every role can also file its own requests and share feedback.
+
+| Role | People (initial) | Can do |
 |---|---|---|
-| **Admin** | Jerome, Steve, Riann | Everything: see/edit all requests, review (accept/return), assign/reassign, change any field, manage settings, see dashboard & analytics |
-| **Designer** | Jerome, Steve, Sofia | See the pipeline, edit Status and Link to Output on requests, accept/reassign tasks assigned to them |
+| **Lead Designer** | Jerome, Steve | Reviews new requests, approves or returns them, assigns/reassigns designers, manages members, gets new-request and declined-assignment emails, can do everything a Designer does, and appears in the Designer list |
+| **Designer** | Sofia, interns | Appears in the Designer list, handles assigned requests, updates status, adds the output link, marks requests completed |
+| **Super Admin** | The owner | Everything: reviews new requests (Accept & assign, Return), assigns and removes designers, members, all settings. Only Super Admins give, remove or change the Super Admin tag; one can step down once someone else has it (added Oct 22) |
+| **Admin** | e.g. Riann | Sees everything and manages members (gives/removes the Admin tag). Edits request details and the Link to Output; can only put a request On hold or cancel it (with a note), and can't change the designer (changed Oct 30). Not in the Designer list unless also tagged Designer, which brings back the Designer's rights |
 | **Requester** | Any other @stratpoint.com user (default role) | Submit requests, see **only their own** requests, view details, share feedback |
 
-- A person can hold more than one role (Jerome and Steve are Admin + Designer).
-- Seed the real emails from a config file `config/team.ts` (I will provide the emails; use placeholders like `jerome@stratpoint.com` until then and remind me).
-- **"Reviewers"** (who accept/return new requests) = Jerome and Steve. Riann is an admin who receives admin notifications and can edit everything.
+- A person can hold more than one tag (e.g. Admin + Designer).
+- **Settings → Members** (`/admin/settings/members`) is the team list. Admins and Lead Designers add, edit or remove members there; only Admins can give or remove the Admin tag, and nobody can remove themselves. Removing a member makes them a Requester again.
+- Two copy boxes on a member (Oct 30), in an "Email copies" section apart from the tags, locked until a tag is ticked: "Copy on Lead's email" (N1, New Request Reminder, N10; hidden for Lead Designers) and "Copy on requester's email" (N4, N6).
+- **"Reviewers"** (who accept/return new requests) = Lead Designers and Super Admins (`is_manager()`; Admins no longer, Oct 22).
 - **Marketing team exclusion:** feedback from requesters whose team is "Marketing" is excluded from feedback averages (Phase 3+).
 - **One link for everyone.** After sign-in, the UI shows each user only the screens their role allows.
 
@@ -66,7 +71,7 @@ Everyone signs in with an **email magic link** sent to their **@stratpoint.com**
 | Framework | **Next.js (App Router) + TypeScript** | One codebase for screens + server logic |
 | UI | **Tailwind CSS + shadcn/ui**, TanStack Table for data tables | Clean admin UI fast; good filtering/sorting tables |
 | Database + Auth | **Supabase** (Postgres, Auth, Row Level Security) | Free tier, Google sign-in built in, secure per-row access |
-| Login | **Supabase email magic link + 6-digit one-time code in the same email**, restricted to `@stratpoint.com` (check the domain server-side). Sessions last ~30 days | Needs no IT approval. Google OAuth may be added later (optional, Phase 5) without data changes |
+| Login | **Supabase email + password** (8+ characters), email confirmed once at sign-up, "Forgot password?" by email; restricted to `@stratpoint.com` (checked server-side). Sessions last ~30 days. Changed from magic link + code on Oct 16 (owner decision) | Needs no IT approval. Google OAuth may be added later (optional, Phase 5) without data changes |
 | Email | **Resend** + **React Email** templates; also set Resend as Supabase Auth's custom SMTP so login emails aren't rate-limited | Simple API, branded HTML emails. Needs one DNS record from IT; fallback: Stratpoint Workspace SMTP |
 | Scheduled jobs (Phase 3) | **Vercel Cron** hitting protected API routes (or Supabase `pg_cron`) | Daily 8AM (Asia/Manila) reminders |
 | Hosting | **Vercel** | Auto-deploy from GitHub, preview links per change |
@@ -76,7 +81,7 @@ Everyone signs in with an **email magic link** sent to their **@stratpoint.com**
 - Timezone: **Asia/Manila** for all displayed dates and scheduled jobs. Store timestamps in UTC.
 - Date format shown to users: `Oct 7, 2026`.
 - All database access is enforced by **Row Level Security** (requesters can only read their own requests).
-- Branding: the app name is "Marketing Design Hub"; the email footer reads "Marketing Design Hub | Stratpoint Technologies" and "Automated notification | For internal use only". The primary accent color is purple (to match the plan's mockups); keep it configurable in one theme file.
+- Branding: the app name is "Marketing Creative Hub" (renamed from "Marketing Design Hub" on Oct 27); the email footer reads "Marketing Creative Hub | Stratpoint Technologies" and "Automated notification | For internal use only". The primary accent color is blue `#0046bf` (changed from purple on Oct 17); keep it configurable in one theme file.
 
 ---
 
@@ -153,14 +158,16 @@ Use these tables (names can be adjusted, but keep the concepts):
 
 Source: *"Marketing Design Request Form — Simplified Questions List as of Oct 14"* (final). Unless a question says **(select all that apply)** it is single-choice. "+ Other" means show an "Other: ___" short text option. Seed these into `form_questions`. Help text ("Description") is shown in grey under the label. Text fields that ask for links stay **open text** (people may paste several links or a note), not strict URL fields.
 
-**Form intro** (show at the top of the New Design Request form):
-> Good day! This is the Design Request Form of the Marketing Team. Please allow us within the working day to confirm receipt of your request. If we do not respond, please send Jerome Casupanan Ko a follow-up via Google Chat or e-mail at jerome.casupanan@stratpoint.com.
+**Form intro** (show at the top of the New Design Request form; updated Oct 16):
+> Welcome to the Marketing Team’s Design Request Form!
 >
-> Please be informed that your design requests are still subject to approval after submission.
+> Please allow us one working day to acknowledge receipt of your request. If you do not receive a response within this time, please follow up with Jerome Casupanan via Google Chat or email at jerome.casupanan@stratpoint.com.
 >
-> Kindly note that the request has not been started unless you get a confirmation from one of our designers. Thank you!
+> Please note: All requests are subject to review and approval. Submission does not mean work has started. Your request will only be considered in progress once you receive confirmation from one of our designers.
+>
+> Thank you!
 
-Also show: *"Please submit a separate request for each design type."* and *"Reminder: Please review our SLAs to set expectations for request turnaround times."* (SLA link from Phase 5).
+Also show: *"Please submit a separate request for each design type."* and *"Reminder: Please review our SLAs to set expectations for request turnaround times."* Every "SLAs" in the app links to the Marketing Hub SLA page (`src/config/links.ts`, added Oct 16).
 
 ### 6.1 General Information (all requests, first part of the form, in this order)
 | # | Question | Type | Required | Help text |
@@ -195,7 +202,7 @@ Final Approver storage: if "Myself", save the requester's name and email into `f
 ### 6.4 Social Media Materials (dynamic)
 - Target Audience — open text
 - Platform/s — **select all that apply** — Facebook · LinkedIn · Twitter/X · Instagram · TikTok · YouTube
-- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for Design Team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
+- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for Brand team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
 - Copy — long text — help: "Place detailed text content or link to the document/slides file."
 - Mandatory video requirements — long text — help: "Any specifications required in the video (e.g. music, length of video, animations, video dimensions, etc.) Please provide file links for any required elements."
 - Design pegs/graphics — long text — help: "You may suggest a specific design or provide links to existing assets. If irrelevant, put N/A."
@@ -257,7 +264,7 @@ Final Approver storage: if "Myself", save the requester's name and email into `f
 - Other important information — long text — help: "If irrelevant, put N/A."
 - (No ★ question; "Output Needed" shows "Others".)
 
-★ = `is_output_needed = true` (its answer shows in the pipeline's **Output Needed** column). Required: all ★ questions, every "Project Overview and Objective", and every "Copy" / "Copy/Content" / "Detailed information" question; everything else optional (owner can change this later).
+★ = `is_output_needed = true` (its answer shows in the pipeline's **Output Needed** column). Required: all ★ questions, every "Project Overview and Objective", every "Copy" / "Copy/Content" / "Detailed information" question, and (since Oct 16) every "Mandatory graphics", "Design pegs/graphics" and "Other important information" question, where requesters can type N/A. Everything else is optional.
 
 **Changes vs. the Oct 1 list** (apply to the database if the form is already built; old requests keep their answers via label snapshots):
 1. Type #8 renamed: "Other Marketing Materials (Print & Digital Publications)" → **"Marketing Print and Digital Publications"**.
@@ -279,7 +286,7 @@ Buttons: **New Design Request** · **Track My Request** · **Share Feedback** (P
 
 1. **New Design Request** — form from §6. Picking a Type of Request expands that type's questions. Validate the required fields. Submit → create the request with status *New request*.
 2. **Request Submitted!** — copy:
-   > Please note that submitting a request does not mean it has been accepted or started. All requests are subject to review and approval by the Design Team.
+   > Please note that submitting a request does not mean it has been accepted or started. All requests are subject to review and approval by the Marketing Brand Team.
    > You will receive a separate notification once the assigned designer started working on your request.
    > You can track the status of your request anytime through Track My Requests.
 
@@ -309,7 +316,7 @@ Left menu bar: Dashboard (Phase 4) · Design Pipeline · Pendings (Phase 4) · F
 ## 8. Workflow & notifications
 
 ### 8.1 Process (full version, Phase 2)
-1. Requester submits → status **New request** → **N1** to all designers + Riann.
+1. Requester submits → status **New request** → **N1** to Lead Designers + "Gets team emails" members (e.g. Riann).
 2. Reviewer (Jerome/Steve) reviews:
    - **Accept** → pick designer (Jerome / Steve / Sofia) → **N3** to the assigned designer + Riann.
    - **Return** → reason (required) → status **Rejected** (requester sees "Returned") → **N2** to requester.
@@ -335,7 +342,7 @@ Every email uses one shared layout: a header with "Marketing Design Hub", a purp
 
 | Key | Phase | Trigger | To | Frequency |
 |---|---|---|---|---|
-| N1 | **1** (immediate) / 3 (daily repeat) | Request submitted | All designers + Riann | On submit; from Phase 3, daily 8AM until a designer is assigned. If the assigned designer asks to reassign and nobody is reassigned by end of business day, restart the daily 8AM repeat the next morning |
+| N1 | **1** (immediate) / 3 (daily repeat) | Request submitted | Lead Designers + "Gets team emails" members | On submit; from Phase 3, daily 8AM until a designer is assigned. If the assigned designer asks to reassign and nobody is reassigned by end of business day, restart the daily 8AM repeat the next morning |
 | N2 | 2 | Request returned | Requester | Once |
 | N3 | 2 / 3 (repeat) | Reviewer accepted + assigned | Assigned designer + Riann | On assign; from Phase 3, daily until the designer accepts/reassigns |
 | N4 | 2 | Designer accepted | Requester + Riann | Once |
@@ -387,13 +394,13 @@ Every email uses one shared layout: a header with "Marketing Design Hub", a purp
 **N8 — Final Design Output Ready** · Subject: `Final Design Output Ready: {title}` · Label: FINAL OUTPUT IS READY!
 > The final design output for your request is ready!
 > Request: {title} · Request ID: {code} · Designer: {designer_name} · Link to Final Output: Open Link ↗
-> We would also appreciate it if you could spare a few minutes to share your feedback on your experience with the Marketing Design Team. Your feedback will help us improve our process and the outputs we deliver.
+> We would also appreciate it if you could spare a few minutes to share your feedback on your experience with the Marketing Brand Team. Your feedback will help us improve our process and the outputs we deliver.
 > Thank you.
 > Buttons: **View Final Output** → link_to_output · **Share Feedback** → feedback page (**Phase 3**; in the MVP show only View Final Output and leave out the feedback paragraph) · Footer: F-REQ
 
 **N9 — Design Request Feedback** · Subject: `Design Request Feedback: {title}` · Label: DESIGN REQUEST FEEDBACK
 > We hope you've had a chance to review the final design output for {title}.
-> If you could spare a few minutes, we would greatly appreciate your feedback on your experience with the Marketing Design Team—from the request process to the design output itself.
+> If you could spare a few minutes, we would greatly appreciate your feedback on your experience with the Marketing Brand Team—from the request process to the design output itself.
 > Your feedback will help us identify what we're doing well and where we can improve.
 > Thank you for your time and support!
 > Button: **Share Feedback** → feedback page · Footer: F-REQ
@@ -438,7 +445,7 @@ Feedback Date is recorded automatically on submit.
 
 ### Phase 1 — MVP (Oct 2–7) ← **test date: Wed Oct 7**
 Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #1–4 and 7.2 #1–2, emails **N1** (immediate only) and **N8** (without the feedback button). Accept/Return/Reassign is handled by admins changing the Status/Designer dropdowns.
-- ✅ A @stratpoint.com user can sign in with the magic link or the 6-digit code; a non-Stratpoint email cannot.
+- ✅ A @stratpoint.com user can sign in (now: sign up, confirm email, sign in with password); a non-Stratpoint email cannot.
 - ✅ Requester submits each of the 10 request types, sees the right questions, gets an MDR-26-#### ID and the confirmation page.
 - ✅ Requester sees only their own requests in My Design Requests; search and filters work.
 - ✅ Admin/Designer sees all requests in the Pipeline; can change Status, Designer and Link to Output inline and in the details window; Date Started auto-fills; changes appear in the activity log.
@@ -477,13 +484,13 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Reliability:** daily Supabase backups (on a paid tier) or a weekly CSV export job; error tracking is optional (Vercel logs are enough at first).
 - **Performance:** pipeline table usable with 2,000+ requests (server-side pagination/filtering).
 - **Cost:** free tiers for MVP/pilot. Expect ~$20–25/month (Supabase Pro) once in daily use; Resend free tier covers ~3,000 emails/month.
-- **Note:** free Supabase projects pause after 7 days without activity.
+- **Note:** free Supabase projects pause after 7 days without activity. Since Oct 26 a GitHub scheduled job (`.github/workflows/keep-supabase-awake.yml`, on `main`, every 2 days, also runnable by hand from the Actions tab) calls staging and production with the public anon key (GitHub secrets `SUPABASE_{STAGING,PROD}_{URL,ANON_KEY}`); the database's permission-denied answer counts as awake. A project that's already paused must be resumed in the Supabase dashboard first. GitHub turns scheduled jobs off after 60 days without commits to the repo.
 
 ---
 
 ## 12. Open items (ask me when you reach them)
 1. Real email addresses for Jerome, Steve, Sofia and Riann.
-2. Whether to add Google sign-in later (decided: magic link for now).
+2. Whether to add Google sign-in later (decided: email + password for now, Oct 16).
 3. Sender address for emails (e.g. `designhub@<subdomain>.stratpoint.com`).
 4. ~~Final Approver fields~~ — confirmed Oct 14: kept, as a Myself / Other dropdown (see §6.1).
 5. Which spec questions are required (see the note under §6).
@@ -497,5 +504,71 @@ Scope: §5 tables (except feedback), §6 seed data, login + roles, screens 7.1 #
 - **Feedback scope (confirmed Oct 15).** Only the §9 star-rating form after Completed (Phase 3). No in-app revision comments; revisions are coordinated outside the app.
 - **`requests.output_needed`** is a stored copy of the ★ answer (or "Others"), written once at submit so the pipeline can search/sort/filter it quickly. It is the one exception to "compute, don't store".
 - **General Information** questions (§6.1) are built into the form and saved as columns on `requests`; only per-type specification questions live in `form_questions`.
-- **Roles** are assigned from the `team_members` roster (seeded from `config/team.ts`) the first time a person signs in.
-- **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`).
+- **Roles** come from the `team_members` roster, managed in Settings → Members (`save_team_member` / `remove_team_member` database functions). They apply on the person's next page load. `config/team.ts` and `npm run seed:team` were retired on Oct 16.
+- **Migrations** live in `supabase/migrations/`. Apply them in order (Supabase SQL Editor or `npx supabase db push`). After a migration, regenerate `src/lib/supabase/database.types.ts`.
+- **N1 recipients** = Lead Designers + members with "Gets team emails" ticked (owner decision, Oct 16).
+- **Settings → Members was pulled forward from Phase 5** at the owner's request (Oct 16). The rest of Phase 5 (form builder, SLA page, merging accounts) stays in Phase 5.
+- **Email link format:** the Confirm signup and Reset Password templates link to `{{ .RedirectTo }}?token_hash=…&type=signup|recovery` (see `docs/supabase-auth-setup.md`), so links work in any browser. `/auth/confirm` sends `recovery` links to `/reset-password` and also accepts the default `?code=` link.
+- **Emails are sent after the save** (`after()` from `next/server`) and never undo it. Each send is logged in `notifications_log`. A failed send frees the once-only slot so it can be retried.
+- **Two Supabase projects (Oct 16), both in Singapore:**
+  - **Production** `ejkmuekrulshkmccjtxb`: Vercel *Production* environment (`main`). Claude MCP server `supabase`.
+  - **Staging** `usnjrpnwhqascimtbzqk`: Vercel *Preview* environment (`staging` and feature branches) and local `.env.local`. Claude MCP server `supabase-staging`. Production's local values are in `.env.prod.backup` (gitignored).
+  - Every migration is applied to **staging first**, tested there, then to production when `staging` is merged into `main`. Staging's sign-in settings (hook, templates, SMTP, redirect URLs) were set through the Supabase Management API.
+- **Speed (Oct 16):** the app's server runs in Vercel's Singapore region (`vercel.json`, `sin1`) next to the database. Sessions are checked locally with `auth.getClaims()` (ES256 keys), the signed-in person's profile and roles load in one query, and `loading.tsx` skeletons show instantly. Keep new pages to one round of parallel queries where possible.
+- **Requester edits (Oct 16):** a requester can edit their own request while it is a *New request* with no designer assigned (`update_request()`; the type can't change). Edits show in the activity log. The bottom of the New Design Request form tells requesters this.
+- **"Track My Request"** is written in **bold** wherever it appears in text, so people recognise it as a page.
+- **Oct 17 rules (owner):** "Rejected" is shown as **Returned** everywhere (database value stays `rejected`). Every Marketing team member (Admin, Lead Designer, Designer) can edit a request's title and General Information, including Date Needed; only Admins and Lead Designers assign designers. **Automatic status:** assigning a designer to a *New request* → *Designer assigned (not yet started)*; removing the designer → *New request*; swapping designers mid-work keeps the status. Every Request Specifications question is required (N/A allowed). People can change their display name; filed requests keep theirs.
+- **Oct 18 rules (owner):** staff can edit specification answers (`update_request_specs()`, same checks as submitting; Output Needed follows the starred answer). In progress / For requester's review / For revision / Completed require an assigned designer. **Feedback (§9) was pulled forward from Phase 3**: `feedback` table + `submit_feedback()`, entry points from home (Request ID box + list), the request page and N8; team Feedback page at `/admin/feedback` (averages exclude Marketing-team requesters). N9 reminders and scheduled jobs stay in Phase 3. Pipeline has a tab per Designer / Lead Designer (since Oct 21 everyone opens on All + Open, and each tab shows its open count). Any unsaved form asks before leaving.
+- **Phase 2 workflow (built Oct 18, owner decisions):** after the reviewer assigns a designer the status stays *New request* (tag "Waiting for <designer> to accept") until the designer's Accept sets *Designer assigned (not yet started)*; that status can't be picked by hand, and *Returned* only comes from Return (with reason). Ask to reassign clears the designer and returns to *New request* with the reason. For requester's review and Completed need a Link to Output; the designer is locked once Completed. Pipeline dropdowns follow the same rules (choosing a designer = the reviewer's Accept, sends N3). Emails: N2 returned, N3 assigned (once per designer), N4 designer accepted, N6 designer swapped, N7 for requester's review. **Dashboard and Pendings** (Phase 4) were pulled forward; Analytics stays in Phase 4. Charts use Recharts (approved Oct 18), one hue per chart.
+- **Oct 20 rules (owner):** a request can be tagged as **associated with a deal** (requester ticks it on the form; Deal Name and Deal Size in whole pesos are then required; staff can edit them in Edit details). *Deal Requests* (`/admin/deals`) lists them with Deal Name / Deal Size columns. *Cancelled* and *Returned* live on *Inactive Requests* (`/admin/inactive`), not in the pipeline. Pipeline tabs show Open work by default with an Open / Completed / All switch. Filters are tick boxes (several values, comma-separated in the URL); tables have rows per page (`?size=`). The request page's back link returns to the list it was opened from (`src/components/data-table/ListMemory.tsx`). Return is only possible before a designer is assigned. For revision also needs a Link to Output. Notification codes (N1, N2…) never appear in the app's text.
+- **Oct 21 rules (owner):** New request can't be picked once the designer accepted; Cancelled and Returned requests keep their designer and Link to Output (`0011_closed_requests.sql`). Status, Team and Type filters grey out options with no requests in the current tab/view (`facetsInView()` in `src/lib/requests/list.ts`), on staff lists and My Requests. Deal Requests is read-only in the table (edit on the request page). The deal question is a required Yes / No. The browser tab always reads the app name ("Marketing Creative Hub" since Oct 27) (pages don't set their own titles). **Analytics** (`/admin/analytics`, `src/lib/analytics.ts`) was pulled forward from Phase 4: two tabs (Oct 21): Monthly report (month list or custom range, opens on the current month) and Month on Month (full year, year picker), same reports, month-by-month only on Month on Month, no CSV export; the Monthly report's Designer Productivity counts requests completed in the period (by Date Completed) per type, credited to the designer assigned at completion, with open at month-end and feedback on those completed requests whenever submitted ("4.8 ★ (3 of 5)", Marketing excluded) — Month on Month keeps the older table; deal totals leave out Returned/Cancelled; "Accepted" = reached Designer assigned or later; "Open at the end" = New request, Not started, In progress, For review, For revision (the Pendings categories), from the activity log. Month on Month has "Monthly Pipeline Summary" + rule-based Key insights; both tabs end with an Inactive Requests section. My Requests views: Open / On Hold / Completed / Inactive / All. **N10** (3-day reminder) was pulled forward from Phase 3: `/api/cron/due-reminders`, weekdays 00:00 UTC (8AM Manila) in `vercel.json`, protected by `CRON_SECRET`; once per request and Date Needed, to Jerome (`src/config/links.ts`) + the assigned designer; skipped for On hold, Cancelled, Returned and Completed. **N1 daily repeat** pulled forward Oct 22: same cron run, `sendUnassignedReminders()` + `src/emails/N1Reminder.tsx`; New requests with no designer email Lead Designers + "Gets team emails" + all designers once per day (`N1_REMINDER:<date>`) until assigned, starting at the second weekday 8AM check after waiting starts (filing or the last designer removal / reassign request; `secondCheckDay()`, changed Oct 22: filed Mon 10PM → first reminder Wed 8AM). N3 daily repeat and N9 stay in Phase 3. Later on Oct 21: pipeline views are Open / On Hold / Completed / All (Open excludes On hold); Link to Output must be an http(s) link (`src/lib/links.ts`, `0012_output_link_check.sql`); designers still get the assignment email for On hold requests. Requesters can cancel their own request (reason required) any time before Completed (`cancel_my_request()`, `0013_requester_cancel.sql`); the assigned designer gets the "Design Request Cancelled" email (`src/emails/N11Cancelled.tsx`), nobody if unassigned. Cancelled/Returned requests: only the status can change (details and answers locked in the database).
+- **Oct 22 (owner):** appearance is Light (default) / Dark / System per person, chosen under the name menu, saved in `profiles.theme` (`0014_theme.sql`) and the `mdh-theme` cookie (`src/lib/theme/shared.ts`; a `<head>` script applies it before paint; the saved account choice is applied once per browser visit — sessionStorage `mdh-theme-synced`, cleared on sign-out — and saving revalidates the layout, so kept pages can't flip it back). Dark colours: brand `#3b72dc` (text `#8fb3f8`), light tags/notices carry `dark:` variants. Request table rows open the request on click (`rowHref` on `DataTable`), except on the row's own controls. The staff menu can be shrunk to icons (`Sidebar.tsx`, cookie `mdh-sidebar`). Below the `md` width the sidebar and the top bar's page links are hidden; a ☰ button in the top bar (every page) opens a slide-out menu with Home, My Requests and, for the team, the Marketing team menu (`MobileMenu.tsx`, drawn on `document.body` because the header's blur traps fixed children; team items from `StaffMenu.tsx`, shared with the sidebar; owner Oct 24). The back link on My Requests detail remembers the list (`BackToList within="/my-requests"`). Designers see their own pipeline tab right after Unassigned. Sign-up shows a spam/"Not spam" pop-up.
+- **Oct 22 rules (owner, later):** In progress / For requester's review / For revision / Completed need the assigned designer's Accept (`0015_require_acceptance.sql`). A New request's first designer comes only from Accept & assign on the request page (table/page Designer dropdowns locked until then; UI rule). When it's someone's turn the request page shows a highlighted action bar. "Project Overview and Objective" is General Information for every type (`requests.project_overview`, required; `0017_project_overview.sql`), right after Request Title; the old per-type question is inactive. Approver Name suggests the requester's last 5 approvers; × hides one until used again (`profiles.hidden_approvers`, `0016`). Left menu: Design Pipeline dropdown (Unassigned + designers with open counts). Designer filter (`?assignee=`) on Pendings and My Requests; Feedback's designer filter greys designers without feedback and drops former ones without any.
+- **Taking requests (owner, Oct 22, `0018_designers_take_requests.sql`):** anyone in the Designer list can take a New request with no designer **for themselves** (Take this request button, or their own name in the Designer dropdown); it counts as accepted (status → Designer assigned) and emails the requester (skipped when they filed it) + "Gets team emails". Once a request has a designer, any designer can change it to anyone (status stays; picking yourself = accepted, someone else must Accept); the requester gets the Reassigned email only, and a new designer picked by someone else gets the Assigned email. Only Admins/Lead Designers remove the designer or put someone else on a fresh request (Accept & assign). Return stays with Lead Designers. The activity log notes "Took the request".
+- **Oct 22 (owner, later):** the Members option "Gets team emails" is shown as **Copy me on request updates** (column "Copied on updates"; database field stays `gets_team_emails`): New Design Request, New Request Reminder, Assigned and Accepted copies. Feedback rows open the request on click (`LinkRow`, shared with `DataTable`); rating and Team filters hide ratings and teams with no feedback.
+- **Super Admin (owner, Oct 22, `0019_super_admin_role.sql` + `0020_super_admin.sql`):** new `super_admin` tag; `is_admin()` = Super Admin or Admin, `is_manager()` (reviewer) = Super Admin or Lead Designer, `can_manage_members()` = Super Admin, Admin or Lead Designer. In the app: `isSuperAdmin`, `isAdmin`, `isManager` (reviewer), `canManageMembers`. The owner's Admin tag became Super Admin (production gets the same at go-live).
+- **Oct 22 (owner, last round):** Edit request details also changes Date Needed (the Pipeline section keeps its quick date editor). Team cancellations need a note (`cancel_request()`, `0021_staff_cancel_note.sql`; picking Cancelled in a Status dropdown opens a note pop-up; a plain status change to Cancelled is refused, and reopening clears the note). No email; the requester sees the note; the tag says who cancelled. Shrunk-menu labels show instantly (`MenuTip`). Feedback rating filters list 5 ★ first.
+- **Filters (owner, Oct 22, later):** every tick-box filter shows a count beside each option (what you'd get with it ticked: current tab/view, search and the other filters; `facetsInView()` returns counts) and hides options with none instead of greying them (a ticked one stays). Feedback has a "Has comments" chip (`?comments=1`, `toggles` on `DataTableToolbar`). Date ranges (Request date on the lists, Analytics custom range) use one calendar: start date, then end date, then Apply (Oct 23; nothing changes until Apply) (`RangeCalendar`). Analytics' report switch (Monthly report / Month on Month), period or year picker and Jump to share one sticky bar (`PeriodControls`) on a band in the page's own colour (no border) that fades into the page at the bottom; in a narrow space (container queries) the tab names shorten and Jump to becomes a dropdown, a list icon on phones (Oct 23). The shrunk menu sits above page content, including Analytics' pinned Jump to bar (z-[35], below the header's z-40), so its labels aren't covered.
+- **Analytics, Oct 23 (owner):** Dashboard Top 5 types count active requests only. Analytics uses the Dashboard's feedback card (`FeedbackSummary`); turnaround per type of request on both tabs (`typeTurnaround`; Month on Month per month with ↑ slower / ↓ faster arrows and a year average); Month on Month shows requests per team / type as stacked monthly bars + tables (`teamMonths`, `typeMonths`; Monthly report keeps the donuts), the designer table as months · Total completed · Avg. turnaround · Feedback, and deals and inactive requests per month with an expandable type breakdown (`MonthBreakdown`). Rule-based insights (`Insights`, hidden until "Show insights"; Month on Month only since Oct 23 — the Monthly report keeps only Key takeaways) for feedback, Requests in vs Completed vs Open, the Monthly Pipeline Summary and designers (designer insights explain slower work types). Every Analytics table uses alternating row colours (`.zebra`; sticky first cells use `bg-inherit`). Month on Month leaves out months before the first request (2026 starts in October); first columns of Analytics tables are sticky (Month / name / type, narrower and wrapping on phones) and monthly charts scroll sideways on phones (Oct 24). Analytics Overview order (Oct 26): Request flow → What stands out → Where active requests stand | Who asked → Feedback card (the whole card opens the Feedback page) → on Month on Month, a "Feedback by month" card right under it with the table shown and `Insights` below it (Oct 26). **Two-row metrics (owner, Oct 24, `src/components/MetricRows.tsx`, Dashboard + Analytics):** All requests (total, Waiting for a designer = New not yet accepted, Accepted, Inactive; % of total) and Accepted work (Open, Completed, On hold, Average turnaround; % of accepted). Dashboard status chart = "Active requests by status" (accepted statuses + on hold, % of accepted) with a Waiting box. **Rates (owner, Oct 24):** Accepted and Inactive are shares of all requests; Completed and Open are shares of Accepted, and Open counts accepted work only (Designer assigned → For revision), with New requests shown as "+N waiting for a designer" (`openAcceptedAtEnd`, `waitingAtEnd`); every rate carries a note on its basis. Dashboard Requests by status order: … Completed, On hold, Returned, Cancelled (last two grey). Tile colours are shared in `src/lib/tones.ts` (Analytics Request flow and, since Oct 24, the Dashboard's top tiles). **Overview redesign (owner's mock-up, Oct 23, `analytics/OverviewParts.tsx`):** Request flow tiles + Inactive, turnaround and feedback cards, "What stands out" (the key takeaways), Where the requests stand (4 groups) and Who asked (moved from Brand Team, which now has Volume · Types · Turnaround on Month on Month; the Monthly report shows Turnaround and Request types side by side). Counts there show their share. The inactive table counts every returned/cancelled request; its description says Deal size adds up only those with a deal. **Hick's Law (owner, Oct 23, Analytics only):** Key takeaways (3 rule-based lines) under Overview; Brand Team shows one view at a time (`SectionViews` in `analytics/Views.tsx`: Volume · Teams · Types · Turnaround · Status, Volume on Month on Month only) with the two monthly charts merged; Requests by status in 4 groups (`StatusGroups`); the Monthly designer per-type columns open on request (`ShowTable`, `ShortOrFull`); the Period list shows the last 6 months. Pop-ups follow the visible screen area on phones/tablets so the keyboard doesn't cover them (`useFitVisibleArea` in `dialog.tsx`).
+- **Rename (owner, Oct 27):** the app is **Marketing Creative Hub** (`theme.appName`: top bar, home, sign-in pages, browser tab, email layout). Sender `Marketing Creative Hub <marketingcreativehub@ejoo.site>` (`EMAIL_FROM` in Vercel Preview + Production and `.env.local`; `SpamNotice.tsx`). Vercel project renamed `marketing-creative-hub`: production `marketing-creative-hub.vercel.app` (the old `marketing-design-hub.vercel.app` still serves the app; make it redirect at go-live), staging `marketing-creative-hub-git-staging-strat-marketing.vercel.app`. Wording kept: "Marketing Design Pipeline", the feedback form title and `MDR-` IDs. The team is called **Marketing Brand Team** (owner, Oct 27: final-output email, feedback form comments question, request-submitted page; the dynamic social media option "First cut of full video production (for Brand team)", migration 0022). Supabase sign-in sender, subjects, templates and Site URL are changed by the owner in both projects (`docs/supabase-auth-setup.md`).
+- **Requester FAQs (owner, Oct 28, `0023_faqs.sql`):** a Frequently Asked Questions section at the bottom of the home page (native `<details>`, visible FAQs in `position` order). Edited in **Settings → Requester FAQs** (`/admin/settings/faqs`; Settings now has tabs, `SettingsTabs.tsx`) by Super Admins and Lead Designers only (owner, Oct 28: `is_manager()` in RLS, `user.isManager` in the app; Admins don't see the tab; everyone signed in reads visible ones). Reorder by dragging the grip (pointer events on `window`, no library; arrow keys on a focused grip). Answers are saved as plain text with codes: **bold**, *italic*, __underline__, [text](https://… or mailto:…), "- " bullets, blank-line paragraphs (`src/lib/faq-format.ts`, shown by `src/components/FaqAnswer.tsx`). They're edited in a what-you-see editor with a toolbar (owner, Oct 28: `FaqAnswerEditor.tsx`, browser editing commands, no library; paperclip = link; pastes are cleaned to the same codes, so no HTML is ever saved). Concerns go to the assigned designer or Jerome Casupanan (owner). Home card: "Tell the Brand team what you need."
+- **Admin limits (owner, Oct 30, `0025_admin_status_limits.sql`):** an Admin with no Designer, Lead Designer or Super Admin tag (`holdOrCancelOnly()` in `src/lib/statuses.ts`) can only change the status to On hold or Cancelled (the Cancel note pop-up), and can't change the designer. A separate trigger `requests_admin_limits` enforces it (skipped for `app.workflow` functions); `updateRequest()` and the dropdowns follow. Details and Link to Output stay editable.
+- **Copy me, two boxes (owner, Oct 30, `0026_copy_me_two_boxes.sql`):** `gets_team_emails` became `copy_lead_emails` (N1, New Request Reminder, N10; forced off for Lead Designers in `save_team_member` and hidden in the form) plus new `copy_requester_emails` (N4, N6). N3 goes to the assigned designer only. N10 goes to all Lead Designers + `copy_lead_emails` + the assigned designer (`DUE_REMINDER_LEAD_EMAIL` removed). Both started unticked.
+- **Completed Requests (owner, Oct 30, `/admin/completed`):** menu item after Pendings; `scope: "completed"` in `listRequests()`. One summary box, Total completed · % of accepted, computed like the Dashboard tile (this year's requests; `ACCEPTED_STATUSES` in `src/lib/statuses.ts` is shared). Filters: Team, Type, Request date, Designer (no Status, no Show switch). The pipeline's Show switch is Open / On Hold / All (`ViewSwitch list=…`: Deal Requests and My Requests keep Completed); `/admin/pipeline?view=completed` redirects here with its other filters.
+- **Auto sign-out (owner, Oct 28, `src/lib/idle.ts`):** requesters are signed out after 2 hours with no activity and when the browser closes; anyone with a team tag (`is_staff()`) after 5 hours, and closing the browser keeps them signed in. No laptop-sleep rule. Activity = page loads (not prefetches), clicks, typing, scrolling, in any tab (`mdh-active` cookie, ms). Browser closed = `mdh-active` present but the session cookie `mdh-open` missing (Chrome's "Continue where you left off" can keep it; the 2-hour rule still applies). The middleware checks on every page load (one `is_staff` call only when the answer depends on it) and redirects to `/login?reason=idle&next=…`; `IdleSignOut.tsx` (in `AppHeader`) shows "Still there?" 5 minutes before, then POSTs `/auth/signout` and opens the sign-in page, which returns to the same page.
+- **Privacy clean-up (owner, Oct 28, `0024_anonymize_old_data.sql`):** `anonymize_old_data()` runs monthly (pg_cron, 1st at 18:00 UTC). Requests closed (Completed / Cancelled / Returned) with no change for 5 years (`updated_at`) get placeholders: requester "Former requester #<6 hex of md5(requester_id)>" + `former-requester-…@example.invalid`, approver "Former approver" (or the requester's tag if they approved it), designer → the inactive "Former designer" row (that request only); activity log `actor_id` → null with `actor_label` "Former requester" / "Former team member"; email log recipients emptied; text answers, "Other:" text, Project Overview, feedback comments, reasons and log notes → "Removed after 5 years"; `anonymized_at` set. Title, ratings, dates, type, team, status and Request ID stay. Accounts with no sign-in for 5 years are deleted unless on the Marketing team list or they still have a request not yet anonymized (their requests and feedback stay with `requester_id` null). On their own anonymized request the requester sees their current name (`withOwnDetails()`). The run turns off the request triggers until it ends (same transaction). Can't be undone.
+- **Email design (Oct 18):** logo + app name title, centred text, status tag (hex colours in `src/lib/statuses.ts`). The logo is served from each Supabase project's public `brand` storage bucket. Supabase's own emails use `docs/emails/*.html`.
+- **Test emails (Oct 18):** while `EMAIL_TEST_MODE=true`, every app email goes to the app's creator, `erylljanna.ong@stratpoint.com` (`EMAIL_TEST_RECIPIENT` locally and in Vercel Preview + Production).
+- **Brand (Oct 17; colour changed Oct 22):** colour `#3b94e4` for fills (`--brand`, `theme.brand`) and `#1f6fbf` for small blue text (`--brand-ink`, `theme.brandInk`; `.text-brand` uses it), icon tile recoloured to match; was `#0046bf`, app name in Inter bold, owner's light bulb + pen icon (`docs/brand/`). Emails come from `marketingcreativehub@ejoo.site` (was `marketingdesignhub@`, changed Oct 27), so the app shows a "check your spam folder" note until email moves to a Stratpoint domain (`src/components/SpamNotice.tsx`).
+
+---
+
+## 14. Branch flow
+
+Every change follows the same path:
+
+```
+dev ──► feature/<short-name> ──► dev ──► staging (testing) ──► main (live)
+```
+
+1. **Start** every change on a new `feature/<short-name>` branch created from the latest `dev`.
+2. **Merge** the finished feature branch into `dev`.
+3. **Merge** `dev` into `staging` to test it.
+4. **Merge** `staging` into `main` to go live.
+
+**Never commit directly to `dev`, `staging`, or `main`.** Changes reach them only by merging.
+
+---
+
+## 15. Best practices
+
+- **Atomic commits.** One logical change per commit.
+- **Conventional Commit messages.** Start each message with a type: `feat:` (new feature), `fix:` (bug fix), `docs:` (documentation), `refactor:` (code change with no behavior change), `chore:` (setup, dependencies, housekeeping). Example: `fix: show correct status on request detail page`.
+- **Semantic versioning (`x.y.z`) for every release.** Bump the version in `package.json`:
+  - `fix:` → patch (`1.2.3` → `1.2.4`)
+  - `feat:` → minor (`1.2.3` → `1.3.0`)
+  - breaking change → major (`1.2.3` → `2.0.0`)
+- **Check before every merge.** Run `npm run lint` and `npm run build`; both must pass.
+- **No secrets in code.** Keep them in `.env.local` and Vercel environment variables.
+- **Reuse before you build.** Use existing components first. **Ask me before adding any new package.**
+- **Row Level Security stays on for every table**, including new ones.

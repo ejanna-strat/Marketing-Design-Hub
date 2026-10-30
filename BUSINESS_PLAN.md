@@ -195,7 +195,7 @@ Final Approver storage: if "Myself", save the requester's name and email into `f
 ### 6.4 Social Media Materials (dynamic)
 - Target Audience — open text
 - Platform/s — **select all that apply** — Facebook · LinkedIn · Twitter/X · Instagram · TikTok · YouTube
-- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for Design Team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
+- **Type of social media material** ★ — select one + Other — GIF artwork · Video with static images · Video with stock videos · Full video production VI (for new video projects) · First cut of full video production (for Brand team) · Final cut of full video production · Video assets/supers · Reel/dynamic story · Minor video update/cutting
 - Copy — long text — help: "Place detailed text content or link to the document/slides file."
 - Mandatory video requirements — long text — help: "Any specifications required in the video (e.g. music, length of video, animations, video dimensions, etc.) Please provide file links for any required elements."
 - Design pegs/graphics — long text — help: "You may suggest a specific design or provide links to existing assets. If irrelevant, put N/A."
@@ -279,7 +279,7 @@ Buttons: **New Design Request** · **Track My Request** · **Share Feedback** (P
 
 1. **New Design Request** — form from §6. Picking a Type of Request expands that type's questions. Validate the required fields. Submit → create the request with status *New request*.
 2. **Request Submitted!** — copy:
-   > Please note that submitting a request does not mean it has been accepted or started. All requests are subject to review and approval by the Design Team.
+   > Please note that submitting a request does not mean it has been accepted or started. All requests are subject to review and approval by the Marketing Brand Team.
    > You will receive a separate notification once the assigned designer started working on your request.
    > You can track the status of your request anytime through Track My Requests.
 
@@ -387,13 +387,13 @@ Every email uses one shared layout: a header with "Marketing Design Hub", a purp
 **N8 — Final Design Output Ready** · Subject: `Final Design Output Ready: {title}` · Label: FINAL OUTPUT IS READY!
 > The final design output for your request is ready!
 > Request: {title} · Request ID: {code} · Designer: {designer_name} · Link to Final Output: Open Link ↗
-> We would also appreciate it if you could spare a few minutes to share your feedback on your experience with the Marketing Design Team. Your feedback will help us improve our process and the outputs we deliver.
+> We would also appreciate it if you could spare a few minutes to share your feedback on your experience with the Marketing Brand Team. Your feedback will help us improve our process and the outputs we deliver.
 > Thank you.
 > Buttons: **View Final Output** → link_to_output · **Share Feedback** → feedback page (**Phase 3**; in the MVP show only View Final Output and leave out the feedback paragraph) · Footer: F-REQ
 
 **N9 — Design Request Feedback** · Subject: `Design Request Feedback: {title}` · Label: DESIGN REQUEST FEEDBACK
 > We hope you've had a chance to review the final design output for {title}.
-> If you could spare a few minutes, we would greatly appreciate your feedback on your experience with the Marketing Design Team—from the request process to the design output itself.
+> If you could spare a few minutes, we would greatly appreciate your feedback on your experience with the Marketing Brand Team—from the request process to the design output itself.
 > Your feedback will help us identify what we're doing well and where we can improve.
 > Thank you for your time and support!
 > Button: **Share Feedback** → feedback page · Footer: F-REQ

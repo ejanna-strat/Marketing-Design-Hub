@@ -7,8 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-brand: var(--font-inter);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -52,8 +53,9 @@
 
 :root {
   /* THEME — brand accent lives here (keep in sync with src/config/theme.ts, used by emails) */
-  --brand: #6d28d9;
-  --brand-soft: #f3effd;
+  --brand: #3b94e4;
+  --brand-ink: #1f6fbf; /* small blue text (links, IDs, titles) — readable on white */
+  --brand-soft: #e7f2fc;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -88,25 +90,30 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Dark mode: the same brand blue; the soft tint becomes a deep navy and
+   small blue text uses a lighter ink so it reads on dark backgrounds. */
 .dark {
+  --brand: #3b94e4;
+  --brand-ink: #8cc4f5;
+  --brand-soft: #13283f;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--brand);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: var(--brand-soft);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--brand);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -114,7 +121,7 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -133,3 +140,26 @@
     @apply font-sans;
   }
 }
+/* Hide Microsoft Edge's own password eye; the app has its own (PasswordInput). */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+/* Brand-coloured text (links, Request IDs, active tabs, titles) uses the
+   "ink" shade of the brand blue so small text stays readable (owner, Oct 22). */
+.text-brand,
+.hover\:text-brand:hover {
+  color: var(--brand-ink);
+}
+
+/* Report tables (Analytics): alternating row colours so rows are easy to
+   follow across (owner, Oct 23). Solid colours, so a sticky first column
+   (bg-inherit) hides what scrolls under it. */
+.zebra > tbody > tr {
+  background-color: var(--card);
+}
+.zebra > tbody > tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--muted) 55%, var(--card));
+}
+

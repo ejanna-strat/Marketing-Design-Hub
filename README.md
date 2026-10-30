@@ -1,4 +1,4 @@
-# Marketing Design Hub
+# Marketing Creative Hub
 
 Internal web app for Stratpoint Marketing design requests. See `CLAUDE.md` for the full plan and `PROGRESS.md` for status.
 
