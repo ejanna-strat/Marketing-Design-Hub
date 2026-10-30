@@ -263,6 +263,9 @@ function MemberDialog({
   const isLead = form.roles.includes("lead_designer");
   // Email copies need a tag first (owner, Oct 30).
   const hasTag = form.roles.length > 0;
+  // Checked once they leave the field, then live as they fix it (owner, Oct 30).
+  const [emailLeft, setEmailLeft] = useState(false);
+  const badEmail = isNew && form.email.trim() !== "" && !/^[^@\s]+@stratpoint\.com$/i.test(form.email.trim());
   const firstName = form.fullName.trim().split(/\s+/)[0] ?? "";
 
   function toggle(role: MemberRole, on: boolean) {
@@ -311,11 +314,23 @@ function MemberDialog({
               placeholder="name@stratpoint.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onBlur={() => setEmailLeft(true)}
+              aria-invalid={emailLeft && badEmail}
+              aria-describedby="member-email-hint"
               disabled={!isNew}
               required
               autoFocus={isNew}
             />
-            {isNew && <p className="text-xs text-muted-foreground">Use their main email address, not an alias.</p>}
+            {isNew &&
+              (emailLeft && badEmail ? (
+                <p id="member-email-hint" className="text-xs text-destructive">
+                  Please enter a @stratpoint.com email address.
+                </p>
+              ) : (
+                <p id="member-email-hint" className="text-xs text-muted-foreground">
+                  Use their main email address, not an alias.
+                </p>
+              ))}
           </div>
 
           <div className="space-y-2">
@@ -440,7 +455,7 @@ function MemberDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || !hasTag}>
+            <Button type="submit" disabled={pending || !hasTag || badEmail}>
               {pending ? "Saving…" : isNew ? "Add member" : "Save changes"}
             </Button>
           </DialogFooter>
