@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Oct 30, 2026 · version 0.60.2_
+_Last updated: Oct 30, 2026 · version 0.60.3_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Oct 30, 2026 · version 0.60.2_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.60.3 (owner, Oct 30): Add member / Save changes is greyed out until at least one tag is ticked ("Choose at least one tag to save this member."); editing the form clears an old error message.
 - v0.60.2 (owner, Oct 30): the Email copies boxes are greyed out and can't be ticked until the member has at least one tag ("Choose a tag first").
 - v0.60.1 (owner, Oct 30): the copy boxes sit in their own **Email copies** section below a line ("Optional, and not a tag"), renamed **Copy on Lead's email** and **Copy on requester's email** to match the orientation deck; Lead Designers see "Lead Designers already get the Lead's emails" instead of the first box.
 - v0.60.0 (owner, Oct 30): **Copy me** in Settings → Members is now two boxes: **Copy me on Lead Designer emails** (New Design Request, New Request Reminder, Deadline reminder; hidden for Lead Designers, who get them) and **Copy me on requester emails** (Designer accepted, Designer changed). Nobody is copied on "Assigned to you" any more. The Deadline reminder goes to every Lead Designer (was Jerome only, set in code) + the assigned designer + box 1 members. Both boxes start unticked (Jerome and Sofia had the old box on staging). Admin tag description updated for v0.59.0. Migration `0026_copy_me_two_boxes.sql` (staging, tested in a rolled-back transaction; production at go-live).

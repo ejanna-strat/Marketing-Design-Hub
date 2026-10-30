@@ -250,8 +250,13 @@ function MemberDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState(member);
+  const [form, setFormState] = useState(member);
   const [error, setError] = useState<string>();
+  // Any edit clears the last error, so an old message doesn't stick around.
+  const setForm: typeof setFormState = (next) => {
+    setError(undefined);
+    setFormState(next);
+  };
   const [pending, startTransition] = useTransition();
   const isDesigner = form.roles.includes("designer") || form.roles.includes("lead_designer");
   // Lead Designers already get the Lead Designer emails.
@@ -425,13 +430,17 @@ function MemberDialog({
             </div>
           </fieldset>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : (
+            !hasTag && <p className="text-sm text-muted-foreground">Choose at least one tag to save this member.</p>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || !hasTag}>
               {pending ? "Saving…" : isNew ? "Add member" : "Save changes"}
             </Button>
           </DialogFooter>
