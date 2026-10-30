@@ -511,25 +511,28 @@ export type Database = {
         Row: {
           added_at: string
           designer_display_name: string | null
+          copy_lead_emails: boolean
+          copy_requester_emails: boolean
           email: string
           full_name: string
-          gets_team_emails: boolean
           roles: Database["public"]["Enums"]["app_role"][]
         }
         Insert: {
           added_at?: string
           designer_display_name?: string | null
+          copy_lead_emails?: boolean
+          copy_requester_emails?: boolean
           email: string
           full_name: string
-          gets_team_emails?: boolean
           roles?: Database["public"]["Enums"]["app_role"][]
         }
         Update: {
           added_at?: string
           designer_display_name?: string | null
+          copy_lead_emails?: boolean
+          copy_requester_emails?: boolean
           email?: string
           full_name?: string
-          gets_team_emails?: boolean
           roles?: Database["public"]["Enums"]["app_role"][]
         }
         Relationships: []
@@ -597,10 +600,11 @@ export type Database = {
       remove_team_member: { Args: { p_email: string }; Returns: undefined }
       save_team_member: {
         Args: {
+          p_copy_lead_emails: boolean
+          p_copy_requester_emails: boolean
           p_designer_name: string
           p_email: string
           p_full_name: string
-          p_gets_team_emails: boolean
           p_roles: Database["public"]["Enums"]["app_role"][]
         }
         Returns: undefined

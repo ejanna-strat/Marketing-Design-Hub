@@ -9,7 +9,7 @@ export default async function MembersPage() {
   const [{ data: members, error }, { data: profiles }] = await Promise.all([
     supabase
       .from("team_members")
-      .select("email, full_name, roles, designer_display_name, gets_team_emails")
+      .select("email, full_name, roles, designer_display_name, copy_lead_emails, copy_requester_emails")
       .order("full_name"),
     supabase.from("profiles").select("email"),
   ]);
@@ -35,7 +35,8 @@ export default async function MembersPage() {
           fullName: m.full_name,
           roles: m.roles.filter((r) => r !== "requester"),
           designerName: m.designer_display_name ?? "",
-          getsTeamEmails: m.gets_team_emails,
+          copyLeadEmails: m.copy_lead_emails,
+          copyRequesterEmails: m.copy_requester_emails,
           signedIn: signedIn.has(m.email),
         }))}
       />
