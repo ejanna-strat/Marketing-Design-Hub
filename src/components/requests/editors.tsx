@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, PencilIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -310,6 +310,11 @@ export function DesignerSelect({
 
 const LINK_NAME_HINTS = ["Name (optional), e.g. Staging site", "Name (optional), e.g. Wireframe", "Name (optional)"];
 
+// How many link slots to show: the filled ones, at least one (owner, Nov 4:
+// the others appear with "Add output link").
+const shownSlots = (slots: { url: string; label: string }[]) =>
+  Math.max(1, slots.filter((s) => s.url.trim() || s.label.trim()).length);
+
 // Up to three Links to Output, each with an optional name (owner, Nov 4).
 // One pop-up edits all three; any one link is enough for review / Completed.
 export function LinkEditor({
@@ -326,6 +331,9 @@ export function LinkEditor({
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => linkSlots(links));
+  const [count, setCount] = useState(() => shownSlots(linkSlots(links)));
+  // The field to focus: Link 1 on opening, a new link when it's added.
+  const [focus, setFocus] = useState(0);
   const [touched, setTouched] = useState(false);
   const invalid = draft.map((d) => d.url.trim() !== "" && !isOutputLink(d.url.trim()));
   const shown = outputLinks(links);
@@ -333,6 +341,12 @@ export function LinkEditor({
 
   function update(i: number, part: Partial<{ url: string; label: string }>) {
     setDraft((d) => d.map((slot, j) => (j === i ? { ...slot, ...part } : slot)));
+  }
+
+  // Removing a link moves the ones below it up.
+  function remove(i: number) {
+    setDraft((d) => [...d.filter((_, j) => j !== i), { url: "", label: "" }]);
+    setCount((c) => Math.max(1, c - 1));
   }
 
   return (
@@ -344,7 +358,10 @@ export function LinkEditor({
           onOpenChange={(next) => {
             setOpen(next);
             if (next) {
-              setDraft(linkSlots(links));
+              const slots = linkSlots(links);
+              setDraft(slots);
+              setCount(shownSlots(slots));
+              setFocus(0);
               setTouched(false);
             }
           }}
@@ -380,12 +397,27 @@ export function LinkEditor({
               <div>
                 <p className="text-sm font-medium">Links to Output</p>
                 <p className="text-xs text-muted-foreground">
-                  Up to 3. Names are optional; without one it shows as Link 1, 2 or 3.
+                  Names are optional; without one it shows as Link 1, 2 or 3.
                 </p>
               </div>
-              {draft.map((slot, i) => (
+              {draft.slice(0, count).map((slot, i) => (
                 <fieldset key={i} className="space-y-1.5">
-                  <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Link {i + 1}</legend>
+                  <legend
+                    className="mb-1.5 flex w-full items-center justify-between text-xs font-medium text-muted-foreground"
+                  >
+                    Link {i + 1}
+                    {i > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Remove link ${i + 1}`}
+                        onClick={() => remove(i)}
+                      >
+                        <XIcon />
+                      </Button>
+                    )}
+                  </legend>
                   <Input
                     aria-label={`Link ${i + 1} name`}
                     placeholder={LINK_NAME_HINTS[i]}
@@ -400,11 +432,25 @@ export function LinkEditor({
                     onChange={(e) => update(i, { url: e.target.value })}
                     onBlur={() => setTouched(true)}
                     aria-invalid={(touched && invalid[i]) || undefined}
-                    autoFocus={i === 0}
+                    autoFocus={i === focus}
                   />
                   {touched && invalid[i] && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
                 </fieldset>
               ))}
+              {count < draft.length && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFocus(count);
+                    setCount(count + 1);
+                  }}
+                >
+                  <PlusIcon />
+                  Add output link
+                </Button>
+              )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Cancel
