@@ -166,7 +166,7 @@ export function Paragraph({ children }: { children: React.ReactNode }) {
 // otherwise each one by its name on its own line (owner, Nov 4).
 export function OutputLinksValue({ links }: { links: OutputLinkItem[] }) {
   if (links.length === 0) return <>—</>;
-  if (links.length === 1 && links[0].label === "Link 1") {
+  if (links.length === 1 && !links[0].named) {
     return (
       <Link href={links[0].url} style={{ color: theme.brandInk }}>
         Open Link ↗
