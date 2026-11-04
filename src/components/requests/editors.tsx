@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/dates";
 import {
+  duplicateOf,
   isOutputLink,
   LINK_LABEL_MAX,
   linkSlots,
@@ -335,6 +336,7 @@ export function LinkEditor({
   const [touched, setTouched] = useState(false);
   const invalid = draft.map((d) => d.url.trim() !== "" && !isOutputLink(d.url.trim()));
   const nameOnly = draft.map((d) => !d.url.trim() && !!d.label.trim());
+  const dupe = duplicateOf(draft.map((d) => d.url));
   const shown = outputLinks(links);
   const any = shown.length > 0;
   // Save only a real change with valid links (owner, Nov 4). Clearing every
@@ -344,7 +346,8 @@ export function LinkEditor({
     (d, i) => d.url.trim() !== saved[i].url.trim() || d.label.trim() !== saved[i].label.trim(),
   );
   const filled = draft.some((d) => d.url.trim());
-  const canSave = changed && !invalid.some(Boolean) && !nameOnly.some(Boolean) && (filled || any);
+  const canSave =
+    changed && !invalid.some(Boolean) && !nameOnly.some(Boolean) && dupe.every((j) => j < 0) && (filled || any);
 
   function update(i: number, part: Partial<{ url: string; label: string }>) {
     setDraft((d) => d.map((slot, j) => (j === i ? { ...slot, ...part } : slot)));
@@ -440,6 +443,7 @@ export function LinkEditor({
                     autoFocus={i === focus}
                   />
                   {touched && invalid[i] && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
+                  {dupe[i] >= 0 && <p className="text-xs text-destructive">Same link as Link {dupe[i] + 1}.</p>}
                   {touched && nameOnly[i] && (
                     <p className="text-xs text-destructive">
                       {i === 0 ? "Add the link, or clear the name." : "Add the link, or remove this one."}
