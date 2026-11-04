@@ -5,7 +5,8 @@ import { useMemo } from "react";
 import { columnHelper, DataTable, type TableColumn } from "@/components/data-table/DataTable";
 import { Highlight } from "@/components/data-table/Highlight";
 import { StarsDisplay } from "@/components/feedback/Stars";
-import { OutputLink } from "@/components/LinkifiedText";
+import { OutputLinksCell } from "@/components/LinkifiedText";
+import { outputLinks } from "@/lib/links";
 import { StatusBadge } from "@/components/StatusBadge";
 import { type DesignerOption, DesignerSelect, LinkEditor, StatusSelect } from "@/components/requests/editors";
 import { formatDate } from "@/lib/dates";
@@ -85,12 +86,13 @@ export function PipelineTable({
               header: "Link to Output",
               cell: (info) =>
                 readOnly ? (
-                  <OutputLink value={info.getValue()} />
+                  <OutputLinksCell links={outputLinks(info.row.original)} />
                 ) : (
                   <LinkEditor
                     requestId={info.row.original.id}
-                    value={info.getValue()}
+                    links={info.row.original}
                     locked={INACTIVE.has(info.row.original.status)}
+                    compact
                   />
                 ),
             }),
@@ -141,7 +143,7 @@ export function PipelineTable({
                   requestId={r.id}
                   value={info.getValue()}
                   hasDesigner={!!r.assigned_designer_id}
-                  hasLink={!!r.link_to_output}
+                  hasLink={outputLinks(r).length > 0}
                   accepted={!!r.assigned_designer_id && r.designer_response === "accepted"}
                   holdOrCancelOnly={holdOrCancelOnly(viewer)}
                 />

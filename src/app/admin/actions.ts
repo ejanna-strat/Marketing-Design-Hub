@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url";
-import { isOutputLink, OUTPUT_LINK_ERROR } from "@/lib/links";
+import { isOutputLink, LINK_LABEL_MAX, OUTPUT_LINK_ERROR } from "@/lib/links";
 import { getCurrentUser } from "@/lib/auth";
 import {
   notifyAssigned,
@@ -23,17 +23,30 @@ type Result = { ok: true } | { ok: false; error: string };
 // updateRequest also returns the saved status (it can change automatically).
 type UpdateResult = { ok: true; status?: string } | { ok: false; error: string };
 
+const outputLink = z
+  .string()
+  .trim()
+  .max(2000, "Please keep the link under 2,000 characters.")
+  .refine((v) => !v || isOutputLink(v), OUTPUT_LINK_ERROR)
+  .transform((v) => v || null)
+  .nullable();
+const linkLabel = z
+  .string()
+  .trim()
+  .max(LINK_LABEL_MAX, `Please keep link names under ${LINK_LABEL_MAX} characters.`)
+  .transform((v) => v || null)
+  .nullable();
+
 const patchSchema = z
   .object({
     status: z.enum(Constants.public.Enums.request_status),
     assigned_designer_id: z.uuid().nullable(),
-    link_to_output: z
-      .string()
-      .trim()
-      .max(2000, "Please keep the link under 2,000 characters.")
-      .refine((v) => !v || isOutputLink(v), OUTPUT_LINK_ERROR)
-      .transform((v) => v || null)
-      .nullable(),
+    link_to_output: outputLink,
+    link_to_output_2: outputLink,
+    link_to_output_3: outputLink,
+    link_label_1: linkLabel,
+    link_label_2: linkLabel,
+    link_label_3: linkLabel,
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
     title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
     project_overview: z
@@ -68,6 +81,18 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   const parsed = patchSchema.safeParse(patch);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check your changes." };
   const changes = parsed.data;
+  // The links editor saves all three: filled ones move up so Link 1 is never
+  // empty while there are others (a name without a link is dropped).
+  if ("link_to_output_2" in changes) {
+    const filled = [
+      [changes.link_to_output, changes.link_label_1],
+      [changes.link_to_output_2, changes.link_label_2],
+      [changes.link_to_output_3, changes.link_label_3],
+    ].filter(([url]) => url);
+    [changes.link_to_output, changes.link_label_1] = filled[0] ?? [null, null];
+    [changes.link_to_output_2, changes.link_label_2] = filled[1] ?? [null, null];
+    [changes.link_to_output_3, changes.link_label_3] = filled[2] ?? [null, null];
+  }
   const fields = Object.keys(changes);
   if (fields.length === 0) return { ok: true };
   const supabase = await createClient();

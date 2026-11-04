@@ -1,5 +1,6 @@
-import { Body, Button, Container, Head, Hr, Html, Img, Preview, Section, Text } from "@react-email/components";
+import { Body, Button, Container, Head, Hr, Html, Img, Link, Preview, Section, Text } from "@react-email/components";
 import { theme } from "@/config/theme";
+import type { OutputLinkItem } from "@/lib/links";
 import { statusEmailColors, statusLabel } from "@/lib/statuses";
 
 // Shared layout for every notification (CLAUDE.md §8.2, refreshed Oct 18):
@@ -158,5 +159,30 @@ function buttonStyle(primary: boolean): React.CSSProperties {
 export function Paragraph({ children }: { children: React.ReactNode }) {
   return (
     <Text style={{ margin: "0 0 12px", fontSize: 15, lineHeight: "23px", color: "#152033", textAlign: "center" }}>{children}</Text>
+  );
+}
+
+// Links to Output in the details: "Open Link ↗" for a single unnamed link,
+// otherwise each one by its name on its own line (owner, Nov 4).
+export function OutputLinksValue({ links }: { links: OutputLinkItem[] }) {
+  if (links.length === 0) return <>—</>;
+  if (links.length === 1 && links[0].label === "Link 1") {
+    return (
+      <Link href={links[0].url} style={{ color: theme.brandInk }}>
+        Open Link ↗
+      </Link>
+    );
+  }
+  return (
+    <>
+      {links.map((link, i) => (
+        <span key={i}>
+          {i > 0 && <br />}
+          <Link href={link.url} style={{ color: theme.brandInk }}>
+            {link.label} ↗
+          </Link>
+        </span>
+      ))}
+    </>
   );
 }
