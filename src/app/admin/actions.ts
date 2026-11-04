@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/app-url";
-import { isOutputLink, LINK_LABEL_MAX, OUTPUT_LINK_ERROR } from "@/lib/links";
+import { duplicateOf, isOutputLink, LINK_LABEL_MAX, OUTPUT_LINK_ERROR } from "@/lib/links";
 import { getCurrentUser } from "@/lib/auth";
 import {
   notifyAssigned,
@@ -89,6 +89,9 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
       [changes.link_to_output_2, changes.link_label_2],
       [changes.link_to_output_3, changes.link_label_3],
     ].filter(([url]) => url);
+    if (duplicateOf(filled.map(([url]) => url ?? "")).some((j) => j >= 0)) {
+      return { ok: false, error: "The same link is added twice. Please remove one." };
+    }
     [changes.link_to_output, changes.link_label_1] = filled[0] ?? [null, null];
     [changes.link_to_output_2, changes.link_label_2] = filled[1] ?? [null, null];
     [changes.link_to_output_3, changes.link_label_3] = filled[2] ?? [null, null];

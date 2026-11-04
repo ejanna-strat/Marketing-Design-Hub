@@ -33,6 +33,26 @@ export function outputLinks(r: OutputLinkFields): OutputLinkItem[] {
   return linkSlots(r).flatMap((s, i) => (s.url ? [{ url: s.url, label: s.label.trim() || `Link ${i + 1}` }] : []));
 }
 
+// Two links count as the same when they only differ in the site name's
+// capitals or a trailing "/" (paths stay exact: Drive and Figma IDs are
+// case-sensitive) (owner, Nov 4).
+export function linkKey(value: string) {
+  const v = value.trim();
+  try {
+    const u = new URL(v);
+    return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}${u.search}${u.hash}`;
+  } catch {
+    return v;
+  }
+}
+
+// For each slot, the earlier slot holding the same link, or -1.
+export function duplicateOf(urls: string[]) {
+  return urls.map((url, i) =>
+    url.trim() ? urls.findIndex((other, j) => j < i && other.trim() && linkKey(other) === linkKey(url)) : -1,
+  );
+}
+
 export function isOutputLink(value: string) {
   if (!OUTPUT_LINK.test(value)) return false;
   try {
