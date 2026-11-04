@@ -92,6 +92,9 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     if (duplicateOf(filled.map(([url]) => url ?? "")).some((j) => j >= 0)) {
       return { ok: false, error: "The same link is added twice. Please remove one." };
     }
+    if (filled.length >= 2 && filled.some(([, label]) => !label)) {
+      return { ok: false, error: "Please give each link a name when there are 2 or more." };
+    }
     [changes.link_to_output, changes.link_label_1] = filled[0] ?? [null, null];
     [changes.link_to_output_2, changes.link_label_2] = filled[1] ?? [null, null];
     [changes.link_to_output_3, changes.link_label_3] = filled[2] ?? [null, null];
