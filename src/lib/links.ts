@@ -5,10 +5,11 @@ export const OUTPUT_LINK = /^https?:\/\/[^\s/]+\.\S+$/i;
 export const OUTPUT_LINK_ERROR = "Please enter a valid link that starts with https:// (e.g. https://docs.google.com/…).";
 
 // Up to three Links to Output, each with an optional name (owner, Nov 4).
-// Unnamed links show as "Link 1", "Link 2", "Link 3".
+// An unnamed link shows as "Output link" when it's the only one (owner, Nov 4),
+// otherwise as "Link 1", "Link 2", "Link 3".
 export const LINK_LABEL_MAX = 60;
 
-export type OutputLinkItem = { url: string; label: string };
+export type OutputLinkItem = { url: string; label: string; named: boolean };
 
 export type OutputLinkFields = {
   link_to_output: string | null;
@@ -30,7 +31,13 @@ export function linkSlots(r: OutputLinkFields) {
 
 // The filled-in links, in order, each with its name or "Link N".
 export function outputLinks(r: OutputLinkFields): OutputLinkItem[] {
-  return linkSlots(r).flatMap((s, i) => (s.url ? [{ url: s.url, label: s.label.trim() || `Link ${i + 1}` }] : []));
+  const slots = linkSlots(r);
+  const single = slots.filter((s) => s.url).length === 1;
+  return slots.flatMap((s, i) => {
+    if (!s.url) return [];
+    const name = s.label.trim();
+    return [{ url: s.url, label: name || (single ? "Output link" : `Link ${i + 1}`), named: !!name }];
+  });
 }
 
 // Two links count as the same when they only differ in the site name's
