@@ -111,7 +111,7 @@ Roles updated Oct 16 (owner's role table). Every role can also file its own requ
 
 ### 4.3 Reference lists (store in DB tables so admins can edit later)
 
-**Business Unit / Team:** AI/ML · Cloud & Data · QA · Software Services · Marketing · Sales · Human Resources · Finance & Admin · ITSM · Product Strategy
+**Business Unit / Team** (A–Z since Nov 4, `0028_business_units.sql`): AI/ML · Cloud & Data · Finance & Admin · Human Resources · ITX (was ITSM) · Management · Marketing · Product Strategy · Professional Services Management Office (PSMO) · Quality Assurance (QA) (was QA) · Sales · Software Services · Technology Governance Team (TGT). New units go in alphabetically (`sort_order`).
 
 **Designers:** Jerome · Steve · Sofia
 
