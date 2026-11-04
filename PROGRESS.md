@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 4, 2026 · version 0.62.0_
+_Last updated: Nov 4, 2026 · version 0.63.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 4, 2026 · version 0.62.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.63.0 (owner, Nov 4): **Business Unit list:** QA → Quality Assurance (QA), ITSM → ITX (past requests show the new names), new Management, Technology Governance Team (TGT) and Professional Services Management Office (PSMO), all in A–Z order. Data-only migration `0028_business_units.sql` (staging, then production Nov 4).
 - v0.62.0 (owner, Nov 4): the Links to Output pop-up catches the **same link pasted twice** ("Same link as Link 1.", Save greyed out); the save is also refused on the server. Site-name capitals and a trailing "/" don't count as different; the rest of the link is compared exactly (`linkKey()` / `duplicateOf()` in `src/lib/links.ts`).
 - v0.61.2 (owner, Nov 4): the Links to Output **Save** button stays greyed out until there's a real change: no links yet, a link that isn't https://, a name without a link ("Add the link, or remove this one.") or nothing changed all keep it disabled. Clearing every saved link is still allowed, to remove a wrong one.
 - v0.61.1 (owner, Nov 4): the Links to Output pop-up starts with Link 1 only; **+ Add output link** shows the next slot (up to 3), and the ✕ on Link 2 / 3 removes it; name boxes just say "Name (optional)" (owner, Nov 4) (the ones below move up). Saved links open with their slots already shown.
