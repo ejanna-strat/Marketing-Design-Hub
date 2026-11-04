@@ -13,6 +13,7 @@ import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
 import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
+import { type OutputLinkFields, outputLinks } from "@/lib/links";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "./send";
 
@@ -22,7 +23,7 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, assigned_designer_id, return_reason, returned_by, cancel_reason, team:teams(name), designer:designers(display_name, email)")
+    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, assigned_designer_id, return_reason, returned_by, cancel_reason, team:teams(name), designer:designers(display_name, email)")
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
@@ -64,7 +65,7 @@ export async function notifyNewRequest(requestId: string, appUrl: string) {
 export async function notifyFinalOutput(requestId: string, appUrl: string) {
   try {
     const request = await loadRequest(requestId);
-    const link = request.link_to_output && /^https?:\/\/\S+$/.test(request.link_to_output) ? request.link_to_output : null;
+    const links = webLinks(request);
 
     await sendEmail({
       key: "N8_FINAL_OUTPUT",
@@ -75,8 +76,8 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
         title: request.title,
         code: request.request_code,
         designerName: request.designer?.display_name ?? "the Marketing Design team",
-        outputUrl: link,
-        buttonUrl: link ?? `${appUrl}/my-requests/${request.request_code}`,
+        outputLinks: links,
+        buttonUrl: links[0]?.url ?? `${appUrl}/my-requests/${request.request_code}`,
         feedbackUrl: `${appUrl}/feedback/${request.request_code}`,
       }),
     });
@@ -101,7 +102,8 @@ async function requesterCopyRecipients() {
   return (data ?? []).map((m) => m.email);
 }
 
-const outputLink = (value: string | null) => (value && /^https?:\/\/\S+$/.test(value) ? value : null);
+// The request's Links to Output that are web links (older ones may be text).
+const webLinks = (r: OutputLinkFields) => outputLinks(r).filter((l) => /^https?:\/\/\S+$/.test(l.url));
 
 // N2 — the requester, once, when a reviewer returns the request.
 export async function notifyReturned(requestId: string, appUrl: string) {
@@ -219,7 +221,7 @@ export async function notifyForReview(requestId: string, appUrl: string) {
         title: r.title,
         code: r.request_code,
         designerName: r.designer?.display_name ?? "the designer",
-        outputUrl: outputLink(r.link_to_output),
+        outputLinks: webLinks(r),
         url: `${appUrl}/my-requests/${r.request_code}`,
       }),
     });

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { columnHelper, DataTable } from "@/components/data-table/DataTable";
 import { Highlight } from "@/components/data-table/Highlight";
-import { OutputLink } from "@/components/LinkifiedText";
+import { OutputLinksCell } from "@/components/LinkifiedText";
+import { outputLinks } from "@/lib/links";
 import { StarsDisplay } from "@/components/feedback/Stars";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/dates";
@@ -39,7 +40,10 @@ const columns = col.columns([
     header: "Assigned Designer",
     cell: (info) => (info.getValue() ? <Highlight text={info.getValue()} /> : <span className="text-muted-foreground">—</span>),
   }),
-  col.accessor("link_to_output", { header: "Link to Output", cell: (info) => <OutputLink value={info.getValue()} /> }),
+  col.accessor("link_to_output", {
+    header: "Link to Output",
+    cell: (info) => <OutputLinksCell links={outputLinks(info.row.original)} />,
+  }),
   col.display({
     id: "feedback",
     header: "Overall Feedback",
