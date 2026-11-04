@@ -342,7 +342,9 @@ export function LinkEditor({
   // Save only a real change with valid links (owner, Nov 4). Clearing every
   // link is allowed when some were saved before, to remove a wrong one.
   const saved = linkSlots(links);
-  const changed = draft.some((d, i) => d.url.trim() !== saved[i].url.trim() || d.label.trim() !== saved[i].label.trim());
+  const changed = draft.some(
+    (d, i) => d.url.trim() !== saved[i].url.trim() || d.label.trim() !== saved[i].label.trim(),
+  );
   const filled = draft.some((d) => d.url.trim());
   const canSave = changed && !invalid.some(Boolean) && !nameOnly.some(Boolean) && (filled || any);
 
@@ -408,10 +410,8 @@ export function LinkEditor({
               </div>
               {draft.slice(0, count).map((slot, i) => (
                 <fieldset key={i} className="space-y-1.5">
-                  <legend
-                    className="mb-1.5 flex w-full items-center justify-between text-xs font-medium text-muted-foreground"
-                  >
-                    Link {i + 1}
+                  <legend className="mb-1.5 flex w-full items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Link {i + 1}</span>
                     {i > 0 && (
                       <Button
                         type="button"
