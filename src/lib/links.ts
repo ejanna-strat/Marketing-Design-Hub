@@ -5,7 +5,8 @@ export const OUTPUT_LINK = /^https?:\/\/[^\s/]+\.\S+$/i;
 export const OUTPUT_LINK_ERROR = "Please enter a valid link that starts with https:// (e.g. https://docs.google.com/…).";
 
 // Up to three Links to Output, each with an optional name (owner, Nov 4).
-// An unnamed link shows as "Output link" when it's the only one (owner, Nov 4),
+// An unnamed link shows as "Open link" when it's the only one, like the lists
+// and emails (owner, Nov 4),
 // otherwise as "Link 1", "Link 2", "Link 3".
 export const LINK_LABEL_MAX = 60;
 
@@ -36,7 +37,7 @@ export function outputLinks(r: OutputLinkFields): OutputLinkItem[] {
   return slots.flatMap((s, i) => {
     if (!s.url) return [];
     const name = s.label.trim();
-    return [{ url: s.url, label: name || (single ? "Output link" : `Link ${i + 1}`), named: !!name }];
+    return [{ url: s.url, label: name || (single ? "Open link" : `Link ${i + 1}`), named: !!name }];
   });
 }
 
