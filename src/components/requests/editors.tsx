@@ -308,8 +308,6 @@ export function DesignerSelect({
   );
 }
 
-const LINK_NAME_HINTS = ["Name (optional), e.g. Staging site", "Name (optional), e.g. Wireframe", "Name (optional)"];
-
 // How many link slots to show: the filled ones, at least one (owner, Nov 4:
 // the others appear with "Add output link").
 const shownSlots = (slots: { url: string; label: string }[]) =>
@@ -426,7 +424,7 @@ export function LinkEditor({
                   </legend>
                   <Input
                     aria-label={`Link ${i + 1} name`}
-                    placeholder={LINK_NAME_HINTS[i]}
+                    placeholder="Name (optional)"
                     maxLength={LINK_LABEL_MAX}
                     value={slot.label}
                     onChange={(e) => update(i, { label: e.target.value })}
