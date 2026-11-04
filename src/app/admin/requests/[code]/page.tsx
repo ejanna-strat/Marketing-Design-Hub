@@ -21,6 +21,7 @@ import { getRequestByCode } from "@/lib/requests/detail";
 import { designerChoice, holdOrCancelOnly, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
+import { outputLinks } from "@/lib/links";
 
 // Request Details window for the Marketing team. Everyone on the team can edit
 // Status, Link, Date Needed and General Information; Super Admins and Lead
@@ -103,7 +104,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       requestId={request.id}
                       value={request.status}
                       hasDesigner={!!request.assigned_designer_id}
-                      hasLink={!!request.link_to_output}
+                      hasLink={outputLinks(request).length > 0}
                       accepted={!!request.assigned_designer_id && request.designer_response === "accepted"}
                       holdOrCancelOnly={holdOrCancelOnly(viewer)}
                     />} />
@@ -125,7 +126,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 />
                 <Item label="Link to Output" value={<LinkEditor
                       requestId={request.id}
-                      value={request.link_to_output}
+                      links={request}
                       locked={request.status === "cancelled" || request.status === "rejected"}
                     />} />
                 <Item
@@ -200,6 +201,8 @@ const FIELD_NAMES: Record<string, string> = {
   status: "Status",
   designer: "Assigned Designer",
   link_to_output: "Link to Output",
+  link_to_output_2: "Link to Output 2",
+  link_to_output_3: "Link to Output 3",
   date_needed: "Date Needed",
   output_needed: "Output Needed",
 };

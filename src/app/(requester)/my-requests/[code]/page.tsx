@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/CopyButton";
 import { BackToList } from "@/components/data-table/ListMemory";
 import { FeedbackCard } from "@/components/feedback/FeedbackCard";
-import { OutputLink } from "@/components/LinkifiedText";
+import { OutputLinkList } from "@/components/LinkifiedText";
+import { outputLinks } from "@/lib/links";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export default async function MyRequestDetailPage({
                 )
               }
             />
-            <Item label="Link to Output" value={request.link_to_output && <OutputLink value={request.link_to_output} />} />
+            <Item label="Link to Output" value={outputLinks(request).length > 0 && <OutputLinkList links={outputLinks(request)} />} />
             <Item label="Date Completed" value={request.date_completed && formatDate(request.date_completed)} />
           </dl>
         </CardContent>
