@@ -396,6 +396,11 @@ export type Database = {
           id: string
           is_deal: boolean
           link_to_output: string | null
+          link_to_output_2: string | null
+          link_to_output_3: string | null
+          link_label_1: string | null
+          link_label_2: string | null
+          link_label_3: string | null
           output_needed: string
           reassign_reason: string | null
           request_code: string
@@ -429,6 +434,11 @@ export type Database = {
           id?: string
           is_deal?: boolean
           link_to_output?: string | null
+          link_to_output_2?: string | null
+          link_to_output_3?: string | null
+          link_label_1?: string | null
+          link_label_2?: string | null
+          link_label_3?: string | null
           output_needed: string
           reassign_reason?: string | null
           request_code: string
@@ -462,6 +472,11 @@ export type Database = {
           id?: string
           is_deal?: boolean
           link_to_output?: string | null
+          link_to_output_2?: string | null
+          link_to_output_3?: string | null
+          link_label_1?: string | null
+          link_label_2?: string | null
+          link_label_3?: string | null
           output_needed?: string
           reassign_reason?: string | null
           request_code?: string

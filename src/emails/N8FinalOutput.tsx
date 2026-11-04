@@ -1,6 +1,5 @@
-import { Link } from "@react-email/components";
-import { theme } from "@/config/theme";
-import { EmailLayout, FOOTERS, Paragraph } from "./Layout";
+import type { OutputLinkItem } from "@/lib/links";
+import { EmailLayout, FOOTERS, OutputLinksValue, Paragraph } from "./Layout";
 
 // N8 — sent to the requester when the status becomes Completed, with the
 // feedback paragraph and Share Feedback button (§8.2; feedback built Oct 18).
@@ -12,15 +11,15 @@ export function N8FinalOutput({
   title,
   code,
   designerName,
-  outputUrl,
+  outputLinks,
   buttonUrl,
   feedbackUrl,
 }: {
   title: string;
   code: string;
   designerName: string;
-  outputUrl: string | null;
-  // The final output link, or the request's page when there is no link.
+  outputLinks: OutputLinkItem[];
+  // The (first) final output link, or the request's page when there is no link.
   buttonUrl: string;
   feedbackUrl: string;
 }) {
@@ -34,14 +33,8 @@ export function N8FinalOutput({
         { label: "Request ID", value: code },
         { label: "Designer", value: designerName },
         {
-          label: "Link to Final Output",
-          value: outputUrl ? (
-            <Link href={outputUrl} style={{ color: theme.brandInk }}>
-              Open Link ↗
-            </Link>
-          ) : (
-            "—"
-          ),
+          label: outputLinks.length > 1 ? "Links to Final Output" : "Link to Final Output",
+          value: <OutputLinksValue links={outputLinks} />,
         },
       ]}
       closing={

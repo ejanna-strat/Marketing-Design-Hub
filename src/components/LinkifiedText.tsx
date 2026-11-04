@@ -1,4 +1,5 @@
 import { ExternalLinkIcon } from "lucide-react";
+import type { OutputLinkItem } from "@/lib/links";
 import { cn } from "@/lib/utils";
 
 const URL_RE = /(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]])/g;
@@ -39,4 +40,53 @@ export function OutputLink({ value }: { value: string | null }) {
     );
   }
   return <LinkifiedText text={value} className="line-clamp-2" />;
+}
+
+function NamedLink({ link }: { link: OutputLinkItem }) {
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noreferrer"
+      title={link.url}
+      className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
+    >
+      {link.label}
+      <ExternalLinkIcon className="size-3.5 shrink-0" />
+    </a>
+  );
+}
+
+// Every Link to Output, one per line, by its name ("Link 1" if unnamed).
+export function OutputLinkList({ links }: { links: OutputLinkItem[] }) {
+  if (links.length === 0) return <span className="text-muted-foreground">—</span>;
+  return (
+    <ul className="space-y-1">
+      {links.map((link, i) => (
+        <li key={i}>
+          <NamedLink link={link} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// The table cell: the first link ("Open link" when it has no name) and "+N"
+// for the others, listed in its tooltip.
+export function OutputLinksCell({ links }: { links: OutputLinkItem[] }) {
+  if (links.length === 0) return <span className="text-muted-foreground">—</span>;
+  const [first, ...rest] = links;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {first.label === "Link 1" ? <OutputLink value={first.url} /> : <NamedLink link={first} />}
+      {rest.length > 0 && (
+        <span
+          title={rest.map((l) => `${l.label}: ${l.url}`).join("\n")}
+          className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+        >
+          +{rest.length}
+        </span>
+      )}
+    </span>
+  );
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, PencilIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cancelRequest, type RequestPatch, updateRequest } from "@/app/admin/actions";
 import { ConfirmLeaveDialog } from "@/components/form/UnsavedChangesGuard";
-import { OutputLink } from "@/components/LinkifiedText";
+import { OutputLinkList, OutputLinksCell } from "@/components/LinkifiedText";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -26,7 +26,15 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/dates";
-import { isOutputLink, OUTPUT_LINK_ERROR } from "@/lib/links";
+import {
+  duplicateOf,
+  isOutputLink,
+  LINK_LABEL_MAX,
+  linkSlots,
+  OUTPUT_LINK_ERROR,
+  type OutputLinkFields,
+  outputLinks,
+} from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
 import { ADMIN_STATUSES, NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
@@ -301,61 +309,167 @@ export function DesignerSelect({
   );
 }
 
-export function LinkEditor({ requestId, value, locked }: { requestId: string; value: string | null; locked?: boolean }) {
+// How many link slots to show: the filled ones, at least one (owner, Nov 4:
+// the others appear with "Add output link").
+const shownSlots = (slots: { url: string; label: string }[]) =>
+  Math.max(1, slots.filter((s) => s.url.trim() || s.label.trim()).length);
+
+// Up to three Links to Output, each with an optional name (owner, Nov 4).
+// One pop-up edits all three; any one link is enough for review / Completed.
+export function LinkEditor({
+  requestId,
+  links,
+  locked,
+  compact,
+}: {
+  requestId: string;
+  links: OutputLinkFields;
+  locked?: boolean;
+  compact?: boolean;
+}) {
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value ?? "");
+  const [draft, setDraft] = useState(() => linkSlots(links));
+  const [count, setCount] = useState(() => shownSlots(linkSlots(links)));
+  // The field to focus: Link 1 on opening, a new link when it's added.
+  const [focus, setFocus] = useState(0);
   const [touched, setTouched] = useState(false);
-  const invalid = draft.trim() !== "" && !isOutputLink(draft.trim());
+  const invalid = draft.map((d) => d.url.trim() !== "" && !isOutputLink(d.url.trim()));
+  const nameOnly = draft.map((d) => !d.url.trim() && !!d.label.trim());
+  const dupe = duplicateOf(draft.map((d) => d.url));
+  const shown = outputLinks(links);
+  const any = shown.length > 0;
+  // Save only a real change with valid links (owner, Nov 4). Clearing every
+  // link is allowed when some were saved before, to remove a wrong one.
+  const saved = linkSlots(links);
+  const changed = draft.some(
+    (d, i) => d.url.trim() !== saved[i].url.trim() || d.label.trim() !== saved[i].label.trim(),
+  );
+  const filled = draft.some((d) => d.url.trim());
+  const canSave =
+    changed && !invalid.some(Boolean) && !nameOnly.some(Boolean) && dupe.every((j) => j < 0) && (filled || any);
+
+  function update(i: number, part: Partial<{ url: string; label: string }>) {
+    setDraft((d) => d.map((slot, j) => (j === i ? { ...slot, ...part } : slot)));
+  }
+
+  // Removing a link moves the ones below it up.
+  function remove(i: number) {
+    setDraft((d) => [...d.filter((_, j) => j !== i), { url: "", label: "" }]);
+    setCount((c) => Math.max(1, c - 1));
+  }
 
   return (
-    <div className="flex items-center gap-1">
-      <OutputLink value={value} />
+    <div className="flex items-start gap-1">
+      {compact ? <OutputLinksCell links={shown} /> : <OutputLinkList links={shown} />}
       {!locked && (
         <Popover
           open={open}
           onOpenChange={(next) => {
             setOpen(next);
             if (next) {
-              setDraft(value ?? "");
+              const slots = linkSlots(links);
+              setDraft(slots);
+              setCount(shownSlots(slots));
+              setFocus(0);
               setTouched(false);
             }
           }}
         >
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-xs" aria-label={value ? "Edit Link to Output" : "Add Link to Output"}>
+            <Button variant="ghost" size="icon-xs" aria-label={any ? "Edit Links to Output" : "Add Link to Output"}>
               <PencilIcon />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-80">
+          <PopoverContent align="start" className="w-96">
             <form
-              className="space-y-3"
+              className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 setTouched(true);
-                if (invalid) return;
-                save({ link_to_output: draft }, draft.trim() ? "Link to Output saved" : "Link to Output removed");
+                if (!canSave) return;
+                const [a, b, c] = draft;
+                save(
+                  {
+                    link_to_output: a.url,
+                    link_label_1: a.label,
+                    link_to_output_2: b.url,
+                    link_label_2: b.label,
+                    link_to_output_3: c.url,
+                    link_label_3: c.label,
+                  },
+                  filled ? "Links to Output saved" : "Links to Output removed",
+                );
                 setOpen(false);
               }}
             >
-              <label className="text-sm font-medium" htmlFor={`link-${requestId}`}>
-                Link to Output
-              </label>
-              <Input
-                id={`link-${requestId}`}
-                placeholder="https://…"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={() => setTouched(true)}
-                aria-invalid={(touched && invalid) || undefined}
-                autoFocus
-              />
-              {touched && invalid && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
+              <div>
+                <p className="text-sm font-medium">Links to Output</p>
+                <p className="text-xs text-muted-foreground">
+                  Names are optional; without one it shows as Link 1, 2 or 3.
+                </p>
+              </div>
+              {draft.slice(0, count).map((slot, i) => (
+                <fieldset key={i} className="space-y-1.5">
+                  <legend className="mb-1.5 flex w-full items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Link {i + 1}</span>
+                    {i > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Remove link ${i + 1}`}
+                        onClick={() => remove(i)}
+                      >
+                        <XIcon />
+                      </Button>
+                    )}
+                  </legend>
+                  <Input
+                    aria-label={`Link ${i + 1} name`}
+                    placeholder="Name (optional)"
+                    maxLength={LINK_LABEL_MAX}
+                    value={slot.label}
+                    onChange={(e) => update(i, { label: e.target.value })}
+                    onBlur={() => setTouched(true)}
+                  />
+                  <Input
+                    aria-label={`Link ${i + 1}`}
+                    placeholder="https://…"
+                    value={slot.url}
+                    onChange={(e) => update(i, { url: e.target.value })}
+                    onBlur={() => setTouched(true)}
+                    aria-invalid={(touched && invalid[i]) || undefined}
+                    autoFocus={i === focus}
+                  />
+                  {touched && invalid[i] && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
+                  {dupe[i] >= 0 && <p className="text-xs text-destructive">Same link as Link {dupe[i] + 1}.</p>}
+                  {touched && nameOnly[i] && (
+                    <p className="text-xs text-destructive">
+                      {i === 0 ? "Add the link, or clear the name." : "Add the link, or remove this one."}
+                    </p>
+                  )}
+                </fieldset>
+              ))}
+              {count < draft.length && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFocus(count);
+                    setCount(count + 1);
+                  }}
+                >
+                  <PlusIcon />
+                  Add output link
+                </Button>
+              )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={pending}>
+                <Button type="submit" size="sm" disabled={pending || !canSave}>
                   Save
                 </Button>
               </div>
