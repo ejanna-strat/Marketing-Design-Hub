@@ -415,7 +415,7 @@ export function LinkEditor({
               <div>
                 <p className="text-sm font-medium">Links to Output</p>
                 <p className="text-xs text-muted-foreground">
-                  One link can go without a name (it shows as “Output link”). With 2 or more, give each one a name.
+                  One link can go without a name (it shows as “Open link”). With 2 or more, give each one a name.
                 </p>
               </div>
               {draft.slice(0, count).map((slot, i) => (
