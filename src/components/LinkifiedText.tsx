@@ -57,7 +57,7 @@ function NamedLink({ link }: { link: OutputLinkItem }) {
   );
 }
 
-// Every Link to Output, one per line, by its name ("Output link" or "Link 1"
+// Every Link to Output, one per line, by its name ("Open link" or "Link 1"
 // if unnamed).
 export function OutputLinkList({ links }: { links: OutputLinkItem[] }) {
   if (links.length === 0) return <span className="text-muted-foreground">—</span>;
