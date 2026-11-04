@@ -336,6 +336,10 @@ export function LinkEditor({
   const [touched, setTouched] = useState(false);
   const invalid = draft.map((d) => d.url.trim() !== "" && !isOutputLink(d.url.trim()));
   const nameOnly = draft.map((d) => !d.url.trim() && !!d.label.trim());
+  // With 2 or more links each one needs a name; a single link's is optional
+  // (owner, Nov 4).
+  const namesNeeded = draft.filter((d) => d.url.trim()).length >= 2;
+  const nameMissing = draft.map((d) => namesNeeded && !!d.url.trim() && !d.label.trim());
   const dupe = duplicateOf(draft.map((d) => d.url));
   const shown = outputLinks(links);
   const any = shown.length > 0;
@@ -347,7 +351,12 @@ export function LinkEditor({
   );
   const filled = draft.some((d) => d.url.trim());
   const canSave =
-    changed && !invalid.some(Boolean) && !nameOnly.some(Boolean) && dupe.every((j) => j < 0) && (filled || any);
+    changed &&
+    !invalid.some(Boolean) &&
+    !nameOnly.some(Boolean) &&
+    !nameMissing.some(Boolean) &&
+    dupe.every((j) => j < 0) &&
+    (filled || any);
 
   function update(i: number, part: Partial<{ url: string; label: string }>) {
     setDraft((d) => d.map((slot, j) => (j === i ? { ...slot, ...part } : slot)));
@@ -406,7 +415,7 @@ export function LinkEditor({
               <div>
                 <p className="text-sm font-medium">Links to Output</p>
                 <p className="text-xs text-muted-foreground">
-                  Names are optional; without one it shows as Link 1, 2 or 3.
+                  One link can go without a name. With 2 or more, give each one a name.
                 </p>
               </div>
               {draft.slice(0, count).map((slot, i) => (
@@ -427,7 +436,8 @@ export function LinkEditor({
                   </legend>
                   <Input
                     aria-label={`Link ${i + 1} name`}
-                    placeholder="Name (optional)"
+                    placeholder={namesNeeded ? "Name" : "Name (optional)"}
+                    aria-invalid={(touched && nameMissing[i]) || undefined}
                     maxLength={LINK_LABEL_MAX}
                     value={slot.label}
                     onChange={(e) => update(i, { label: e.target.value })}
@@ -444,6 +454,9 @@ export function LinkEditor({
                   />
                   {touched && invalid[i] && <p className="text-xs text-destructive">{OUTPUT_LINK_ERROR}</p>}
                   {dupe[i] >= 0 && <p className="text-xs text-destructive">Same link as Link {dupe[i] + 1}.</p>}
+                  {touched && nameMissing[i] && (
+                    <p className="text-xs text-destructive">Add a name — needed when there are 2 or more links.</p>
+                  )}
                   {touched && nameOnly[i] && (
                     <p className="text-xs text-destructive">
                       {i === 0 ? "Add the link, or clear the name." : "Add the link, or remove this one."}
