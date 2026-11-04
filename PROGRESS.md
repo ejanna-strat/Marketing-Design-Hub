@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 4, 2026 · version 0.64.0_
+_Last updated: Nov 4, 2026 · version 0.64.1_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 4, 2026 · version 0.64.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.64.1 (owner, Nov 4): a single unnamed Link to Output shows as **Output link** on request pages (team and requester) instead of "Link 1"; lists keep "Open link" and emails "Open Link ↗".
 - v0.64.0 (owner, Nov 4): **Link names:** optional for a single Link to Output; with 2 or more links every link needs a name ("Add a name — needed when there are 2 or more links.", Save greyed out; the save is also refused on the server). The name boxes say "Name" instead of "Name (optional)" once there are 2+ links. App rule only (no migration).
 - v0.63.1 (owner, Nov 4): PSMO renamed **Professional Service Management Office (PSMO)** (Service, not Services); `0029_psmo_name.sql` applied to staging and production the same day.
 - v0.63.0 (owner, Nov 4): **Business Unit list:** QA → Quality Assurance (QA), ITSM → ITX (past requests show the new names), new Management, Technology Governance Team (TGT) and Professional Services Management Office (PSMO), all in A–Z order. Data-only migration `0028_business_units.sql` (staging, then production Nov 4).
