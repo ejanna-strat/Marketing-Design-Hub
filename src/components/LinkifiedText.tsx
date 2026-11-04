@@ -57,7 +57,8 @@ function NamedLink({ link }: { link: OutputLinkItem }) {
   );
 }
 
-// Every Link to Output, one per line, by its name ("Link 1" if unnamed).
+// Every Link to Output, one per line, by its name ("Open link" or "Link 1"
+// if unnamed).
 export function OutputLinkList({ links }: { links: OutputLinkItem[] }) {
   if (links.length === 0) return <span className="text-muted-foreground">—</span>;
   return (
@@ -78,7 +79,7 @@ export function OutputLinksCell({ links }: { links: OutputLinkItem[] }) {
   const [first, ...rest] = links;
   return (
     <span className="inline-flex items-center gap-1.5">
-      {first.label === "Link 1" ? <OutputLink value={first.url} /> : <NamedLink link={first} />}
+      {first.named ? <NamedLink link={first} /> : <OutputLink value={first.url} />}
       {rest.length > 0 && (
         <span
           title={rest.map((l) => `${l.label}: ${l.url}`).join("\n")}
