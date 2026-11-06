@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 6, 2026 · version 0.65.1_
+_Last updated: Nov 6, 2026 · version 0.66.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 6, 2026 · version 0.65.1_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.66.0 (owner, Nov 6): **One full name per member.** Editing a member's full name in Settings → Members also changes their account name (top-right corner); changing your own display name also changes your Members row (`save_team_member` + trigger `profiles_sync_member_name`). The Designer list name stays separate; filed requests keep their name. Jerome set to "Jerome Casupanan" in both. Migration `0030_sync_member_names.sql` (staging, tested in a rolled-back transaction; production when released). Open: Steve is "Steve Ko" in Members but "Steve Ryan Ko" on his account; owner to pick.
 - v0.65.1 (owner, Nov 6): the feedback email's stars are yellow (`#fbbf24`, the app's amber-400), with empty stars light grey.
 - v0.65.0 (owner, Nov 6): **New Feedback Received email** (`src/emails/N12FeedbackReceived.tsx`, `notifyFeedback()`): when a requester submits feedback, Lead Designers, "Copy on Lead's email" members and the assigned designer get Request, Request ID (link), Requested by, Team, Designer, Process and Output (stars + "4 / 5"), Overall ("4.5 ★") and Comments (or "No comments"), with a View Feedback button to the request. Feedback from Marketing team requesters is sent too, with "From a Marketing team requester, so it isn't counted in the averages." Once per request (`N12_FEEDBACK`); duplicate addresses merged.
 - v0.64.2 (owner, Nov 4): a single unnamed link shows as **Open link** on request pages too, the same as the lists and emails (replaces "Output link" from v0.64.1).
