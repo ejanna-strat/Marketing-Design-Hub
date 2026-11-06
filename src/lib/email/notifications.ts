@@ -11,6 +11,7 @@ import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
 import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
+import { N12FeedbackReceived, n12Subject } from "@/emails/N12FeedbackReceived";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { type OutputLinkFields, outputLinks } from "@/lib/links";
@@ -376,4 +377,42 @@ export function secondCheckDay(since: string) {
     day = format(addDays(parseISO(day), 1), "yyyy-MM-dd");
   }
   return day;
+}
+
+// New feedback — to Lead Designers, "Copy on Lead's email" members and the
+// assigned designer, once per request (owner, Nov 6). Feedback from Marketing
+// team requesters is sent too, with a note that it isn't in the averages.
+export async function notifyFeedback(requestCode: string, appUrl: string) {
+  try {
+    const { data: r, error } = await createAdminClient()
+      .from("requests")
+      .select(
+        "id, request_code, title, requester_name, team:teams(name, is_marketing), designer:designers(display_name, email), feedback(process_rating, output_rating, comments)",
+      )
+      .eq("request_code", requestCode)
+      .single();
+    if (error) throw new Error(`Request ${requestCode} not found: ${error.message}`);
+    const f = Array.isArray(r.feedback) ? r.feedback[0] : r.feedback;
+    if (!f) return;
+    await sendEmail({
+      key: "N12_FEEDBACK",
+      requestId: r.id,
+      to: [...(await leadEmailRecipients()), ...(r.designer?.email ? [r.designer.email] : [])],
+      subject: n12Subject(r.title),
+      email: N12FeedbackReceived({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        team: r.team?.name ?? "—",
+        designerName: r.designer?.display_name ?? "—",
+        process: f.process_rating,
+        output: f.output_rating,
+        comments: f.comments,
+        fromMarketing: !!r.team?.is_marketing,
+        url: `${appUrl}/admin/requests/${r.request_code}`,
+      }),
+    });
+  } catch (e) {
+    console.error("[email feedback] failed", e);
+  }
 }
