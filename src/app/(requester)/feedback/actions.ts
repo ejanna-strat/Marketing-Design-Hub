@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { getAppUrl } from "@/lib/app-url";
 import { requireUser } from "@/lib/auth";
+import { notifyFeedback } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 // Saves feedback for one of the requester's own Completed requests. The
@@ -30,6 +33,8 @@ export async function submitFeedback(input: {
     return { error: error.code === "P0001" ? error.message : "We couldn't save your feedback. Please try again." };
   }
   const code = (data as { request_code: string }).request_code;
+  const appUrl = await getAppUrl();
+  after(() => notifyFeedback(code, appUrl));
   revalidatePath("/my-requests");
   revalidatePath(`/my-requests/${code}`);
   redirect(`/feedback/thanks?code=${encodeURIComponent(code)}`);
