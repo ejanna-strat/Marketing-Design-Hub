@@ -11,10 +11,12 @@ export default async function MembersPage() {
       .from("team_members")
       .select("email, full_name, roles, designer_display_name, copy_lead_emails, copy_requester_emails")
       .order("full_name"),
-    supabase.from("profiles").select("email"),
+    supabase.from("profiles").select("email, full_name"),
   ]);
   if (error) throw new Error(error.message);
   const signedIn = new Set((profiles ?? []).map((p) => p.email.toLowerCase()));
+  // Anyone with an account keeps the name they chose (owner, Nov 6).
+  const accounts = Object.fromEntries((profiles ?? []).map((p) => [p.email.toLowerCase(), p.full_name]));
 
   return (
     <div className="space-y-6">
@@ -30,6 +32,7 @@ export default async function MembersPage() {
         currentEmail={user.email}
         canGrantAdmin={user.isAdmin}
         canGrantSuper={user.isSuperAdmin}
+        accounts={accounts}
         members={(members ?? []).map((m) => ({
           email: m.email,
           fullName: m.full_name,

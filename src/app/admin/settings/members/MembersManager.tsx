@@ -49,9 +49,12 @@ export function MembersManager({
   currentEmail,
   canGrantAdmin,
   canGrantSuper,
+  accounts,
 }: {
   members: Member[];
   currentEmail: string;
+  // Account names by email: someone who has signed up keeps the name they chose.
+  accounts: Record<string, string>;
   // Super Admins and Admins give or remove the Admin tag.
   canGrantAdmin: boolean;
   // Only Super Admins give, remove or change the Super Admin tag.
@@ -202,6 +205,7 @@ export function MembersManager({
           isMe={editing.member.email === currentEmail.toLowerCase()}
           canGrantAdmin={canGrantAdmin}
           canGrantSuper={canGrantSuper}
+          accounts={accounts}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -239,6 +243,7 @@ function MemberDialog({
   isMe,
   canGrantAdmin,
   canGrantSuper,
+  accounts,
   onClose,
   onSaved,
 }: {
@@ -247,6 +252,7 @@ function MemberDialog({
   isMe: boolean;
   canGrantAdmin: boolean;
   canGrantSuper: boolean;
+  accounts: Record<string, string>;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -266,7 +272,10 @@ function MemberDialog({
   // Checked once they leave the field, then live as they fix it (owner, Oct 30).
   const [emailLeft, setEmailLeft] = useState(false);
   const badEmail = isNew && form.email.trim() !== "" && !/^[^@\s]+@stratpoint\.com$/i.test(form.email.trim());
-  const firstName = form.fullName.trim().split(/\s+/)[0] ?? "";
+  // Signed up already: the name comes from their account (owner, Nov 6).
+  const accountName = accounts[form.email.trim().toLowerCase()];
+  const fullName = accountName ?? form.fullName;
+  const firstName = fullName.trim().split(/\s+/)[0] ?? "";
 
   function toggle(role: MemberRole, on: boolean) {
     setForm((f) => ({ ...f, roles: on ? [...f.roles, role] : f.roles.filter((r) => r !== role) }));
@@ -278,7 +287,7 @@ function MemberDialog({
     startTransition(async () => {
       const result = await saveMember({
         email: form.email,
-        fullName: form.fullName,
+        fullName,
         roles: form.roles,
         designerName: isDesigner ? form.designerName : "",
         copyLeadEmails: hasTag && !isLead && form.copyLeadEmails,
@@ -288,7 +297,7 @@ function MemberDialog({
         setError(result.error);
         return;
       }
-      toast.success(isNew ? `${form.fullName} was added to the team` : `${form.fullName} was updated`);
+      toast.success(isNew ? `${fullName} was added to the team` : `${fullName} was updated`);
       onSaved();
     });
   }
@@ -337,10 +346,17 @@ function MemberDialog({
             <Label htmlFor="member-name">Full name</Label>
             <Input
               id="member-name"
-              value={form.fullName}
+              value={fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              disabled={!!accountName}
+              aria-describedby="member-name-hint"
               required
             />
+            <p id="member-name-hint" className="text-xs text-muted-foreground">
+              {accountName
+                ? "Name comes from their account. They can change it from their name menu (top-right)."
+                : "Replaced by the name they use when they sign up."}
+            </p>
           </div>
 
           <fieldset className="space-y-3">
