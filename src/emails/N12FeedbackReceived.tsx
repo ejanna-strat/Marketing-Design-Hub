@@ -7,7 +7,18 @@ import { EmailLayout, FOOTERS, Paragraph } from "./Layout";
 // when a requester shares feedback (owner, Nov 6).
 export const n12Subject = (title: string) => `New Feedback Received: ${title}`;
 
-const stars = (n: number) => `${"★".repeat(n)}${"☆".repeat(5 - n)} ${n} / 5`;
+// Yellow like the app's stars (Tailwind amber-400), empty ones light grey.
+const STAR = "#fbbf24";
+const EMPTY_STAR = "#d1d5db";
+
+function Stars({ n }: { n: number }) {
+  return (
+    <>
+      <span style={{ color: STAR }}>{"★".repeat(n)}</span>
+      {n < 5 && <span style={{ color: EMPTY_STAR }}>{"★".repeat(5 - n)}</span>} {n} / 5
+    </>
+  );
+}
 
 export function N12FeedbackReceived(p: {
   title: string;
@@ -39,9 +50,16 @@ export function N12FeedbackReceived(p: {
         { label: "Requested by", value: p.requesterName },
         { label: "Team", value: p.team },
         { label: "Designer", value: p.designerName },
-        { label: "Design Request Process", value: stars(p.process) },
-        { label: "Design Output", value: stars(p.output) },
-        { label: "Overall", value: `${formatRating((p.process + p.output) / 2)} ★` },
+        { label: "Design Request Process", value: <Stars n={p.process} /> },
+        { label: "Design Output", value: <Stars n={p.output} /> },
+        {
+          label: "Overall",
+          value: (
+            <>
+              {formatRating((p.process + p.output) / 2)} <span style={{ color: STAR }}>★</span>
+            </>
+          ),
+        },
         {
           label: "Comments",
           value: p.comments ? <span style={{ whiteSpace: "pre-wrap" }}>{p.comments}</span> : "No comments",
