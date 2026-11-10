@@ -53,7 +53,7 @@
 
 :root {
   /* THEME — brand accent lives here (keep in sync with src/config/theme.ts, used by emails) */
-  --brand: #3b94e4;
+  --brand: #008ce0;
   --brand-ink: #1f6fbf; /* small blue text (links, IDs, titles) — readable on white */
   --brand-soft: #e7f2fc;
   --background: oklch(1 0 0);
@@ -93,7 +93,7 @@
 /* Dark mode: the same brand blue; the soft tint becomes a deep navy and
    small blue text uses a lighter ink so it reads on dark backgrounds. */
 .dark {
-  --brand: #3b94e4;
+  --brand: #008ce0;
   --brand-ink: #8cc4f5;
   --brand-soft: #13283f;
   --background: oklch(0.145 0 0);
