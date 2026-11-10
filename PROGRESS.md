@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 6, 2026 · version 0.67.0_
+_Last updated: Nov 10, 2026 · version 0.68.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 6, 2026 · version 0.67.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.68.0 (owner, Nov 10): **brand blue is Stratpoint's Primary Blue #008CE0** (was #3b94e4) for buttons, highlights, the selected menu item and email buttons, in light and dark mode; the app icon, browser-tab icon, iPhone icon and top-bar logo recoloured to match (`docs/brand/`). Small blue text keeps #1f6fbf. Emails ask for `logo.png?v=008ce0`: re-upload `public/brand/logo.png` to each Supabase project's `brand` bucket. The Supabase sign-in email templates (`docs/emails/*.html`) use the new button colour; paste them into each project's Auth templates to update those.
 - v0.67.0 (owner, Nov 6, option B): **the account name always wins.** In Add / Edit member, someone who has signed up shows their account name, locked ("Name comes from their account…"); for someone not signed up yet the typed name is temporary and is replaced by the name they sign up with (sign-up now prefers the typed name over the Members name). Changing your own display name still updates Members. Existing members took their account names (Steve → Steve Ryan Ko). Migrations `0031_account_name_wins.sql` and `0032_signup_name_first.sql` (staging, tested in rolled-back transactions; production Nov 6, with 0030).
 - v0.66.0 (owner, Nov 6): **One full name per member.** Editing a member's full name in Settings → Members also changes their account name (top-right corner); changing your own display name also changes your Members row (`save_team_member` + trigger `profiles_sync_member_name`). The Designer list name stays separate; filed requests keep their name. Jerome set to "Jerome Casupanan" in both. Migration `0030_sync_member_names.sql` (staging, tested in a rolled-back transaction; production Nov 6).
 - v0.65.1 (owner, Nov 6): the feedback email's stars are yellow (`#fbbf24`, the app's amber-400), with empty stars light grey.
