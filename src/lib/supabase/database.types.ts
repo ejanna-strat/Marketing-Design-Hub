@@ -433,6 +433,7 @@ export type Database = {
           deal_name: string | null
           deal_size: number | null
           designer_change_pending: boolean
+          accepted_designer_ids: string[]
           designer_ids: string[]
           designer_responded_at: string | null
           designer_response: string | null
@@ -474,6 +475,7 @@ export type Database = {
           deal_name?: string | null
           deal_size?: number | null
           designer_change_pending?: boolean
+          accepted_designer_ids?: string[]
           designer_ids?: string[]
           designer_responded_at?: string | null
           designer_response?: string | null
@@ -515,6 +517,7 @@ export type Database = {
           deal_name?: string | null
           deal_size?: number | null
           designer_change_pending?: boolean
+          accepted_designer_ids?: string[]
           designer_ids?: string[]
           designer_responded_at?: string | null
           designer_response?: string | null

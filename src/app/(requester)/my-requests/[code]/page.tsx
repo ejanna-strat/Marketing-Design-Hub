@@ -14,7 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { canRequesterEdit, getRequestByCode, withOwnDetails } from "@/lib/requests/detail";
-import { sortDesigners } from "@/lib/requests/designers";
+import { accepted } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CancelRequestButton } from "./CancelRequestButton";
@@ -35,6 +35,8 @@ export default async function MyRequestDetailPage({
   const found = await getRequestByCode(supabase, code, { requesterId: user.id });
   if (!found) notFound();
   const request = withOwnDetails(found, user);
+  // Requesters see only designers who have accepted (owner, Nov 12).
+  const acceptedDesigners = accepted(request.request_designers);
   const editable = canRequesterEdit(request);
   // Requesters can cancel any time before Completed (owner, Oct 21).
   const cancellable = !["completed", "cancelled", "rejected"].includes(request.status);
@@ -141,12 +143,11 @@ export default async function MyRequestDetailPage({
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Item label="Status" value={<StatusBadge status={request.status} audience="requester" />} />
             <Item
-              label={request.request_designers.length > 1 ? "Assigned Designers" : "Assigned Designer"}
+              label={acceptedDesigners.length > 1 ? "Assigned Designers" : "Assigned Designer"}
               value={
-                // Every designer on the request (owner, Nov 12).
-                request.request_designers.length > 0 && (
+                acceptedDesigners.length > 0 && (
                   <ul className="space-y-1">
-                    {sortDesigners(request.request_designers).map((d) => (
+                    {acceptedDesigners.map((d) => (
                       <li key={d.designer_id} className="inline-flex flex-wrap items-center gap-1">
                         {d.designer?.display_name} · {d.designer?.email}
                         {d.designer?.email && <CopyButton value={d.designer.email} label="Copy designer's email" />}
