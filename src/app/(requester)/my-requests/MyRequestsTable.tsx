@@ -9,6 +9,7 @@ import { StarsDisplay } from "@/components/feedback/Stars";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate } from "@/lib/dates";
 import { one, overallRating } from "@/lib/feedback";
+import { designerNames } from "@/lib/requests/designers";
 import type { RequestListRow } from "@/lib/requests/list";
 
 const col = columnHelper<RequestListRow>();
@@ -35,7 +36,8 @@ const columns = col.columns([
     header: "Status",
     cell: (info) => <StatusBadge status={info.getValue()} audience="requester" />,
   }),
-  col.accessor((r) => r.designer?.display_name ?? "", {
+  // Every designer on the request, e.g. "Sofia, Dasha" (owner, Nov 12).
+  col.accessor((r) => designerNames(r.request_designers), {
     id: "designer",
     header: "Assigned Designer",
     cell: (info) => (info.getValue() ? <Highlight text={info.getValue()} /> : <span className="text-muted-foreground">—</span>),

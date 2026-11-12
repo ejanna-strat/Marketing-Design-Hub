@@ -355,6 +355,48 @@ export type Database = {
         }
         Relationships: []
       }
+      request_designers: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          designer_id: string
+          request_id: string
+          responded_at: string | null
+          response: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          designer_id: string
+          request_id: string
+          responded_at?: string | null
+          response?: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          designer_id?: string
+          request_id?: string
+          responded_at?: string | null
+          response?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_designers_designer_id_fkey"
+            columns: ["designer_id"]
+            isOneToOne: false
+            referencedRelation: "designers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_designers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_types: {
         Row: {
           active: boolean
@@ -378,6 +420,7 @@ export type Database = {
       }
       requests: {
         Row: {
+          accepted_notice_at: string | null
           assigned_designer_id: string | null
           cancel_reason: string | null
           cancelled_by: string | null
@@ -389,6 +432,8 @@ export type Database = {
           date_started: string | null
           deal_name: string | null
           deal_size: number | null
+          designer_change_pending: boolean
+          designer_ids: string[]
           designer_responded_at: string | null
           designer_response: string | null
           final_approver_email: string
@@ -416,6 +461,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_notice_at?: string | null
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
@@ -427,6 +473,8 @@ export type Database = {
           date_started?: string | null
           deal_name?: string | null
           deal_size?: number | null
+          designer_change_pending?: boolean
+          designer_ids?: string[]
           designer_responded_at?: string | null
           designer_response?: string | null
           final_approver_email: string
@@ -454,6 +502,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_notice_at?: string | null
           assigned_designer_id?: string | null
           cancel_reason?: string | null
           cancelled_by?: string | null
@@ -465,6 +514,8 @@ export type Database = {
           date_started?: string | null
           deal_name?: string | null
           deal_size?: number | null
+          designer_change_pending?: boolean
+          designer_ids?: string[]
           designer_responded_at?: string | null
           designer_response?: string | null
           final_approver_email?: string
@@ -629,6 +680,8 @@ export type Database = {
         Args: { p_accept: boolean; p_reason: string; p_request_id: string }
         Returns: Json
       }
+      set_request_designers: { Args: { p_designer_ids: string[]; p_request_id: string }; Returns: Json }
+      add_me_as_designer: { Args: { p_request_id: string }; Returns: Json }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }

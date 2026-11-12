@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { canRequesterEdit, getRequestByCode, withOwnDetails } from "@/lib/requests/detail";
+import { sortDesigners } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CancelRequestButton } from "./CancelRequestButton";
@@ -140,13 +141,18 @@ export default async function MyRequestDetailPage({
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Item label="Status" value={<StatusBadge status={request.status} audience="requester" />} />
             <Item
-              label="Assigned Designer"
+              label={request.request_designers.length > 1 ? "Assigned Designers" : "Assigned Designer"}
               value={
-                request.designer && (
-                  <span className="inline-flex flex-wrap items-center gap-1">
-                    {request.designer.display_name} · {request.designer.email}
-                    <CopyButton value={request.designer.email} label="Copy designer's email" />
-                  </span>
+                // Every designer on the request (owner, Nov 12).
+                request.request_designers.length > 0 && (
+                  <ul className="space-y-1">
+                    {sortDesigners(request.request_designers).map((d) => (
+                      <li key={d.designer_id} className="inline-flex flex-wrap items-center gap-1">
+                        {d.designer?.display_name} · {d.designer?.email}
+                        {d.designer?.email && <CopyButton value={d.designer.email} label="Copy designer's email" />}
+                      </li>
+                    ))}
+                  </ul>
                 )
               }
             />
