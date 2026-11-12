@@ -39,13 +39,13 @@ export default async function PipelinePage({
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
     // Open work (not Completed, On hold, Cancelled or Returned) for the tab counts.
-    supabase.from("requests").select("assigned_designer_id").not("status", "in", "(completed,on_hold,cancelled,rejected)"),
+    supabase.from("requests").select("designer_ids").not("status", "in", "(completed,on_hold,cancelled,rejected)"),
   ]);
   const openRows = open.data ?? [];
+  // A request counts in each of its designers' tabs (owner, Nov 12).
   const counts: Record<string, number> = { all: openRows.length };
   for (const r of openRows) {
-    const key = r.assigned_designer_id ?? "none";
-    counts[key] = (counts[key] ?? 0) + 1;
+    for (const key of r.designer_ids.length ? r.designer_ids : ["none"]) counts[key] = (counts[key] ?? 0) + 1;
   }
   const designerOptions = (designers.data ?? []).map((d) => ({ id: d.id, name: d.display_name, active: d.active }));
   // Tabs: active designers, plus a former designer if their tab is open.

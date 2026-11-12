@@ -1,10 +1,10 @@
 "use client";
 
-import { CheckIcon, HandIcon, HourglassIcon, RotateCcwIcon, UndoIcon, UserCheckIcon } from "lucide-react";
+import { CheckIcon, HandIcon, HourglassIcon, RotateCcwIcon, UndoIcon, UserCheckIcon, UserPlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { respondAsDesigner, returnRequest, updateRequest } from "@/app/admin/actions";
+import { addMeAsDesigner, respondAsDesigner, returnRequest, setDesigners } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,26 +14,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 // Phase 2 workflow (CLAUDE.md §8.1), top right of the staff Request Details:
 // a tag showing where the request stands, and the buttons for whoever's turn
-// it is. Reviewer (Super Admin / Lead Designer): Accept & assign, or Return.
-// Assigned designer: Accept, or Ask to reassign.
+// it is. Reviewer (Super Admin / Lead Designer): Accept & assign (one or
+// more designers), or Return. Each designer on the request: Accept, or Ask to
+// reassign (owner, Nov 12: several designers, all equal).
 export type WorkflowState = {
   requestId: string;
   status: string;
-  designer: { id: string; name: string } | null;
-  designerResponse: string | null;
-  respondedAt: string | null;
+  // In the order added.
+  designers: { id: string; name: string; response: string; respondedAt: string | null }[];
   returnReason: string | null;
   returnedByName: string | null;
   reassignReason: string | null;
+  // The latest Ask to reassign while others stayed on the request.
+  lastReassign: { name: string; reason: string } | null;
   // The note given when cancelling (by the requester, Oct 21, or the team,
   // Oct 22) and who cancelled it ("the requester" or a team member's name).
   cancelReason: string | null;
@@ -44,7 +46,7 @@ export function WorkflowPanel({
   state,
   isManager,
   myDesignerId = null,
-  isAssignedDesigner,
+  canAddMe = false,
   designers,
 }: {
   state: WorkflowState;
@@ -52,14 +54,17 @@ export function WorkflowPanel({
   // The viewer's own designer id (anyone in the Designer list can take a
   // fresh request for themselves, owner Oct 22).
   myDesignerId?: string | null;
-  isAssignedDesigner: boolean;
+  // Add me as a designer (owner, Nov 12): a designer not on it yet, once it
+  // has a designer, until Completed / Cancelled / Returned.
+  canAddMe?: boolean;
   designers: { id: string; name: string }[];
 }) {
   const s = state;
+  const hasDesigners = s.designers.length > 0;
   const canReview = isManager && s.status === "new_request";
-  const canRespond = isAssignedDesigner && s.designerResponse === "pending";
-  const canTake = !!myDesignerId && s.status === "new_request" && !s.designer;
-  const showButtons = (canReview && !s.designer) || canRespond || canTake;
+  const canRespond = s.designers.some((d) => d.id === myDesignerId && d.response === "pending");
+  const canTake = !!myDesignerId && s.status === "new_request" && !hasDesigners;
+  const showButtons = (canReview && !hasDesigners) || canRespond || canTake;
 
   // When it's someone's turn, a highlighted bar spans the page under the
   // title with larger buttons, so the next step is hard to miss (owner,
@@ -92,11 +97,13 @@ export function WorkflowPanel({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canRespond && <DesignerButtons requestId={s.requestId} />}
-          {canReview && !s.designer && <AssignButton requestId={s.requestId} designers={designers} />}
-          {canTake && <TakeButton requestId={s.requestId} designerId={myDesignerId!} primary={!canReview} />}
+          {canRespond && <DesignerButtons requestId={s.requestId} alone={s.designers.length === 1} />}
+          {canReview && !hasDesigners && (
+            <AssignButton requestId={s.requestId} designers={designers} selfId={myDesignerId} />
+          )}
+          {canTake && <TakeButton requestId={s.requestId} primary={!canReview} />}
           {/* Return only before a designer is assigned (owner, Oct 20). */}
-          {canReview && !s.designer && <ReturnButton requestId={s.requestId} />}
+          {canReview && !hasDesigners && <ReturnButton requestId={s.requestId} />}
         </div>
       </div>
     );
@@ -105,38 +112,56 @@ export function WorkflowPanel({
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <Tag state={s} />
+      {canAddMe && <AddMeButton requestId={s.requestId} />}
     </div>
   );
 }
 
+const TONES = {
+  waiting: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300",
+  accepted: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
+  closed: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
+  reassign: "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300",
+  review: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300",
+};
+
+function Chip({ tone, children }: { tone: string; children: React.ReactNode }) {
+  return <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-medium", tone)}>{children}</span>;
+}
+
+// Where the request stands. With designers: one tag each, "Accepted by
+// Sofia · Nov 12" or "Waiting for Dasha to accept" (owner, Nov 12).
 function Tag({ state: s }: { state: WorkflowState }) {
-  let tone = "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300";
-  let text: React.ReactNode = "Waiting for review";
   let detail: string | null = null;
+  let tags: React.ReactNode;
   if (s.status === "rejected") {
-    tone = "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
-    text = `Returned${s.returnedByName ? ` by ${s.returnedByName}` : ""}`;
+    tags = <Chip tone={TONES.closed}>{`Returned${s.returnedByName ? ` by ${s.returnedByName}` : ""}`}</Chip>;
     detail = s.returnReason;
   } else if (s.status === "cancelled") {
-    tone = "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
-    text = s.cancelledByName ? `Cancelled by ${s.cancelledByName}` : "Cancelled";
+    tags = <Chip tone={TONES.closed}>{s.cancelledByName ? `Cancelled by ${s.cancelledByName}` : "Cancelled"}</Chip>;
     detail = s.cancelReason;
-  } else if (s.designer && s.designerResponse === "pending") {
-    tone = "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300";
-    text = `Waiting for ${s.designer.name} to accept`;
-  } else if (s.designer && s.designerResponse === "accepted") {
-    tone = "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300";
-    text = `Accepted by ${s.designer.name}${s.respondedAt ? ` · ${formatDate(s.respondedAt)}` : ""}`;
-  } else if (!s.designer && s.status === "new_request" && s.reassignReason) {
-    tone = "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300";
-    text = "Reassignment requested";
+  } else if (s.designers.length > 0) {
+    tags = s.designers.map((d) =>
+      d.response === "accepted" ? (
+        <Chip key={d.id} tone={TONES.accepted}>
+          {`Accepted by ${d.name}${d.respondedAt ? ` · ${formatDate(d.respondedAt)}` : ""}`}
+        </Chip>
+      ) : (
+        <Chip key={d.id} tone={TONES.waiting}>{`Waiting for ${d.name} to accept`}</Chip>
+      ),
+    );
+    if (s.lastReassign) detail = `${s.lastReassign.name} asked to reassign: ${s.lastReassign.reason}`;
+  } else if (s.status === "new_request" && s.reassignReason) {
+    tags = <Chip tone={TONES.reassign}>Reassignment requested</Chip>;
     detail = s.reassignReason;
-  } else if (s.status !== "new_request") {
+  } else if (s.status === "new_request") {
+    tags = <Chip tone={TONES.review}>Waiting for review</Chip>;
+  } else {
     return null;
   }
   return (
     <div className="max-w-sm space-y-1 sm:text-right">
-      <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-medium", tone)}>{text}</span>
+      <div className="flex flex-wrap gap-1.5 sm:justify-end">{tags}</div>
       {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
     </div>
   );
@@ -159,45 +184,67 @@ function useRun() {
   return { run, pending };
 }
 
-function AssignButton({ requestId, designers }: { requestId: string; designers: { id: string; name: string }[] }) {
+// Accept & assign: tick one or more designers (owner, Nov 12). Each gets an
+// email and accepts on their own; ticking yourself counts as accepted.
+function AssignButton({
+  requestId,
+  designers,
+  selfId,
+}: {
+  requestId: string;
+  designers: { id: string; name: string }[];
+  selfId: string | null;
+}) {
   const { run, pending } = useRun();
   const [open, setOpen] = useState(false);
-  const [designer, setDesigner] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
   return (
     <>
       <Button size="lg" onClick={() => setOpen(true)}>
         <UserCheckIcon />
         Accept & assign
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (next) setPicked([]);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Accept and assign a designer</DialogTitle>
-            <DialogDescription>The designer gets an email and can accept the task or ask to reassign it.</DialogDescription>
+            <DialogTitle>Accept and assign designers</DialogTitle>
+            <DialogDescription>
+              Tick one or more. Each designer gets an email and can accept the task or ask to reassign it.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="assign-designer">Designer</Label>
-            <Select value={designer} onValueChange={setDesigner}>
-              <SelectTrigger id="assign-designer" className="w-full">
-                <SelectValue placeholder="Choose a designer" />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                {designers.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <fieldset className="space-y-2.5">
+            <legend className="mb-2 text-sm font-medium">Designers</legend>
+            {designers.map((d) => (
+              <div key={d.id} className="flex items-center gap-2.5">
+                <Checkbox
+                  id={`assign-${d.id}`}
+                  checked={picked.includes(d.id)}
+                  onCheckedChange={(on) => setPicked((p) => (on === true ? [...p, d.id] : p.filter((x) => x !== d.id)))}
+                />
+                <Label htmlFor={`assign-${d.id}`} className="font-normal">
+                  {d.id === selfId ? `${d.name} (me)` : d.name}
+                </Label>
+              </div>
+            ))}
+          </fieldset>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button
-              disabled={!designer || pending}
+              disabled={picked.length === 0 || pending}
               onClick={() =>
-                run(() => updateRequest(requestId, { assigned_designer_id: designer }), "Designer assigned", () => setOpen(false))
+                run(
+                  () => setDesigners(requestId, picked),
+                  picked.length > 1 ? "Designers assigned" : "Designer assigned",
+                  () => setOpen(false),
+                )
               }
             >
               Assign
@@ -256,7 +303,7 @@ function ReturnButton({ requestId }: { requestId: string }) {
   );
 }
 
-function DesignerButtons({ requestId }: { requestId: string }) {
+function DesignerButtons({ requestId, alone }: { requestId: string; alone: boolean }) {
   const { run, pending } = useRun();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<"Full plate" | "Other concerns">("Full plate");
@@ -276,7 +323,9 @@ function DesignerButtons({ requestId }: { requestId: string }) {
           <DialogHeader>
             <DialogTitle>Ask to reassign</DialogTitle>
             <DialogDescription>
-              The request goes back to New request without a designer, and the reviewers see your reason.
+              {alone
+                ? "The request goes back to New request without a designer, and the reviewers see your reason."
+                : "You're taken off this request (the other designers stay), and the reviewers see your reason."}
             </DialogDescription>
           </DialogHeader>
           <RadioGroup value={category} onValueChange={(v) => setCategory(v as typeof category)} className="gap-2.5">
@@ -316,17 +365,34 @@ function DesignerButtons({ requestId }: { requestId: string }) {
 
 // Any designer can take a fresh request for themselves; it counts as
 // accepted straight away (owner, Oct 22).
-function TakeButton({ requestId, designerId, primary }: { requestId: string; designerId: string; primary: boolean }) {
+function TakeButton({ requestId, primary }: { requestId: string; primary: boolean }) {
   const { run, pending } = useRun();
   return (
     <Button
       size="lg"
       variant={primary ? "default" : "outline"}
       disabled={pending}
-      onClick={() => run(() => updateRequest(requestId, { assigned_designer_id: designerId }), "You took this request")}
+      onClick={() => run(() => addMeAsDesigner(requestId), "You took this request")}
     >
       <HandIcon />
       Take this request
+    </Button>
+  );
+}
+
+// Any designer can join a request that already has a designer; it counts as
+// accepted and sends no emails (owner, Nov 12).
+function AddMeButton({ requestId }: { requestId: string }) {
+  const { run, pending } = useRun();
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={pending}
+      onClick={() => run(() => addMeAsDesigner(requestId), "You were added as a designer")}
+    >
+      <UserPlusIcon />
+      Add me as a designer
     </Button>
   );
 }

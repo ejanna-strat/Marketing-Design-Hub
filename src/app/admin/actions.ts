@@ -40,7 +40,6 @@ const linkLabel = z
 const patchSchema = z
   .object({
     status: z.enum(Constants.public.Enums.request_status),
-    assigned_designer_id: z.uuid().nullable(),
     link_to_output: outputLink,
     link_to_output_2: outputLink,
     link_to_output_3: outputLink,
@@ -68,9 +67,9 @@ const patchSchema = z
 export type RequestPatch = z.input<typeof patchSchema>;
 
 // Changes pipeline fields and General Information on one request. Every
-// Marketing team member can; only Super Admins and Lead Designers can assign the
-// designer. Picking or removing a designer also updates the status
-// automatically (in the database).
+// Marketing team member can, except that a designer on the request who hasn't
+// accepted yet can't change the status or links (owner, Nov 12). Designers
+// are changed with setDesigners / addMeAsDesigner / respondAsDesigner.
 // The database enforces the same rules (RLS + column guard) and writes the
 // activity log.
 export async function updateRequest(requestId: string, patch: RequestPatch): Promise<UpdateResult> {
@@ -104,7 +103,7 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   const supabase = await createClient();
   const { data: before } = await supabase
     .from("requests")
-    .select("status, assigned_designer_id, requester_id")
+    .select("status, request_designers(designer_id, response)")
     .eq("id", requestId)
     .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
@@ -117,24 +116,17 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
       error: "Admins can put a request On hold or cancel it; the designer changes the other statuses.",
     };
   }
-  // Designers (owner, Oct 22): take an unassigned request for yourself, or
-  // change the designer to anyone once it has one. Admins who don't design
-  // can't (owner, Oct 30). The database checks too.
-  if (!user.isManager && "assigned_designer_id" in changes) {
-    if (!user.designerId) return { ok: false, error: "Only the Design team can assign designers." };
-    if (changes.assigned_designer_id === null) {
-      return { ok: false, error: "Only Super Admins and Lead Designers can remove the designer." };
-    }
-    if (!before.assigned_designer_id && (!user.designerId || changes.assigned_designer_id !== user.designerId)) {
-      return { ok: false, error: "You can take this request for yourself; a Lead Designer assigns it to someone else." };
-    }
+  const touchesWork = fields.some((f) => f === "status" || f.startsWith("link_"));
+  const mine = before.request_designers.find((d) => d.designer_id === user.designerId);
+  if (!user.isManager && touchesWork && mine?.response === "pending") {
+    return { ok: false, error: "Please accept the request first; then you can change its status and links." };
   }
 
   const { data, error } = await supabase
     .from("requests")
     .update(changes)
     .eq("id", requestId)
-    .select("id, request_code, status, assigned_designer_id")
+    .select("id, request_code, status")
     .maybeSingle();
   if (error) {
     console.error("updateRequest failed", error);
@@ -142,25 +134,8 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   }
   if (!data) return { ok: false, error: "You can't change this request." };
 
-  // Emails (each once):
-  // - first designer: taken by themselves → "Accepted" to the requester (not
-  //   to themselves if it's their own request); picked by a Lead → N3.
-  // - designer changed → N6 to the requester; if someone else was picked,
-  //   N3 so they know to accept.
-  // - N7 on For requester's review, N8 on Completed.
+  // Emails (each once): N7 on For requester's review, N8 on Completed.
   const appUrl = await getAppUrl();
-  const designerChanged = data.assigned_designer_id !== before.assigned_designer_id && data.assigned_designer_id;
-  const tookIt = !!designerChanged && data.assigned_designer_id === user.designerId;
-  if (designerChanged && !before.assigned_designer_id) {
-    if (tookIt) {
-      const own = before.requester_id === user.id;
-      after(() => notifyDesignerAccepted(data.id, appUrl, own ? user.email : undefined));
-    } else after(() => notifyAssigned(data.id, appUrl));
-  }
-  if (designerChanged && before.assigned_designer_id) {
-    after(() => notifyReassigned(data.id, appUrl));
-    if (!tookIt) after(() => notifyAssigned(data.id, appUrl));
-  }
   if (data.status === "for_review" && before.status !== "for_review") after(() => notifyForReview(data.id, appUrl));
   if (data.status === "completed" && before.status !== "completed") after(() => notifyFinalOutput(data.id, appUrl));
 
@@ -248,14 +223,95 @@ export async function cancelRequest(requestId: string, note: string): Promise<Re
   return { ok: true };
 }
 
-// Assigned designer: accept the task, or ask to reassign with a reason.
+// What the designer functions return (0033_multiple_designers.sql).
+type DesignerChange = {
+  id: string;
+  request_code: string;
+  status: string;
+  // Designers added by someone else: they get the assigned email.
+  added?: string[];
+  // The first acceptance on the request → the requester's "Accepted" email.
+  first_accepted?: string | null;
+  // The first new designer after the whole team was replaced → "Reassigned".
+  team_changed?: string | null;
+  // add_me_as_designer: a fresh request taken (not "Add me").
+  took?: boolean;
+};
+
+// Emails after a designer change (owner, Nov 12): N3 to each designer added
+// by someone else; the requester's Accepted email the first time anyone
+// accepts (not to someone who takes their own request); Reassigned when the
+// first new designer accepts after the whole team was replaced.
+async function designerEmails(change: DesignerChange, user: { id: string; email: string }) {
+  const appUrl = await getAppUrl();
+  for (const id of change.added ?? []) after(() => notifyAssigned(change.id, id, appUrl));
+  if (change.first_accepted) {
+    const designerId = change.first_accepted;
+    const supabase = await createClient();
+    const { data } = await supabase.from("requests").select("requester_id").eq("id", change.id).maybeSingle();
+    const own = data?.requester_id === user.id;
+    after(() => notifyDesignerAccepted(change.id, designerId, appUrl, own ? user.email : undefined));
+  }
+  if (change.team_changed) {
+    const designerId = change.team_changed;
+    after(() => notifyReassigned(change.id, designerId, appUrl));
+  }
+}
+
+function revalidateRequest(code: string) {
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/my-requests/${code}`);
+}
+
+// Super Admins and Lead Designers: the request's designers become exactly
+// `designerIds` (owner, Nov 12: several, all equal). Adding yourself counts
+// as accepted; others are asked to accept.
+export async function setDesigners(requestId: string, designerIds: string[]): Promise<UpdateResult> {
+  const user = await getCurrentUser();
+  if (!user?.isManager) {
+    return { ok: false, error: "Only Super Admins and Lead Designers can add or remove designers." };
+  }
+  const ids = z.array(z.uuid()).max(100).safeParse(designerIds);
+  if (!z.uuid().safeParse(requestId).success || !ids.success) return { ok: false, error: "Request not found." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_request_designers", {
+    p_request_id: requestId,
+    p_designer_ids: ids.data,
+  });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't save the designers. Please try again.") };
+  const change = data as DesignerChange;
+  await designerEmails(change, user);
+  revalidateRequest(change.request_code);
+  return { ok: true, status: change.status };
+}
+
+// Anyone in the Designer list: Take this request (no designer yet; the
+// requester is told) or Add me as a designer (owner, Nov 12: no emails).
+// Both count as accepted.
+export async function addMeAsDesigner(requestId: string): Promise<UpdateResult> {
+  const user = await getCurrentUser();
+  if (!user?.designerId) return { ok: false, error: "Only people in the Designer list can add themselves." };
+  if (!z.uuid().safeParse(requestId).success) return { ok: false, error: "Request not found." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_me_as_designer", { p_request_id: requestId });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't add you. Please try again.") };
+  const change = data as DesignerChange;
+  if (change.took) await designerEmails(change, user);
+  revalidateRequest(change.request_code);
+  return { ok: true, status: change.status };
+}
+
+// A designer on the request: accept the task, or ask to reassign with a
+// reason (removes only you; owner, Nov 12).
 export async function respondAsDesigner(
   requestId: string,
   accept: boolean,
   reason: { category: "Full plate" | "Other concerns"; note: string } | null,
 ): Promise<Result> {
   const user = await getCurrentUser();
-  if (!user?.isDesigner) return { ok: false, error: "Only the assigned designer can respond." };
+  if (!user?.isDesigner) return { ok: false, error: "Only a designer on this request can respond." };
   let text = "";
   if (!accept) {
     if (!reason) return { ok: false, error: "Please choose a reason." };
@@ -266,12 +322,14 @@ export async function respondAsDesigner(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("designer_respond", { p_request_id: requestId, p_accept: accept, p_reason: text });
+  const { data, error } = await supabase.rpc("designer_respond", {
+    p_request_id: requestId,
+    p_accept: accept,
+    p_reason: text,
+  });
   if (error) return { ok: false, error: rpcError(error, "We couldn't save your response. Please try again.") };
-  if (accept) {
-    const appUrl = await getAppUrl();
-    after(() => notifyDesignerAccepted(requestId, appUrl));
-  }
-  revalidatePath("/admin", "layout");
+  const change = data as DesignerChange;
+  await designerEmails(change, user);
+  revalidateRequest(change.request_code);
   return { ok: true };
 }

@@ -95,32 +95,36 @@ export function statusFilterOptions(include: readonly string[] | null, present: 
     .map((o) => ({ ...o, count: present.get(o.value) ?? 0, disabled: !present.has(o.value) }));
 }
 
-// Who can pick what in the Assigned Designer dropdown (owner, Oct 22):
-// - a fresh New request with no designer: people in the Designer list can
-//   take it for themselves; putting someone else on it is the Lead's
-//   Accept & assign.
-// - once it has a designer: anyone in the Designer list (or a Super Admin or
-//   Lead) can change it to anyone; only Super Admins and Leads can set it
-//   back to Unassigned. Admins who don't design can't (owner, Oct 30).
-// - Completed, Cancelled and Returned stay locked.
-export type DesignerViewer = { designerId: string | null; isManager: boolean; isAdmin: boolean };
 // Admins who aren't in the Designer list (and aren't Leads or Super Admins)
-// can only put a request On hold or cancel it (owner, Oct 30). The database
-// checks too (0025_admin_status_limits.sql).
+// can only put a request On hold or cancel it, and can't change designers
+// (owner, Oct 30). The database checks too (0025_admin_status_limits.sql).
+export type DesignerViewer = { designerId: string | null; isManager: boolean; isAdmin: boolean };
 export const ADMIN_STATUSES = new Set<string>(["on_hold", "cancelled"]);
 export function holdOrCancelOnly(viewer: DesignerViewer) {
   return viewer.isAdmin && !viewer.isManager && !viewer.designerId;
 }
 
-export function designerChoice(status: string, current: string | null, viewer: DesignerViewer) {
+// Who can change a request's designers (owner, Nov 12; several designers,
+// all equal):
+// - Super Admins and Lead Designers add or remove anyone (`canEdit`), except
+//   on a fresh New request, whose first designers come from Accept & assign
+//   on the request page (owner, Oct 22).
+// - Anyone in the Designer list takes a New request with no designer
+//   (`canTake`), or adds themselves once it has one (`canAddMe`).
+// - Completed, Cancelled and Returned stay locked.
+// The database checks the same (0033_multiple_designers.sql).
+export function designerAccess(
+  status: string,
+  designerIds: readonly string[],
+  viewer: DesignerViewer,
+) {
+  const hasDesigners = designerIds.length > 0;
   const closed = lockedFor(status, true);
-  if (closed) return { locked: closed, selfOnly: false, canRemove: false };
-  if (!current && status === "new_request") {
-    if (!viewer.designerId) return { locked: lockedFor(status, false), selfOnly: false, canRemove: false };
-    return { locked: undefined, selfOnly: true, canRemove: false };
-  }
-  if (!viewer.designerId && !viewer.isManager) {
-    return { locked: "Only the Design team can change the designer", selfOnly: false, canRemove: false };
-  }
-  return { locked: undefined, selfOnly: false, canRemove: viewer.isManager };
+  const onIt = !!viewer.designerId && designerIds.includes(viewer.designerId);
+  return {
+    locked: closed ?? (viewer.isManager ? lockedFor(status, hasDesigners) : undefined),
+    canEdit: viewer.isManager && !closed && !lockedFor(status, hasDesigners),
+    canTake: !!viewer.designerId && status === "new_request" && !hasDesigners,
+    canAddMe: !!viewer.designerId && !closed && hasDesigners && !onIt,
+  };
 }
