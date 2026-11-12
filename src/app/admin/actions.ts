@@ -297,8 +297,10 @@ export async function addMeAsDesigner(requestId: string): Promise<UpdateResult> 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("add_me_as_designer", { p_request_id: requestId });
   if (error) return { ok: false, error: rpcError(error, "We couldn't add you. Please try again.") };
+  // Take this request, or Add me as the request's first acceptance → the
+  // requester's Accepted email (owner, Nov 12); otherwise nothing.
+  await designerEmails(data as DesignerChange, user);
   const change = data as DesignerChange;
-  if (change.took) await designerEmails(change, user);
   revalidateRequest(change.request_code);
   return { ok: true, status: change.status };
 }
