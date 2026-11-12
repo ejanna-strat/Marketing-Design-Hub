@@ -8,12 +8,13 @@ import { StarsDisplay } from "@/components/feedback/Stars";
 import { OutputLinksCell } from "@/components/LinkifiedText";
 import { outputLinks } from "@/lib/links";
 import { StatusBadge } from "@/components/StatusBadge";
-import { type DesignerOption, DesignerSelect, LinkEditor, StatusSelect } from "@/components/requests/editors";
+import { type DesignerOption, DesignersEditor, LinkEditor, StatusSelect } from "@/components/requests/editors";
 import { formatDate } from "@/lib/dates";
 import { one, overallRating } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
+import { designerNames, joinNames, myRow, pending } from "@/lib/requests/designers";
 import type { RequestListRow } from "@/lib/requests/list";
-import { designerChoice, type DesignerViewer, holdOrCancelOnly } from "@/lib/statuses";
+import { designerAccess, type DesignerViewer, holdOrCancelOnly } from "@/lib/statuses";
 
 const col = columnHelper<RequestListRow>();
 const INACTIVE = new Set(["cancelled", "rejected"]);
@@ -39,7 +40,7 @@ export function PipelineTable({
   page: number;
   pageSize: number;
   designers: DesignerOption[];
-  // Who may change the designer (see designerChoice in statuses.ts).
+  // Who may change the designers (see designerAccess in statuses.ts).
   viewer: DesignerViewer;
   extra?: "deal" | "inactive";
   // Deal Requests (owner, Oct 21): nothing editable in the table; changes are
@@ -91,7 +92,12 @@ export function PipelineTable({
                   <LinkEditor
                     requestId={info.row.original.id}
                     links={info.row.original}
-                    locked={INACTIVE.has(info.row.original.status)}
+                    // Not for a designer who hasn't accepted yet (owner, Nov 12).
+                    locked={
+                      INACTIVE.has(info.row.original.status) ||
+                      (!viewer.isManager &&
+                        myRow(info.row.original.request_designers, viewer.designerId)?.response === "pending")
+                    }
                     compact
                   />
                 ),
@@ -128,12 +134,12 @@ export function PipelineTable({
         header: "Status",
         cell: (info) => {
           const r = info.row.original;
-          const note =
-            r.assigned_designer_id && r.designer_response === "pending"
-              ? `Waiting for ${r.designer?.display_name ?? "the designer"} to accept`
-              : !r.assigned_designer_id && r.status === "new_request" && r.reassign_reason
-                ? `Reassignment requested: ${r.reassign_reason}`
-                : null;
+          const waiting = pending(r.request_designers).map((d) => d.designer?.display_name ?? "a designer");
+          const note = waiting.length
+            ? `Waiting for ${joinNames(waiting)} to accept`
+            : r.designer_ids.length === 0 && r.status === "new_request" && r.reassign_reason
+              ? `Reassignment requested: ${r.reassign_reason}`
+              : null;
           return (
             <div className="space-y-1">
               {readOnly ? (
@@ -142,10 +148,13 @@ export function PipelineTable({
                 <StatusSelect
                   requestId={r.id}
                   value={info.getValue()}
-                  hasDesigner={!!r.assigned_designer_id}
+                  hasDesigner={r.designer_ids.length > 0}
                   hasLink={outputLinks(r).length > 0}
-                  accepted={!!r.assigned_designer_id && r.designer_response === "accepted"}
+                  accepted={r.designer_response === "accepted"}
                   holdOrCancelOnly={holdOrCancelOnly(viewer)}
+                  awaitingMe={
+                    !viewer.isManager && myRow(r.request_designers, viewer.designerId)?.response === "pending"
+                  }
                 />
               )}
               {note && <p className="max-w-56 text-xs whitespace-normal text-muted-foreground">{note}</p>}
@@ -154,23 +163,29 @@ export function PipelineTable({
         },
       }),
       ...inactiveColumns,
-      col.accessor("assigned_designer_id", {
+      // Every designer, e.g. "Sofia, Dasha" (owner, Nov 12); Super Admins and
+      // Lead Designers add or remove them here.
+      col.accessor((r) => designerNames(r.request_designers), {
         id: "designer",
         header: "Assigned Designer",
-        cell: (info) =>
-          !readOnly && (viewer.designerId || viewer.isManager) ? (
-            <DesignerSelect
-              requestId={info.row.original.id}
-              value={info.getValue()}
+        cell: (info) => {
+          const r = info.row.original;
+          const access = designerAccess(r.status, r.designer_ids, viewer);
+          return !readOnly && access.canEdit ? (
+            <DesignersEditor
+              requestId={r.id}
+              value={r.request_designers}
               designers={designers}
+              canEdit
               selfId={viewer.designerId}
-              {...designerChoice(info.row.original.status, info.getValue(), viewer)}
+              compact
             />
-          ) : info.row.original.designer?.display_name ? (
-            <Highlight text={info.row.original.designer.display_name} />
+          ) : info.getValue() ? (
+            <Highlight text={info.getValue()} />
           ) : (
             muted
-          ),
+          );
+        },
       }),
       col.accessor("requester_name", { header: "Requester's Name", cell: (info) => <Highlight text={info.getValue()} /> }),
       col.accessor((r) => r.team?.name ?? "", { id: "team", header: "Requester's Team" }),

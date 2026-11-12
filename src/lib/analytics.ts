@@ -125,7 +125,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       supabase
         .from("requests")
         .select(
-          "id, status, created_at, date_completed, assigned_designer_id, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name, sort_order), feedback(process_rating, output_rating)",
+          "id, status, created_at, date_completed, designer_ids, request_designers(designer_id, response), is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name, sort_order), feedback(process_rating, output_rating)",
         )
         .lt("created_at", end)
         .order("created_at")
@@ -143,7 +143,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     readAll((a, b) =>
       supabase
         .from("feedback")
-        .select("process_rating, output_rating, comments, submitted_at, request:requests(assigned_designer_id, team:teams(is_marketing))")
+        .select("process_rating, output_rating, comments, submitted_at, request:requests(request_designers(designer_id, response), team:teams(is_marketing))")
         .gte("submitted_at", start)
         .lt("submitted_at", end)
         .range(a, b),
@@ -265,19 +265,26 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     return [...m.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
   };
 
+  // Several designers per request (owner, Nov 12): each designer who accepted
+  // gets full credit for a completed request (designers are locked once
+  // Completed, so these are the ones on it at completion); team totals still
+  // count each request once. Open work and "handled" count everyone on it.
+  const credited = (r: { request_designers: { designer_id: string; response: string }[] } | null | undefined) =>
+    (r?.request_designers ?? []).filter((d) => d.response === "accepted").map((d) => d.designer_id);
+  const onIt = (r: Req, id: string) => r.designer_ids.includes(id);
   const closedNow = new Set(["completed", "cancelled", "rejected"]);
   const doneInPeriod = requests.filter((r) => isCompleted(r) && r.date_completed! >= start && r.date_completed! < end);
   const designerRows: DesignerRow[] = (designers.data ?? [])
     .map((d) => {
-      const done = doneInPeriod.filter((r) => r.assigned_designer_id === d.id);
+      const done = doneInPeriod.filter((r) => credited(r).includes(d.id));
       return {
         // Two designers can share a first name; former ones are marked.
         name: d.active ? d.display_name : `${d.display_name} (former)`,
         active: d.active,
-        handled: filed.filter((r) => r.assigned_designer_id === d.id).length,
+        handled: filed.filter((r) => onIt(r, d.id)).length,
         completed: done.length,
         avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
-        feedbackRating: overall(counted.filter((f) => one(f.request)?.assigned_designer_id === d.id)),
+        feedbackRating: overall(counted.filter((f) => credited(one(f.request)).includes(d.id))),
         completedByMonth: months.map((m) => done.filter((r) => manilaDay(r.date_completed!).startsWith(m.month)).length),
         completedByType: Object.fromEntries(
           [...new Set(done.map((r) => r.request_type?.name ?? "—"))].map((type) => [
@@ -285,13 +292,14 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
             done.filter((r) => (r.request_type?.name ?? "—") === type).length,
           ]),
         ),
-        openNow: requests.filter((r) => r.assigned_designer_id === d.id && !closedNow.has(r.status)).length,
+        openNow: requests.filter((r) => onIt(r, d.id) && !closedNow.has(r.status)).length,
       };
     })
     .filter((d) => d.active || d.handled > 0 || d.completed > 0);
 
   // Monthly report: completed in the period (by Date Completed, Manila),
-  // credited to the designer assigned at completion (locked once Completed).
+  // credited in full to every designer who accepted it (locked once
+  // Completed; owner, Nov 12).
   // Open at the end = assigned to them and not Completed, Cancelled or
   // Returned at the end of the period. Feedback = feedback on those same
   // completed requests, whenever it was submitted, Marketing team excluded.
@@ -301,7 +309,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     .map(([name]) => name);
   const designerPeriod: DesignerPeriodRow[] = (designers.data ?? [])
     .map((d) => {
-      const done = doneInPeriod.filter((r) => r.assigned_designer_id === d.id);
+      const done = doneInPeriod.filter((r) => credited(r).includes(d.id));
       const outside = done.filter((r) => !r.team?.is_marketing);
       const rated = outside.map((r) => one(r.feedback)).filter((f): f is NonNullable<typeof f> => !!f);
       const p = average(rated.map((f) => f.process_rating));
@@ -314,7 +322,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
         byType,
         total: done.length,
         openAtEnd: requests.filter(
-          (r) => r.assigned_designer_id === d.id && r.created_at < end && !closed.has(statusAt(r.id, end)),
+          (r) => onIt(r, d.id) && r.created_at < end && !closed.has(statusAt(r.id, end)),
         ).length,
         avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
         feedbackRating: p === null || o === null ? null : (p + o) / 2,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   DateNeededEditor,
-  DesignerSelect,
+  DesignersEditor,
   GeneralInfoEditor,
   LinkEditor,
   StatusSelect,
@@ -18,7 +18,8 @@ import { requireStaff } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
-import { designerChoice, holdOrCancelOnly, statusLabel } from "@/lib/statuses";
+import { myRow, sortDesigners } from "@/lib/requests/designers";
+import { designerAccess, holdOrCancelOnly, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { outputLinks } from "@/lib/links";
@@ -55,6 +56,23 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
 
   const closed = request.status === "cancelled" || request.status === "rejected";
   const viewer = { designerId: user.designerId, isManager: user.isManager, isAdmin: user.isAdmin };
+  const team = sortDesigners(request.request_designers);
+  const access = designerAccess(request.status, request.designer_ids, viewer);
+  // A designer on it who hasn't accepted yet can't change the status or links
+  // (owner, Nov 12); Super Admins and Lead Designers keep their rights.
+  const awaitingMe = !user.isManager && myRow(team, user.designerId)?.response === "pending";
+  // The latest Ask to reassign, shown while other designers are still on it
+  // (until the designers change again).
+  const lastDesignerEvent = (log ?? []).find((e) =>
+    ["designer_added", "designer_removed", "designer_accepted", "reassign_requested", "designer"].includes(e.action),
+  );
+  const lastReassign =
+    lastDesignerEvent?.action === "reassign_requested" && team.length > 0
+      ? {
+          name: lastDesignerEvent.actor?.full_name ?? lastDesignerEvent.actor_label ?? "A designer",
+          reason: lastDesignerEvent.note ?? "",
+        }
+      : null;
 
   return (
     <div className="space-y-6">
@@ -70,16 +88,18 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
         <WorkflowPanel
           isManager={user.isManager}
           myDesignerId={user.designerId}
-          isAssignedDesigner={!!user.designerId && user.designerId === request.assigned_designer_id}
+          canAddMe={access.canAddMe}
           designers={designerOptions.filter((d) => d.active).map((d) => ({ id: d.id, name: d.name }))}
           state={{
             requestId: request.id,
             status: request.status,
-            designer: request.assigned_designer_id
-              ? { id: request.assigned_designer_id, name: request.designer?.display_name ?? "the designer" }
-              : null,
-            designerResponse: request.designer_response,
-            respondedAt: request.designer_responded_at,
+            designers: team.map((d) => ({
+              id: d.designer_id,
+              name: d.designer?.display_name ?? "the designer",
+              response: d.response,
+              respondedAt: d.responded_at,
+            })),
+            lastReassign,
             returnReason: request.return_reason,
             returnedByName: returnedBy?.full_name ?? null,
             reassignReason: request.reassign_reason,
@@ -103,31 +123,29 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                 <Item label="Status" value={<StatusSelect
                       requestId={request.id}
                       value={request.status}
-                      hasDesigner={!!request.assigned_designer_id}
+                      hasDesigner={team.length > 0}
                       hasLink={outputLinks(request).length > 0}
-                      accepted={!!request.assigned_designer_id && request.designer_response === "accepted"}
+                      accepted={request.designer_response === "accepted"}
                       holdOrCancelOnly={holdOrCancelOnly(viewer)}
+                      awaitingMe={awaitingMe}
                     />} />
                 <Item
-                  label="Assigned Designer"
+                  label={team.length > 1 ? "Assigned Designers" : "Assigned Designer"}
                   value={
-                    user.isManager || user.designerId ? (
-                      <DesignerSelect
-                        requestId={request.id}
-                        value={request.assigned_designer_id}
-                        designers={designerOptions}
-                        selfId={user.designerId}
-                        {...designerChoice(request.status, request.assigned_designer_id, viewer)}
-                      />
-                    ) : (
-                      request.designer?.display_name
-                    )
+                    <DesignersEditor
+                      requestId={request.id}
+                      value={team}
+                      designers={designerOptions}
+                      canEdit={access.canEdit}
+                      locked={access.locked}
+                      selfId={user.designerId}
+                    />
                   }
                 />
                 <Item label="Link to Output" value={<LinkEditor
                       requestId={request.id}
                       links={request}
-                      locked={request.status === "cancelled" || request.status === "rejected"}
+                      locked={closed || awaitingMe}
                     />} />
                 <Item
                   label="Date Needed"
@@ -219,6 +237,23 @@ const SENTENCES: Record<string, string> = {
   project_overview: "changed Project Overview and Objective",
 };
 
+// Designer changes since several designers (owner, Nov 12), as sentences.
+function designerSentence(e: LogEntry): string | null {
+  if (e.action === "designer_added") {
+    if (e.note === "Took the request") return "took the request";
+    if (e.note === "Added themselves") return "added themselves as a designer";
+    return `added ${e.to_value ?? "a designer"} as a designer`;
+  }
+  if (e.action === "designer_removed") return `removed ${e.from_value ?? "a designer"} as a designer`;
+  return null;
+}
+
+// The old single-designer entries keep their wording: a taken request reads
+// like the new one.
+const sentence = (e: LogEntry) =>
+  designerSentence(e) ?? (e.action === "designer" && e.note === "Took the request" ? "took the request" : null) ??
+  SENTENCES[e.action] ?? null;
+
 function showValue(action: string, value: string | null) {
   if (!value) return "—";
   if (action === "status") return statusLabel(value);
@@ -235,8 +270,8 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
           <span className="absolute top-1.5 -left-[25px] size-2.5 rounded-full border-2 border-background bg-brand" />
           <p>
             <span className="font-medium">{e.actor?.full_name ?? e.actor_label ?? "System"}</span>{" "}
-            {SENTENCES[e.action] ? (
-              SENTENCES[e.action]
+            {sentence(e) ? (
+              sentence(e)
             ) : e.action === "feedback" ? (
               <>
                 shared feedback: <span className="font-medium">{Number(e.to_value).toFixed(1)} ⭐</span>
@@ -247,14 +282,16 @@ function ActivityLog({ entries }: { entries: LogEntry[] }) {
               </>
             )}
           </p>
-          {!SENTENCES[e.action] && e.action !== "feedback" && (
+          {!sentence(e) && e.action !== "feedback" && (
             <p className="mt-1 break-words text-muted-foreground">
               <span className="line-through decoration-muted-foreground/50">{showValue(e.action, e.from_value)}</span>
               {" → "}
               <span className="text-foreground">{showValue(e.action, e.to_value)}</span>
             </p>
           )}
-          {e.note && (!SENTENCES[e.action] || e.action === "returned" || e.action === "reassign_requested") && <p className="mt-1 text-muted-foreground">{e.note}</p>}
+          {e.note &&
+            (!sentence(e) || e.action === "returned" || e.action === "reassign_requested") &&
+            e.note !== "Took the request" && <p className="mt-1 text-muted-foreground">{e.note}</p>}
           <time className="mt-1 block text-xs text-muted-foreground" dateTime={e.created_at}>
             {formatDateTime(e.created_at)}
           </time>

@@ -1,11 +1,11 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon, PlusIcon, UsersIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { cancelRequest, type RequestPatch, updateRequest } from "@/app/admin/actions";
+import { cancelRequest, type RequestPatch, setDesigners, updateRequest } from "@/app/admin/actions";
 import { ConfirmLeaveDialog } from "@/components/form/UnsavedChangesGuard";
 import { OutputLinkList, OutputLinksCell } from "@/components/LinkifiedText";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
   outputLinks,
 } from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
+import { type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
 import { ADMIN_STATUSES, NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
 
@@ -96,6 +97,7 @@ export function StatusSelect({
   hasLink = true,
   accepted = false,
   holdOrCancelOnly = false,
+  awaitingMe = false,
 }: {
   requestId: string;
   value: string;
@@ -106,6 +108,9 @@ export function StatusSelect({
   accepted?: boolean;
   // Admins who don't design: only On hold and Cancelled (owner, Oct 30).
   holdOrCancelOnly?: boolean;
+  // The viewer is a designer on the request who hasn't accepted yet: no
+  // status changes until they do (owner, Nov 12).
+  awaitingMe?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -131,7 +136,7 @@ export function StatusSelect({
     />
     <Select
       value={current}
-      disabled={pending}
+      disabled={pending || awaitingMe}
       onValueChange={(next) => {
         if (next === "cancelled") {
           setCancelling(true);
@@ -145,6 +150,7 @@ export function StatusSelect({
       <SelectTrigger
         size="sm"
         aria-label={label ?? "Status"}
+        title={awaitingMe ? "Accept the request first to change its status" : undefined}
         className={cn("h-7 max-w-56 rounded-full border-0 text-xs font-medium", statusBadgeClass(current))}
       >
         <SelectValue />
@@ -236,76 +242,140 @@ function lockReason(status: string, hasDesigner: boolean, hasLink: boolean, acce
   if (status === "designer_assigned") return "set when the designer accepts";
   if (status === "rejected") return "use the Return button";
   if (!hasDesigner && NEEDS_DESIGNER.has(status as never)) return "assign a designer first";
-  if (hasDesigner && !accepted && NEEDS_DESIGNER.has(status as never)) return "the designer must accept first";
+  if (hasDesigner && !accepted && NEEDS_DESIGNER.has(status as never)) return "a designer must accept first";
   if (!hasLink && LINK_REQUIRED.has(status)) return "add a Link to Output first";
-  if (accepted && status === "new_request") return "the designer already accepted";
+  if (accepted && status === "new_request") return "a designer already accepted";
   return null;
 }
 
 const LINK_REQUIRED = new Set(["for_review", "for_revision", "completed"]);
 
-const UNASSIGNED = "__none__";
-
-// Locked once the request is Completed, Cancelled or Returned.
-export function DesignerSelect({
+// A request's designers (owner, Nov 12: several, all equal). Everyone sees
+// the names ("Sofia, Dasha"; "waiting" until that designer accepts); Super
+// Admins and Lead Designers (`canEdit`) tick designers in a pop-up and save
+// the whole list at once. Locked once Completed, Cancelled or Returned.
+export function DesignersEditor({
   requestId,
   value,
   designers,
+  canEdit = false,
   locked,
   selfId = null,
-  selfOnly = false,
-  canRemove = true,
+  compact = false,
 }: {
   requestId: string;
-  value: string | null;
+  value: RequestDesigner[];
   designers: DesignerOption[];
+  canEdit?: boolean;
   // The reason it's locked, shown on hover.
   locked?: string;
-  // The viewer's own designer id; with selfOnly they can only pick themselves
-  // (taking a fresh request). canRemove: may set it back to Unassigned.
+  // The viewer's own designer id: picking yourself counts as accepted.
   selfId?: string | null;
-  selfOnly?: boolean;
-  canRemove?: boolean;
+  compact?: boolean;
 }) {
-  const { save, pending } = useSave(requestId);
-  const [current, setCurrent] = useState(value ?? UNASSIGNED);
-  const [synced, setSynced] = useState(value);
-  if (value !== synced) {
-    setSynced(value);
-    setCurrent(value ?? UNASSIGNED);
-  }
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+  const current = sortDesigners(value);
+  const [picked, setPicked] = useState<string[]>([]);
   // Former designers stay listed only on requests they already have.
-  const options = designers.filter((d) => (selfOnly ? d.id === selfId : d.active || d.id === value));
+  const options = designers.filter((d) => d.active || current.some((c) => c.designer_id === d.id));
+  const changed =
+    picked.length !== current.length || picked.some((id) => !current.some((c) => c.designer_id === id));
+
+  function save() {
+    startTransition(async () => {
+      const result = await setDesigners(requestId, picked);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Designers saved");
+      if (result.status) statusListeners.get(requestId)?.forEach((fn) => fn(result.status!));
+      setOpen(false);
+      router.refresh();
+    });
+  }
+
+  const names =
+    current.length === 0 ? (
+      <span className="text-muted-foreground">—</span>
+    ) : (
+      <span className={cn("whitespace-normal", compact && "text-xs")}>
+        {current.map((d, i) => (
+          <span key={d.designer_id}>
+            {i > 0 && ", "}
+            {d.designer?.display_name ?? "—"}
+            {d.response === "pending" && <span className="text-muted-foreground"> (waiting)</span>}
+          </span>
+        ))}
+      </span>
+    );
+  if (!canEdit) {
+    return (
+      <span className="inline-flex items-center gap-1" title={locked}>
+        {names}
+      </span>
+    );
+  }
 
   return (
-    <Select
-      value={current}
-      disabled={pending || !!locked}
-      onValueChange={(next) => {
-        const previous = current;
-        setCurrent(next);
-        save(
-          { assigned_designer_id: next === UNASSIGNED ? null : next },
-          next === UNASSIGNED ? "Designer removed" : next === selfId ? "You took this request" : "Designer assigned",
-          () => setCurrent(previous),
-        );
-      }}
-    >
-      <SelectTrigger size="sm" aria-label="Assigned Designer"
-        title={locked} className="h-7 min-w-32 bg-background text-xs">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent position="popper">
-        <SelectItem value={UNASSIGNED} disabled={!!value && !canRemove}>
-          <span className="text-muted-foreground">— Unassigned</span>
-        </SelectItem>
-        {options.map((d) => (
-          <SelectItem key={d.id} value={d.id}>
-            {d.id === selfId ? `${d.name} (me)` : d.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex items-start gap-1">
+      {names}
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (next) setPicked(current.map((c) => c.designer_id));
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon-xs" aria-label="Add or remove designers" disabled={pending}>
+            <UsersIcon />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72">
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium">Designers</p>
+              <p className="text-xs text-muted-foreground">
+                Each designer you add gets an email and accepts on their own. Adding yourself counts as accepted.
+              </p>
+            </div>
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              {options.map((d) => {
+                const id = `designer-${requestId}-${d.id}`;
+                return (
+                  <div key={d.id} className="flex items-center gap-2.5">
+                    <Checkbox
+                      id={id}
+                      checked={picked.includes(d.id)}
+                      onCheckedChange={(on) =>
+                        setPicked((p) => (on === true ? [...p, d.id] : p.filter((x) => x !== d.id)))
+                      }
+                    />
+                    <Label htmlFor={id} className="font-normal">
+                      {d.id === selfId ? `${d.name} (me)` : d.active ? d.name : `${d.name} (former)`}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+            {picked.length === 0 && current.length > 0 && (
+              <p className="text-xs text-muted-foreground">With no designers the request goes back to New request.</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" size="sm" disabled={pending || !changed} onClick={save}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 

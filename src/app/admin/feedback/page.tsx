@@ -42,13 +42,13 @@ export default async function FeedbackPage({
     supabase
       .from("feedback")
       .select(
-        "id, process_rating, output_rating, comments, submitted_at, request:requests(request_code, title, requester_name, team_id, assigned_designer_id, team:teams(name, is_marketing), designer:designers(display_name))",
+        "id, process_rating, output_rating, comments, submitted_at, request:requests(request_code, title, requester_name, team_id, designer_ids, team:teams(name, is_marketing))",
       )
       .gte("submitted_at", yearStart)
       .order("submitted_at", { ascending: false }),
     supabase
       .from("requests")
-      .select("id, team_id, assigned_designer_id, team:teams(is_marketing), feedback(id)")
+      .select("id, team_id, designer_ids, team:teams(is_marketing), feedback(id)")
       .eq("status", "completed")
       .gte("date_completed", yearStart),
     supabase.from("teams").select("id, name").order("sort_order"),
@@ -56,16 +56,22 @@ export default async function FeedbackPage({
   ]);
   if (error) throw new Error(error.message);
 
-  const byTeamDesigner = (r: { team_id: string; assigned_designer_id: string | null } | null) =>
-    (!filter.team.length || filter.team.includes(r?.team_id ?? "")) &&
-    (!filter.designer.length || filter.designer.includes(r?.assigned_designer_id ?? ""));
+  // A request can have several designers (owner, Nov 12): the Designer
+  // filter matches if any of them is ticked, and the column shows them all.
+  const anyDesigner = (ids: string[] | undefined) =>
+    !filter.designer.length || (ids ?? []).some((id) => filter.designer.includes(id));
+  const designerName = new Map((designers ?? []).map((d) => [d.id, d.display_name]));
+  const namesOf = (ids: string[] | undefined) =>
+    (ids ?? []).map((id) => designerName.get(id)).filter(Boolean).join(", ");
+  const byTeamDesigner = (r: { team_id: string; designer_ids: string[] } | null) =>
+    (!filter.team.length || filter.team.includes(r?.team_id ?? "")) && anyDesigner(r?.designer_ids);
   const feedback = (rows ?? []).map((f) => ({ ...f, request: one(f.request) }));
   type Row = (typeof feedback)[number];
   type Key = "team" | "designer" | "process" | "output" | "overall" | "comments";
   // Every filter except `skip` (so each filter's counts ignore its own picks).
   const matches = (f: Row, skip?: Key) =>
     (skip === "team" || !filter.team.length || filter.team.includes(f.request?.team_id ?? "")) &&
-    (skip === "designer" || !filter.designer.length || filter.designer.includes(f.request?.assigned_designer_id ?? "")) &&
+    (skip === "designer" || anyDesigner(f.request?.designer_ids)) &&
     (skip === "process" || !filter.process.length || filter.process.includes(f.process_rating)) &&
     (skip === "output" || !filter.output.length || filter.output.includes(f.output_rating)) &&
     (skip === "overall" || !filter.overall.length || filter.overall.includes(overallRating(f))) &&
@@ -73,14 +79,18 @@ export default async function FeedbackPage({
   const all = feedback.filter((f) => matches(f));
   // How much feedback each filter value would show: beside each option, and
   // values with none are hidden (owner, Oct 22).
-  const countBy = (skip: Key, value: (f: Row) => string) => {
+  const countBy = (skip: Key, value: (f: Row) => string | string[]) => {
     const counts = new Map<string, number>();
-    for (const f of feedback) if (matches(f, skip)) counts.set(value(f), (counts.get(value(f)) ?? 0) + 1);
+    for (const f of feedback) {
+      if (!matches(f, skip)) continue;
+      for (const v of [value(f)].flat()) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
     return counts;
   };
   const counts = {
     team: countBy("team", (f) => f.request?.team_id ?? ""),
-    designer: countBy("designer", (f) => f.request?.assigned_designer_id ?? ""),
+    // Once for each designer on the request.
+    designer: countBy("designer", (f) => f.request?.designer_ids ?? []),
     process: countBy("process", (f) => String(f.process_rating)),
     output: countBy("output", (f) => String(f.output_rating)),
     overall: countBy("overall", (f) => String(overallRating(f))),
@@ -173,7 +183,7 @@ export default async function FeedbackPage({
                     {f.request?.team?.name}
                     {f.request?.team?.is_marketing && <span className="block text-xs text-muted-foreground">not in averages</span>}
                   </TableCell>
-                  <TableCell className="align-top">{f.request?.designer?.display_name ?? "—"}</TableCell>
+                  <TableCell className="align-top">{namesOf(f.request?.designer_ids) || "—"}</TableCell>
                   <TableCell className="align-top">{f.process_rating}</TableCell>
                   <TableCell className="align-top">{f.output_rating}</TableCell>
                   <TableCell className="align-top font-medium">{formatRating(overallRating(f))} ⭐</TableCell>
