@@ -142,9 +142,14 @@ async function searchCondition(supabase: Supabase, params: ListParams, options: 
   const typeIds = (types.data ?? []).map((t) => t.id);
   const designerIds = (designers.data ?? []).map((d) => d.id);
   if (typeIds.length) conditions.push(`request_type_id.in.(${typeIds.join(",")})`);
-  if (designerIds.length) conditions.push(`designer_ids.ov.{${designerIds.join(",")}}`);
+  if (designerIds.length) conditions.push(`${designerColumn(options)}.ov.{${designerIds.join(",")}}`);
   return conditions.join(",");
 }
+
+// Requesters only see designers who have accepted (owner, Nov 12); the team
+// sees everyone on the request.
+const designerColumn = (options: ListOptions) =>
+  options.scope === "requester" ? "accepted_designer_ids" : "designer_ids";
 
 // Applies every filter in the URL.
 function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, search: string | null): Q {
@@ -173,14 +178,15 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
   // A request has several designers (owner, Nov 12): it's in each one's tab
   // and matches the Designer filter if any of them is ticked. Unassigned = no
   // designers at all.
-  if (params.designer === "none") query = query.eq("designer_ids", "{}");
-  else if (params.designer) query = query.contains("designer_ids", [params.designer]);
+  const column = designerColumn(options);
+  if (params.designer === "none") query = query.eq(column, "{}");
+  else if (params.designer) query = query.contains(column, [params.designer]);
   if (params.assignee.length) {
     const ids = params.assignee.filter((v) => v !== "none");
     const unassigned = params.assignee.includes("none");
-    if (unassigned && ids.length) query = query.or(`designer_ids.eq.{},designer_ids.ov.{${ids.join(",")}}`);
-    else if (unassigned) query = query.eq("designer_ids", "{}");
-    else query = query.overlaps("designer_ids", ids);
+    if (unassigned && ids.length) query = query.or(`${column}.eq.{},${column}.ov.{${ids.join(",")}}`);
+    else if (unassigned) query = query.eq(column, "{}");
+    else query = query.overlaps(column, ids);
   }
   // Date range on the request date, in Manila days (both ends included).
   if (params.from) query = query.gte("created_at", manilaDayStart(params.from));
@@ -209,13 +215,19 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
   const search = await searchCondition(supabase, params, options);
   const values = async (
     p: ListParams,
-    pick: (r: { status: string; team_id: string; request_type_id: string; designer_ids: string[] }) => string[],
+    pick: (r: {
+      status: string;
+      team_id: string;
+      request_type_id: string;
+      designer_ids: string[];
+      accepted_designer_ids: string[];
+    }) => string[],
   ) => {
     // Read in pages of 1,000 (the most the database returns at once).
     const found = new Map<string, number>();
     for (let from = 0; ; from += 1000) {
       const { data, error } = await applyFilters(
-        supabase.from("requests").select("status, team_id, request_type_id, designer_ids"),
+        supabase.from("requests").select("status, team_id, request_type_id, designer_ids, accepted_designer_ids"),
         p,
         options,
         search,
@@ -230,7 +242,10 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
     values({ ...params, team: [] }, (r) => [r.team_id]),
     values({ ...params, type: [] }, (r) => [r.request_type_id]),
     // Counted once for each of its designers.
-    values({ ...params, assignee: [] }, (r) => (r.designer_ids.length ? r.designer_ids : ["none"])),
+    values({ ...params, assignee: [] }, (r) => {
+      const ids = options.scope === "requester" ? r.accepted_designer_ids : r.designer_ids;
+      return ids.length ? ids : ["none"];
+    }),
   ]);
   return { status, team, type, assignee };
 }

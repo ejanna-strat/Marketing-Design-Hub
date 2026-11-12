@@ -15,7 +15,7 @@ import { N12FeedbackReceived, n12Subject } from "@/emails/N12FeedbackReceived";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { type OutputLinkFields, outputLinks } from "@/lib/links";
-import { joinNames, type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
+import { accepted, joinNames, type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "./send";
 
@@ -33,7 +33,8 @@ async function loadRequest(requestId: string) {
 }
 
 // A request has several designers (owner, Nov 12): their names for emails
-// ("Sofia and Dasha") and their addresses.
+// ("Sofia and Dasha") and their addresses. Emails to the requester name only
+// designers who have accepted.
 const namesOf = (rows: RequestDesigner[], fallback: string) =>
   joinNames(rows.map((d) => d.designer?.display_name).filter((n): n is string => !!n)) || fallback;
 const emailsOf = (rows: RequestDesigner[]) =>
@@ -86,7 +87,7 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
       email: N8FinalOutput({
         title: request.title,
         code: request.request_code,
-        designerName: namesOf(request.request_designers, "the Marketing Design team"),
+        designerName: namesOf(accepted(request.request_designers), "the Marketing Design team"),
         outputLinks: links,
         buttonUrl: links[0]?.url ?? `${appUrl}/my-requests/${request.request_code}`,
         feedbackUrl: `${appUrl}/feedback/${request.request_code}`,
@@ -244,7 +245,7 @@ export async function notifyForReview(requestId: string, appUrl: string) {
       email: N7ForReview({
         title: r.title,
         code: r.request_code,
-        designerName: namesOf(r.request_designers, "the designer"),
+        designerName: namesOf(accepted(r.request_designers), "the designer"),
         outputLinks: webLinks(r),
         url: `${appUrl}/my-requests/${r.request_code}`,
       }),
