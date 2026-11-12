@@ -1,6 +1,7 @@
 import { EmailLayout, FOOTERS, Paragraph } from "./Layout";
 
-// N6 — to the requester + the new designer when an admin reassigns the request.
+// N6 — to the requester when the whole team of designers was replaced, sent
+// when the first new designer accepts (owner, Nov 12).
 export const n6Subject = (title: string) => `Design Request Reassigned: ${title}`;
 
 export function N6Reassigned(p: { title: string; code: string; designerName: string; status: string; url: string }) {
@@ -17,7 +18,7 @@ export function N6Reassigned(p: { title: string; code: string; designerName: str
       button={{ text: "Track Request", href: p.url }}
       footer={FOOTERS.requester}
     >
-      <Paragraph>Your design request has been reassigned to a new designer.</Paragraph>
+      <Paragraph>Your design request has been reassigned. Your request is now with {p.designerName}.</Paragraph>
       <Paragraph>You can continue tracking the progress of your request through Track My Requests.</Paragraph>
     </EmailLayout>
   );

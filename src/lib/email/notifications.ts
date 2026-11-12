@@ -15,6 +15,7 @@ import { N12FeedbackReceived, n12Subject } from "@/emails/N12FeedbackReceived";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { type OutputLinkFields, outputLinks } from "@/lib/links";
+import { accepted, joinNames, type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "./send";
 
@@ -24,12 +25,22 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, assigned_designer_id, return_reason, returned_by, cancel_reason, team:teams(name), designer:designers(display_name, email)")
+    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, return_reason, returned_by, cancel_reason, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))")
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
-  return data;
+  return { ...data, request_designers: sortDesigners(data.request_designers) };
 }
+
+// A request has several designers (owner, Nov 12): their names for emails
+// ("Sofia and Dasha") and their addresses. Emails to the requester name only
+// designers who have accepted.
+const namesOf = (rows: RequestDesigner[], fallback: string) =>
+  joinNames(rows.map((d) => d.designer?.display_name).filter((n): n is string => !!n)) || fallback;
+const emailsOf = (rows: RequestDesigner[]) =>
+  rows.map((d) => d.designer?.email).filter((e): e is string => !!e);
+const nameOf = (rows: RequestDesigner[], designerId: string) =>
+  rows.find((d) => d.designer_id === designerId)?.designer?.display_name;
 
 // N1 — Lead Designers + members ticked "Copy me on Lead Designer emails".
 export async function notifyNewRequest(requestId: string, appUrl: string) {
@@ -76,7 +87,7 @@ export async function notifyFinalOutput(requestId: string, appUrl: string) {
       email: N8FinalOutput({
         title: request.title,
         code: request.request_code,
-        designerName: request.designer?.display_name ?? "the Marketing Design team",
+        designerName: namesOf(accepted(request.request_designers), "the Marketing Design team"),
         outputLinks: links,
         buttonUrl: links[0]?.url ?? `${appUrl}/my-requests/${request.request_code}`,
         feedbackUrl: `${appUrl}/feedback/${request.request_code}`,
@@ -132,15 +143,17 @@ export async function notifyReturned(requestId: string, appUrl: string) {
   }
 }
 
-// N3 — the newly assigned designer only (owner, Oct 30), once per designer.
-export async function notifyAssigned(requestId: string, appUrl: string) {
+// N3 — each designer added by someone else (owner, Oct 30 / Nov 12), once per
+// designer. Adding yourself sends nothing.
+export async function notifyAssigned(requestId: string, designerId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
-    if (!r.assigned_designer_id || !r.designer) return;
+    const designer = r.request_designers.find((d) => d.designer_id === designerId)?.designer;
+    if (!designer?.email) return;
     await sendEmail({
-      key: `N3_ASSIGNED:${r.assigned_designer_id}`,
+      key: `N3_ASSIGNED:${designerId}`,
       requestId,
-      to: [r.designer.email],
+      to: [designer.email],
       subject: n3Subject(),
       email: N3Assigned({
         title: r.title,
@@ -149,7 +162,7 @@ export async function notifyAssigned(requestId: string, appUrl: string) {
         team: r.team?.name ?? "—",
         dateNeeded: formatDate(r.date_needed),
         status: r.status,
-        url: `${appUrl}/admin/pipeline?designer=${r.assigned_designer_id}`,
+        url: `${appUrl}/admin/pipeline?designer=${designerId}`,
       }),
     });
   } catch (e) {
@@ -157,25 +170,32 @@ export async function notifyAssigned(requestId: string, appUrl: string) {
   }
 }
 
-// N4 — the requester (+ "Copy me on requester emails") when the designer accepts, or
-// when a designer takes the request themselves. `skipEmail`: the person who
-// took their own request doesn't get an email about it (owner, Oct 22).
-export async function notifyDesignerAccepted(requestId: string, appUrl: string, skipEmail?: string) {
+// N4 — the requester (+ "Copy me on requester emails"), once per request, the
+// first time a designer accepts or takes it (owner, Nov 12; the database
+// decides when: designer_respond / add_me_as_designer / set_request_designers
+// return `first_accepted`). Names the designer who accepted. `skipEmail`: the
+// person who took their own request doesn't get an email about it (owner,
+// Oct 22).
+export async function notifyDesignerAccepted(
+  requestId: string,
+  designerId: string,
+  appUrl: string,
+  skipEmail?: string,
+) {
   try {
     const r = await loadRequest(requestId);
-    if (!r.assigned_designer_id) return;
     const skip = skipEmail?.toLowerCase();
     const to = [r.requester_email, ...(await requesterCopyRecipients())].filter((e) => e.toLowerCase() !== skip);
     if (to.length === 0) return;
     await sendEmail({
-      key: `N4_ACCEPTED:${r.assigned_designer_id}`,
+      key: "N4_ACCEPTED",
       requestId,
       to,
       subject: n4Subject(r.title),
       email: N4Accepted({
         title: r.title,
         code: r.request_code,
-        designerName: r.designer?.display_name ?? "a designer",
+        designerName: nameOf(r.request_designers, designerId) ?? "a designer",
         url: `${appUrl}/my-requests`,
       }),
     });
@@ -184,22 +204,26 @@ export async function notifyDesignerAccepted(requestId: string, appUrl: string, 
   }
 }
 
-// N6 — the requester (+ "Copy me on requester emails", owner Oct 30) when the
-// designer is changed; a new designer picked by someone else gets the
-// assigned email.
-export async function notifyReassigned(requestId: string, appUrl: string) {
+// N6 — the requester (+ "Copy me on requester emails", owner Oct 30) only when
+// the whole team was replaced, sent when the first new designer accepts and
+// naming them (owner, Nov 12). The database returns `team_changed` exactly
+// once per replacement, so the same designer can be announced again after a
+// later replacement.
+export async function notifyReassigned(requestId: string, designerId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
-    if (!r.assigned_designer_id || !r.designer) return;
+    const name = nameOf(r.request_designers, designerId);
+    if (!name) return;
     await sendEmail({
-      key: `N6_REASSIGNED:${r.assigned_designer_id}`,
+      key: `N6_REASSIGNED:${designerId}`,
+      onceOnly: false,
       requestId,
       to: [r.requester_email, ...(await requesterCopyRecipients())],
       subject: n6Subject(r.title),
       email: N6Reassigned({
         title: r.title,
         code: r.request_code,
-        designerName: r.designer.display_name,
+        designerName: name,
         status: r.status,
         url: `${appUrl}/my-requests`,
       }),
@@ -221,7 +245,7 @@ export async function notifyForReview(requestId: string, appUrl: string) {
       email: N7ForReview({
         title: r.title,
         code: r.request_code,
-        designerName: r.designer?.display_name ?? "the designer",
+        designerName: namesOf(accepted(r.request_designers), "the designer"),
         outputLinks: webLinks(r),
         url: `${appUrl}/my-requests/${r.request_code}`,
       }),
@@ -237,7 +261,7 @@ const REMIND_STATUSES = ["new_request", "designer_assigned", "in_progress", "for
 
 // N10 — run every weekday at 8AM (Manila) by Vercel Cron. Sends once per
 // request and Date Needed to Lead Designers, "Copy me on Lead Designer
-// emails" members (owner, Oct 30) + the assigned designer, for requests due
+// emails" members (owner, Oct 30) + every designer on it (Nov 12), for requests due
 // within the next 3 days (so weekends aren't skipped). A changed Date Needed
 // gets its own reminder.
 export async function sendDueReminders(appUrl: string) {
@@ -245,7 +269,7 @@ export async function sendDueReminders(appUrl: string) {
   const until = format(addDays(parseISO(today), 3), "yyyy-MM-dd");
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, date_needed, team:teams(name), designer:designers(email)")
+    .select("id, request_code, title, status, requester_name, date_needed, team:teams(name), request_designers(designer:designers(email))")
     .in("status", [...REMIND_STATUSES])
     .gte("date_needed", today)
     .lte("date_needed", until);
@@ -258,7 +282,7 @@ export async function sendDueReminders(appUrl: string) {
     results[r.request_code] = await sendEmail({
       key: `N10_DUE_SOON:${r.date_needed}`,
       requestId: r.id,
-      to: [...leads, ...(r.designer?.email ? [r.designer.email] : [])],
+      to: [...leads, ...r.request_designers.map((d) => d.designer?.email).filter((e): e is string => !!e)],
       subject: n10Subject(),
       email: N10DueSoon({
         title: r.title,
@@ -274,16 +298,17 @@ export async function sendDueReminders(appUrl: string) {
   return results;
 }
 
-// To the assigned designer, once, when the requester cancels (owner, Oct 21).
-// Nobody is emailed when no designer was assigned yet.
+// To every designer on the request, once, when the requester cancels (owner,
+// Oct 21 / Nov 12). Nobody is emailed when no designer was assigned yet.
 export async function notifyCancelled(requestId: string, appUrl: string) {
   try {
     const r = await loadRequest(requestId);
-    if (!r.designer) return;
+    const to = emailsOf(r.request_designers);
+    if (to.length === 0) return;
     await sendEmail({
       key: "N11_CANCELLED",
       requestId,
-      to: [r.designer.email],
+      to,
       subject: n11Subject(r.title),
       email: N11Cancelled({
         title: r.title,
@@ -320,7 +345,7 @@ export async function sendUnassignedReminders(appUrl: string) {
     .from("activity_log")
     .select("request_id, created_at")
     .in("request_id", data.map((r) => r.id))
-    .or("action.eq.reassign_requested,and(action.eq.designer,to_value.is.null)");
+    .or("action.in.(reassign_requested,designer_removed),and(action.eq.designer,to_value.is.null)");
   const lastUnassigned = new Map<string, string>();
   for (const u of unassigned ?? []) {
     if (u.created_at > (lastUnassigned.get(u.request_id) ?? "")) lastUnassigned.set(u.request_id, u.created_at);
@@ -379,15 +404,15 @@ export function secondCheckDay(since: string) {
   return day;
 }
 
-// New feedback — to Lead Designers, "Copy on Lead's email" members and the
-// assigned designer, once per request (owner, Nov 6). Feedback from Marketing
+// New feedback — to Lead Designers, "Copy on Lead's email" members and every
+// designer on the request, once per request (owner, Nov 6 / Nov 12). Feedback from Marketing
 // team requesters is sent too, with a note that it isn't in the averages.
 export async function notifyFeedback(requestCode: string, appUrl: string) {
   try {
     const { data: r, error } = await createAdminClient()
       .from("requests")
       .select(
-        "id, request_code, title, requester_name, team:teams(name, is_marketing), designer:designers(display_name, email), feedback(process_rating, output_rating, comments)",
+        "id, request_code, title, requester_name, team:teams(name, is_marketing), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email)), feedback(process_rating, output_rating, comments)",
       )
       .eq("request_code", requestCode)
       .single();
@@ -397,14 +422,14 @@ export async function notifyFeedback(requestCode: string, appUrl: string) {
     await sendEmail({
       key: "N12_FEEDBACK",
       requestId: r.id,
-      to: [...(await leadEmailRecipients()), ...(r.designer?.email ? [r.designer.email] : [])],
+      to: [...(await leadEmailRecipients()), ...emailsOf(r.request_designers)],
       subject: n12Subject(r.title),
       email: N12FeedbackReceived({
         title: r.title,
         code: r.request_code,
         requesterName: r.requester_name,
         team: r.team?.name ?? "—",
-        designerName: r.designer?.display_name ?? "—",
+        designerName: namesOf(sortDesigners(r.request_designers), "—"),
         process: f.process_rating,
         output: f.output_rating,
         comments: f.comments,

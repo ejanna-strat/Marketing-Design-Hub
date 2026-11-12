@@ -89,9 +89,10 @@ export function parseListParams(sp: SearchParams): ListParams {
 const LIST_COLUMNS = `
   id, request_code, created_at, date_needed, title, output_needed, status, link_to_output,
   link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3,
-  requester_name, requester_email, assigned_designer_id, designer_response, reassign_reason,
+  requester_name, requester_email, assigned_designer_id, designer_response, designer_ids, reassign_reason,
   is_deal, deal_name, deal_size, return_reason, cancel_reason, updated_at,
-  request_type:request_types(name), team:teams(name), designer:designers(display_name),
+  request_type:request_types(name), team:teams(name),
+  request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name)),
   feedback(process_rating, output_rating)
 `;
 
@@ -118,11 +119,13 @@ type Filterable = {
   or(filters: string): Filterable;
   is(column: string, value: null): Filterable;
   gte(column: string, value: unknown): Filterable;
+  contains(column: string, value: unknown): Filterable;
+  overlaps(column: string, value: unknown): Filterable;
   lt(column: string, value: unknown): Filterable;
 };
 
 // The search box as one or() condition. Also matches Type of Request, Output
-// Needed and the assigned designer (owner, Oct 18); type and designer names
+// Needed and any of its designers (owner, Oct 18); type and designer names
 // live in other tables, so their ids are looked up first.
 async function searchCondition(supabase: Supabase, params: ListParams, options: ListOptions) {
   // Characters that would break PostgREST's or() syntax are dropped.
@@ -139,9 +142,14 @@ async function searchCondition(supabase: Supabase, params: ListParams, options: 
   const typeIds = (types.data ?? []).map((t) => t.id);
   const designerIds = (designers.data ?? []).map((d) => d.id);
   if (typeIds.length) conditions.push(`request_type_id.in.(${typeIds.join(",")})`);
-  if (designerIds.length) conditions.push(`assigned_designer_id.in.(${designerIds.join(",")})`);
+  if (designerIds.length) conditions.push(`${designerColumn(options)}.ov.{${designerIds.join(",")}}`);
   return conditions.join(",");
 }
+
+// Requesters only see designers who have accepted (owner, Nov 12); the team
+// sees everyone on the request.
+const designerColumn = (options: ListOptions) =>
+  options.scope === "requester" ? "accepted_designer_ids" : "designer_ids";
 
 // Applies every filter in the URL.
 function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, search: string | null): Q {
@@ -167,14 +175,18 @@ function applyFilters<Q>(base: Q, params: ListParams, options: ListOptions, sear
   if (params.status.length) query = query.in("status", params.status);
   if (params.type.length) query = query.in("request_type_id", params.type);
   if (params.team.length) query = query.in("team_id", params.team);
-  if (params.designer === "none") query = query.is("assigned_designer_id", null);
-  else if (params.designer) query = query.eq("assigned_designer_id", params.designer);
+  // A request has several designers (owner, Nov 12): it's in each one's tab
+  // and matches the Designer filter if any of them is ticked. Unassigned = no
+  // designers at all.
+  const column = designerColumn(options);
+  if (params.designer === "none") query = query.eq(column, "{}");
+  else if (params.designer) query = query.contains(column, [params.designer]);
   if (params.assignee.length) {
     const ids = params.assignee.filter((v) => v !== "none");
     const unassigned = params.assignee.includes("none");
-    if (unassigned && ids.length) query = query.or(`assigned_designer_id.is.null,assigned_designer_id.in.(${ids.join(",")})`);
-    else if (unassigned) query = query.is("assigned_designer_id", null);
-    else query = query.in("assigned_designer_id", ids);
+    if (unassigned && ids.length) query = query.or(`${column}.eq.{},${column}.ov.{${ids.join(",")}}`);
+    else if (unassigned) query = query.eq(column, "{}");
+    else query = query.overlaps(column, ids);
   }
   // Date range on the request date, in Manila days (both ends included).
   if (params.from) query = query.gte("created_at", manilaDayStart(params.from));
@@ -203,27 +215,37 @@ export async function facetsInView(supabase: Supabase, params: ListParams, optio
   const search = await searchCondition(supabase, params, options);
   const values = async (
     p: ListParams,
-    pick: (r: { status: string; team_id: string; request_type_id: string; assigned_designer_id: string | null }) => string,
+    pick: (r: {
+      status: string;
+      team_id: string;
+      request_type_id: string;
+      designer_ids: string[];
+      accepted_designer_ids: string[];
+    }) => string[],
   ) => {
     // Read in pages of 1,000 (the most the database returns at once).
     const found = new Map<string, number>();
     for (let from = 0; ; from += 1000) {
       const { data, error } = await applyFilters(
-        supabase.from("requests").select("status, team_id, request_type_id, assigned_designer_id"),
+        supabase.from("requests").select("status, team_id, request_type_id, designer_ids, accepted_designer_ids"),
         p,
         options,
         search,
       ).range(from, from + 999);
       if (error) throw new Error(error.message);
-      for (const r of data ?? []) found.set(pick(r), (found.get(pick(r)) ?? 0) + 1);
+      for (const r of data ?? []) for (const v of pick(r)) found.set(v, (found.get(v) ?? 0) + 1);
       if (!data || data.length < 1000) return found;
     }
   };
   const [status, team, type, assignee] = await Promise.all([
-    values({ ...params, status: [] }, (r) => r.status),
-    values({ ...params, team: [] }, (r) => r.team_id),
-    values({ ...params, type: [] }, (r) => r.request_type_id),
-    values({ ...params, assignee: [] }, (r) => r.assigned_designer_id ?? "none"),
+    values({ ...params, status: [] }, (r) => [r.status]),
+    values({ ...params, team: [] }, (r) => [r.team_id]),
+    values({ ...params, type: [] }, (r) => [r.request_type_id]),
+    // Counted once for each of its designers.
+    values({ ...params, assignee: [] }, (r) => {
+      const ids = options.scope === "requester" ? r.accepted_designer_ids : r.designer_ids;
+      return ids.length ? ids : ["none"];
+    }),
   ]);
   return { status, team, type, assignee };
 }
