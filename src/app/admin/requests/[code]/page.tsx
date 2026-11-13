@@ -146,6 +146,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       requestId={request.id}
                       links={request}
                       locked={closed || awaitingMe}
+                      notStarted={!request.date_started}
                     />} />
                 <Item
                   label="Date Needed"
