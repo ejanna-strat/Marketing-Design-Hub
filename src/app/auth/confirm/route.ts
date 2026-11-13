@@ -30,8 +30,9 @@ export async function GET(request: NextRequest) {
   } else if (type === "recovery") {
     url.pathname = "/reset-password";
   } else if (type === "signup") {
-    // Confirming the email also signs them in, so go straight in.
-    url.pathname = "/";
+    // Confirming the email also signs them in, so go straight in (to the
+    // hub chooser, owner Nov 13).
+    url.pathname = "/hubs";
   } else {
     url.pathname = safeNextPath(searchParams.get("next"));
   }
