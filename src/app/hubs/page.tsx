@@ -1,4 +1,4 @@
-import { ArrowRightIcon, NewspaperIcon, PaletteIcon } from "lucide-react";
+import { ArrowRightIcon, ConstructionIcon, PaletteIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { IdleSignOut } from "@/components/shell/IdleSignOut";
@@ -9,8 +9,9 @@ import { requireUser } from "@/lib/auth";
 
 // The Marketing Support Hub's front door (owner, Nov 13): everyone lands here
 // after signing in and picks a hub. Creative Hub is the design-request app;
-// Content Requests is coming later. Old links and email buttons still open
+// a generic "Coming soon" card stands in for the next hub. Old links and email buttons still open
 // their page directly.
+
 export default async function HubsPage() {
   const user = await requireUser();
   const firstName = user.fullName.split(" ")[0];
@@ -53,18 +54,28 @@ export default async function HubsPage() {
             </span>
           </Link>
 
+          {/* A generic placeholder for the next hub (owner, Nov 14): no name,
+              so nothing is announced before it's ready. */}
           <div
             aria-disabled="true"
-            className="flex flex-col gap-3 rounded-xl border border-dashed bg-background/60 p-6 text-muted-foreground"
+            className="relative flex flex-col gap-3 overflow-hidden rounded-xl border border-dashed border-amber-300 bg-amber-50 p-6 pt-8 text-amber-950/70 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100/70"
           >
-            <span className="flex size-11 items-center justify-center rounded-lg bg-muted">
-              <NewspaperIcon className="size-6" aria-hidden />
+            <span
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-2 bg-[repeating-linear-gradient(135deg,#fbbf24_0_12px,#1f2937_12px_24px)] opacity-80"
+            />
+            {/* The construction icon sits in the tag, not as a hub icon, so it
+                doesn't hint at what the new hub is (owner, Nov 14). */}
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-200/70 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
+              <ConstructionIcon className="size-3.5" aria-hidden />
+              Coming soon
             </span>
-            <span className="flex items-center gap-2">
-              <span className="font-brand text-xl font-bold">Content Requests</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Coming soon</span>
+            <span className="font-brand text-xl font-bold text-amber-950/80 dark:text-amber-50/90">
+              Something new is on the way
             </span>
-            <span className="flex-1 text-sm">Content requests: articles, copy and more. Coming soon.</span>
+            <span className="flex-1 text-sm">
+              We&apos;re building more ways for the Marketing team to support you. Stay tuned!
+            </span>
           </div>
         </div>
       </main>
