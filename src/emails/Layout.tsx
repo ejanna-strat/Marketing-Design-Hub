@@ -18,18 +18,20 @@ export const FOOTERS = {
   reminder: "You're receiving this as a friendly reminder about an upcoming due date in",
 } as const;
 
-// The logo is served from the project's public "brand" storage folder, so
-// email programs can load it (the app itself may sit behind a login). The
-// ?v= tag changes whenever the logo does, because email programs (Gmail)
-// keep their own copy of an image per address (new #008ce0 logo, Nov 10).
+// Email images load from the live app's public/brand folder (owner, Nov 14),
+// so they update with every release and nobody uploads them by hand. Staging
+// emails use the live copies too (preview links may need a Vercel login). The
+// ?v= tag changes whenever an image does, because email programs (Gmail) keep
+// their own copy per address.
+const EMAIL_IMAGES = "https://marketing-support-hub.vercel.app/brand";
+
 export function logoUrl() {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/logo.png?v=008ce0`;
+  return `${EMAIL_IMAGES}/logo.png?v=008ce0`;
 }
 
-// The hub's icon (the palette, as on the "Choose a hub" page), from the same
-// storage folder as the logo. public/brand/creative-hub.png is the source.
+// The hub's icon (the palette, as on the "Choose a hub" page).
 function hubIconUrl() {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/creative-hub.png?v=1`;
+  return `${EMAIL_IMAGES}/creative-hub.png?v=1`;
 }
 
 const FONT = "Inter, 'Segoe UI', Helvetica, Arial, sans-serif";

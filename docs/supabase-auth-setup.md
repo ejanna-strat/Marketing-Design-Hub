@@ -35,7 +35,7 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 | **Confirm signup** | `Confirm your Marketing Support Hub account` | `docs/emails/confirm-signup.html` |
 | **Reset Password** | `Set your Marketing Support Hub password` | `docs/emails/reset-password.html` |
 
-Before pasting, replace `LOGO_URL` with `<project URL>/storage/v1/object/public/brand/logo.png` (the logo in the project's public **brand** storage folder). Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
+Paste them as they are into both projects: the logo loads from the live app (`https://marketing-support-hub.vercel.app/brand/logo.png`, from `public/brand/`; Nov 14), so nothing is uploaded to Supabase. Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
 
 The Magic Link template is no longer used.
 
