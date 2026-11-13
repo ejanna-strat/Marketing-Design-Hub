@@ -3,15 +3,19 @@ import { theme } from "@/config/theme";
 import type { OutputLinkItem } from "@/lib/links";
 import { statusEmailColors, statusLabel } from "@/lib/statuses";
 
-// Shared layout for every notification (CLAUDE.md §8.2, refreshed Oct 18):
-// logo + app name as the title, uppercase label, centred message, the
+// Shared layout for every notification (CLAUDE.md §8.2, refreshed Oct 18,
+// letterhead Nov 13): Marketing Support Hub › hub trail, hub icon + name as
+// the title, uppercase label, centred message, the
 // request's status as a coloured tag, details table, button(s), footer.
 
+// Each footer ends with the hub's name in bold (owner, Nov 13), so a future
+// hub's emails read e.g. "…because you filed a content request in Content
+// Requests."
 export const FOOTERS = {
-  team: "You're receiving this because you're on the Marketing Brand team.",
-  design: "You're receiving this because you're on the Marketing Design team.",
-  requester: "You're receiving this because you filed a Design Request with the Marketing team.",
-  reminder: "You're receiving this as a friendly reminder about an upcoming due date.",
+  team: "You're receiving this because you're on the Marketing Brand team in",
+  design: "You're receiving this because you're on the Marketing Design team in",
+  requester: "You're receiving this because you filed a design request in",
+  reminder: "You're receiving this as a friendly reminder about an upcoming due date in",
 } as const;
 
 // The logo is served from the project's public "brand" storage folder, so
@@ -20,6 +24,12 @@ export const FOOTERS = {
 // keep their own copy of an image per address (new #008ce0 logo, Nov 10).
 export function logoUrl() {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/logo.png?v=008ce0`;
+}
+
+// The hub's icon (the palette, as on the "Choose a hub" page), from the same
+// storage folder as the logo. public/brand/creative-hub.png is the source.
+function hubIconUrl() {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/creative-hub.png?v=1`;
 }
 
 const FONT = "Inter, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -57,22 +67,43 @@ export function EmailLayout({
       <Preview>{preview}</Preview>
       <Body style={{ backgroundColor: "#f3f6fb", fontFamily: FONT, margin: 0, padding: "24px 0" }}>
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#ffffff", borderRadius: 14, overflow: "hidden" }}>
-          {/* Letterhead (owner, Nov 13): the logo belongs to the Marketing
-              Support Hub, side by side with its name; the hub the email is
-              from is a tag below. A table keeps them on one line in every
-              email program. */}
-          <Section style={{ padding: "22px 32px 18px", borderBottom: "1px solid #e6ecf5" }}>
+          {/* Letterhead (owner, Nov 13): a blue strip on top, a small
+              "Marketing Support Hub › Creative Hub" trail, then the hub's
+              icon and name as the title, so the hub stands out and the
+              Marketing Support Hub frames it. Tables keep everything in place
+              in every email program. */}
+          <Section
+            style={{
+              borderTop: `4px solid ${theme.brand}`,
+              borderBottom: "1px solid #e6ecf5",
+              padding: "18px 24px 16px",
+            }}
+          >
+            <table cellPadding={0} cellSpacing={0} role="presentation" align="center" style={{ margin: "0 auto 8px" }}>
+              <tbody>
+                <tr>
+                  <td style={{ verticalAlign: "middle", paddingRight: 6 }}>
+                    <Img src={logoUrl()} width="18" height="18" alt="" style={{ display: "block", borderRadius: 4 }} />
+                  </td>
+                  <td style={{ verticalAlign: "middle", fontSize: 12, lineHeight: "18px", color: "#55627a" }}>
+                    {theme.suiteName}
+                    <span style={{ color: "#8a96ab", padding: "0 8px" }}>›</span>
+                    <span style={{ color: theme.brandInk, fontWeight: 600 }}>{theme.appName}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             <table cellPadding={0} cellSpacing={0} role="presentation" align="center" style={{ margin: "0 auto" }}>
               <tbody>
                 <tr>
-                  <td style={{ verticalAlign: "middle", paddingRight: 10 }}>
-                    <Img src={logoUrl()} width="36" height="36" alt="" style={{ display: "block", borderRadius: 8 }} />
+                  <td style={{ verticalAlign: "middle", paddingRight: 8 }}>
+                    <Img src={hubIconUrl()} width="30" height="30" alt="" style={{ display: "block" }} />
                   </td>
                   <td style={{ verticalAlign: "middle" }}>
                     <Text
-                      style={{ margin: 0, fontSize: 19, lineHeight: "24px", fontWeight: 700, color: theme.brandInk, fontFamily: FONT }}
+                      style={{ margin: 0, fontSize: 26, lineHeight: "32px", fontWeight: 800, color: theme.brandInk }}
                     >
-                      {theme.suiteName}
+                      {theme.appName}
                     </Text>
                   </td>
                 </tr>
@@ -80,23 +111,6 @@ export function EmailLayout({
             </table>
           </Section>
           <Section style={{ padding: "22px 32px 8px", textAlign: "center" }}>
-            <Text style={{ margin: "0 0 14px" }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  backgroundColor: theme.brandSoft,
-                  color: theme.brandInk,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  padding: "4px 12px",
-                  borderRadius: 999,
-                }}
-              >
-                {theme.appName}
-              </span>
-            </Text>
             <Text
               style={{
                 margin: "0 0 14px",
@@ -164,7 +178,9 @@ export function EmailLayout({
           </Section>
           <Hr style={{ borderColor: "#e6ecf5", margin: 0 }} />
           <Section style={{ padding: "16px 32px 22px", textAlign: "center" }}>
-            <Text style={{ margin: "0 0 8px", fontSize: 12, color: "#55627a" }}>{footer}</Text>
+            <Text style={{ margin: "0 0 8px", fontSize: 12, color: "#55627a" }}>
+              {footer} <strong style={{ color: theme.brandInk }}>{theme.appName}</strong>.
+            </Text>
             <Text style={{ margin: 0, fontSize: 11, color: "#8a96ab" }}>
               {theme.suiteName} · {theme.appName} | {theme.company} · Automated notification | For internal use only
             </Text>
