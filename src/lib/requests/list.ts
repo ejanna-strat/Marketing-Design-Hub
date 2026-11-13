@@ -87,7 +87,7 @@ export function parseListParams(sp: SearchParams): ListParams {
 }
 
 const LIST_COLUMNS = `
-  id, request_code, created_at, date_needed, title, output_needed, status, link_to_output,
+  id, request_code, created_at, date_needed, date_started, title, output_needed, status, link_to_output,
   link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3,
   requester_name, requester_email, assigned_designer_id, designer_response, designer_ids, reassign_reason,
   is_deal, deal_name, deal_size, return_reason, cancel_reason, updated_at,
