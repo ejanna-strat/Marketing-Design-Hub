@@ -52,7 +52,8 @@ export async function signIn(rawEmail: string, password: string, next?: string):
     console.error("signInWithPassword failed", error);
     return { ok: false, error: "We couldn't sign you in. Please try again." };
   }
-  redirect(safeNextPath(next));
+  // No page to go back to → the hub chooser (owner, Nov 13).
+  redirect(next ? safeNextPath(next) : "/hubs");
 }
 
 export async function signUp(input: { fullName: string; email: string; password: string }): Promise<Result> {
@@ -81,7 +82,7 @@ export async function signUp(input: { fullName: string; email: string; password:
     return { ok: false, error: "We couldn't create your account. Please try again." };
   }
   // Email confirmation is off in Supabase: they're signed in already.
-  if (data.session) redirect("/");
+  if (data.session) redirect("/hubs");
   // Supabase doesn't reveal whether the email already had an account, so
   // the message covers both cases.
   return {
@@ -136,7 +137,7 @@ export async function updatePassword(password: string): Promise<Result> {
     console.error("updateUser failed", error);
     return { ok: false, error: "We couldn't save your password. Please try again." };
   }
-  redirect("/");
+  redirect("/hubs");
 }
 
 export async function signOut() {

@@ -17,7 +17,7 @@ const phoneLink =
 const phoneActive = "bg-brand-soft font-medium text-brand hover:bg-brand-soft hover:text-brand";
 const activeClass = "bg-brand-soft font-medium text-brand hover:bg-brand-soft hover:text-brand";
 
-function roleLabel(user: CurrentUser) {
+export function roleLabel(user: CurrentUser) {
   const tags = [
     user.isSuperAdmin ? "Super Admin" : user.isAdmin && "Admin",
     user.isLeadDesigner && "Lead Designer",
@@ -54,10 +54,22 @@ export function AppHeader({ user }: { user: CurrentUser }) {
             )}
           </MobileMenu>
         </Suspense>
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
-          <span className="hidden font-brand font-bold text-brand sm:inline">{theme.appName}</span>
-        </Link>
+        {/* Marketing Support Hub › Creative Hub (owner, Nov 13): the first part
+            opens the hub chooser, the second this hub's home. */}
+        <div className="flex items-center gap-2">
+          <Link href="/hubs" aria-label={`${theme.suiteName}: choose a hub`} className="flex items-center gap-2">
+            <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
+            <span className="hidden text-sm font-medium text-muted-foreground hover:text-foreground lg:inline">
+              {theme.suiteName}
+            </span>
+          </Link>
+          <span aria-hidden className="hidden text-muted-foreground lg:inline">
+            ›
+          </span>
+          <Link href="/" className="hidden font-brand font-bold text-brand sm:inline">
+            {theme.appName}
+          </Link>
+        </div>
         <nav className="hidden flex-1 items-center gap-1 md:flex">
           <NavLink href="/" exact className={linkClass} activeClassName={activeClass}>
             Home
