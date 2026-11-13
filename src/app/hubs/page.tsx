@@ -11,6 +11,11 @@ import { requireUser } from "@/lib/auth";
 // after signing in and picks a hub. Creative Hub is the design-request app;
 // Content Requests is coming later. Old links and email buttons still open
 // their page directly.
+
+// The Content Requests "Coming soon" card is hidden until that hub is built
+// (owner, Nov 14); set to true to show it again.
+const SHOW_CONTENT_REQUESTS = false;
+
 export default async function HubsPage() {
   const user = await requireUser();
   const firstName = user.fullName.split(" ")[0];
@@ -35,7 +40,7 @@ export default async function HubsPage() {
           <p className="text-muted-foreground">Choose the hub for what you need from the Marketing team.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className={SHOW_CONTENT_REQUESTS ? "grid gap-4 sm:grid-cols-2" : "mx-auto grid max-w-sm gap-4"}>
           <Link
             href="/"
             className="group flex flex-col gap-3 rounded-xl border bg-background p-6 shadow-sm transition hover:border-brand hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand"
@@ -53,19 +58,21 @@ export default async function HubsPage() {
             </span>
           </Link>
 
-          <div
-            aria-disabled="true"
-            className="flex flex-col gap-3 rounded-xl border border-dashed bg-background/60 p-6 text-muted-foreground"
-          >
-            <span className="flex size-11 items-center justify-center rounded-lg bg-muted">
-              <NewspaperIcon className="size-6" aria-hidden />
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="font-brand text-xl font-bold">Content Requests</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Coming soon</span>
-            </span>
-            <span className="flex-1 text-sm">Content requests: articles, copy and more. Coming soon.</span>
-          </div>
+          {SHOW_CONTENT_REQUESTS && (
+            <div
+              aria-disabled="true"
+              className="flex flex-col gap-3 rounded-xl border border-dashed bg-background/60 p-6 text-muted-foreground"
+            >
+              <span className="flex size-11 items-center justify-center rounded-lg bg-muted">
+                <NewspaperIcon className="size-6" aria-hidden />
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="font-brand text-xl font-bold">Content Requests</span>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Coming soon</span>
+              </span>
+              <span className="flex-1 text-sm">Content requests: articles, copy and more. Coming soon.</span>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 14, 2026 · version 0.71.2_
+_Last updated: Nov 14, 2026 · version 0.71.3_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 14, 2026 · version 0.71.2_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.71.3 (owner, Nov 14): the **Content Requests "Coming soon" card is hidden** on the Choose a hub page until that hub is built (`SHOW_CONTENT_REQUESTS` in `src/app/hubs/page.tsx`); Creative Hub shows alone, centred.
 - v0.71.2 (owner, Nov 14): **email images load from the live app** (`public/brand/logo.png`, `creative-hub.png`) instead of the Supabase `brand` buckets, so nothing is uploaded by hand and the logo shows the current blue. The sign-up and reset-password templates use the same link and are pasted as is into both projects.
 - v0.71.1 (owner, Nov 13–14): **new email header**: a blue strip on top, a small "Marketing Support Hub › Creative Hub" trail, then the palette icon (`public/brand/creative-hub.png`) beside a big "Creative Hub" title; the status pill is unchanged. Footers end with the hub in bold ("…because you filed a design request in **Creative Hub**."). The sign-up and reset-password templates (`docs/emails/`) get the blue strip, logo beside "Marketing Support Hub", and a footer; sign-up copy now says they'll go straight to the hub chooser.
 - v0.71.0 (owner, Nov 13): **Links to Output only once work has started**: they can be added or edited once the request has been In progress (In progress, For review, For revision, Completed, and On hold after work started), not on New request, Designer assigned, or On hold before work started. Existing links stay visible. The pencil is hidden until then (request page: "Add once it's In progress"); the database refuses it too (`requests_links_need_work`, `0037_links_after_work_starts.sql`, staging, tested in a rolled-back transaction).
