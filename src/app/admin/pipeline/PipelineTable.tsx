@@ -92,6 +92,7 @@ export function PipelineTable({
                   <LinkEditor
                     requestId={info.row.original.id}
                     links={info.row.original}
+                    notStarted={!info.row.original.date_started}
                     // Not for a designer who hasn't accepted yet (owner, Nov 12).
                     locked={
                       INACTIVE.has(info.row.original.status) ||

@@ -390,11 +390,14 @@ export function LinkEditor({
   requestId,
   links,
   locked,
+  notStarted,
   compact,
 }: {
   requestId: string;
   links: OutputLinkFields;
   locked?: boolean;
+  // Links wait until the request has been In progress (owner, Nov 13).
+  notStarted?: boolean;
   compact?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
@@ -441,7 +444,10 @@ export function LinkEditor({
   return (
     <div className="flex items-start gap-1">
       {compact ? <OutputLinksCell links={shown} /> : <OutputLinkList links={shown} />}
-      {!locked && (
+      {!locked && notStarted && !compact && !any && (
+        <span className="text-xs text-muted-foreground">Add once it&apos;s In progress</span>
+      )}
+      {!locked && !notStarted && (
         <Popover
           open={open}
           onOpenChange={(next) => {
