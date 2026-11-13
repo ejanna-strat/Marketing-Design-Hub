@@ -57,13 +57,46 @@ export function EmailLayout({
       <Preview>{preview}</Preview>
       <Body style={{ backgroundColor: "#f3f6fb", fontFamily: FONT, margin: 0, padding: "24px 0" }}>
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#ffffff", borderRadius: 14, overflow: "hidden" }}>
-          <Section style={{ padding: "28px 32px 20px", borderBottom: "1px solid #e6ecf5", textAlign: "center" }}>
-            <Img src={logoUrl()} width="56" height="56" alt="" style={{ margin: "0 auto 10px", borderRadius: 12 }} />
-            <Text style={{ margin: 0, fontSize: 24, lineHeight: "30px", fontWeight: 700, color: theme.brandInk, fontFamily: FONT }}>
-              {theme.appName}
-            </Text>
+          {/* Letterhead (owner, Nov 13): the logo belongs to the Marketing
+              Support Hub, side by side with its name; the hub the email is
+              from is a tag below. A table keeps them on one line in every
+              email program. */}
+          <Section style={{ padding: "22px 32px 18px", borderBottom: "1px solid #e6ecf5" }}>
+            <table cellPadding={0} cellSpacing={0} role="presentation" align="center" style={{ margin: "0 auto" }}>
+              <tbody>
+                <tr>
+                  <td style={{ verticalAlign: "middle", paddingRight: 10 }}>
+                    <Img src={logoUrl()} width="36" height="36" alt="" style={{ display: "block", borderRadius: 8 }} />
+                  </td>
+                  <td style={{ verticalAlign: "middle" }}>
+                    <Text
+                      style={{ margin: 0, fontSize: 19, lineHeight: "24px", fontWeight: 700, color: theme.brandInk, fontFamily: FONT }}
+                    >
+                      {theme.suiteName}
+                    </Text>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </Section>
-          <Section style={{ padding: "28px 32px 8px", textAlign: "center" }}>
+          <Section style={{ padding: "22px 32px 8px", textAlign: "center" }}>
+            <Text style={{ margin: "0 0 14px" }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  backgroundColor: theme.brandSoft,
+                  color: theme.brandInk,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  padding: "4px 12px",
+                  borderRadius: 999,
+                }}
+              >
+                {theme.appName}
+              </span>
+            </Text>
             <Text
               style={{
                 margin: "0 0 14px",
@@ -133,7 +166,7 @@ export function EmailLayout({
           <Section style={{ padding: "16px 32px 22px", textAlign: "center" }}>
             <Text style={{ margin: "0 0 8px", fontSize: 12, color: "#55627a" }}>{footer}</Text>
             <Text style={{ margin: 0, fontSize: 11, color: "#8a96ab" }}>
-              {theme.appName} | {theme.company} · Automated notification | For internal use only
+              {theme.suiteName} · {theme.appName} | {theme.company} · Automated notification | For internal use only
             </Text>
           </Section>
         </Container>
