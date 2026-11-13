@@ -1,11 +1,11 @@
-# Email to IT: DNS records for the Marketing Creative Hub
+# Email to IT: DNS records for the Marketing Support Hub
 
 **To:** IT / Infrastructure team
-**Subject:** DNS records needed so the Marketing Creative Hub can send email
+**Subject:** DNS records needed so the Marketing Support Hub can send email
 
 Hi team,
 
-Marketing is launching the **Marketing Creative Hub**, an internal web app for design requests. It sends sign-in emails and status notifications (for example, "your design is ready") to @stratpoint.com addresses.
+Marketing is launching the **Marketing Support Hub**, an internal web app for design requests. It sends sign-in emails and status notifications (for example, "your design is ready") to @stratpoint.com addresses.
 
 To send these emails reliably and avoid spam folders, we use an email service called **Resend**. Resend needs a few DNS records on a Stratpoint subdomain so it can prove the emails are really from us.
 

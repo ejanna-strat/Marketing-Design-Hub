@@ -21,7 +21,7 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 
 ## 3. Site URL and redirect URLs
 **Authentication → URL Configuration**
-- **Site URL:** the production address, e.g. `https://marketing-creative-hub.vercel.app`. Until production exists, use the staging address.
+- **Site URL:** the production address, `https://marketing-support-hub.vercel.app` (staging: `https://marketing-support-hub-git-staging-strat-marketing.vercel.app`). Until production exists, use the staging address.
 - **Redirect URLs:** add each of these lines:
   - `http://localhost:3000/**`
   - `https://*-strat-marketing.vercel.app/**` (all Vercel preview and staging links)
