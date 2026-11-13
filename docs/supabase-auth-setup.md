@@ -21,7 +21,7 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 
 ## 3. Site URL and redirect URLs
 **Authentication → URL Configuration**
-- **Site URL:** the production address, e.g. `https://marketing-creative-hub.vercel.app`. Until production exists, use the staging address.
+- **Site URL:** the production address, `https://marketing-support-hub.vercel.app` (staging: `https://marketing-support-hub-git-staging-strat-marketing.vercel.app`). Until production exists, use the staging address.
 - **Redirect URLs:** add each of these lines:
   - `http://localhost:3000/**`
   - `https://*-strat-marketing.vercel.app/**` (all Vercel preview and staging links)
@@ -35,7 +35,7 @@ With the hook on, Supabase itself refuses any email that isn't @stratpoint.com, 
 | **Confirm signup** | `Confirm your Marketing Support Hub account` | `docs/emails/confirm-signup.html` |
 | **Reset Password** | `Set your Marketing Support Hub password` | `docs/emails/reset-password.html` |
 
-Before pasting, replace `LOGO_URL` with `<project URL>/storage/v1/object/public/brand/logo.png` (the logo in the project's public **brand** storage folder). Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
+Paste them as they are into both projects: the logo loads from the live app (`https://marketing-support-hub.vercel.app/brand/logo.png`, from `public/brand/`; Nov 14), so nothing is uploaded to Supabase. Both links point back to the app's `/auth/confirm` page, which works in any browser. Staging's templates were set through the Management API; production's are pasted by hand at release.
 
 The Magic Link template is no longer used.
 
