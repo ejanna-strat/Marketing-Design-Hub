@@ -9,7 +9,7 @@ export function AuthShell({ subtitle, children }: { subtitle: string; children: 
         <div className="space-y-1 text-center">
           <Image src="/brand/logo.png" alt="" width={56} height={56} priority className="mx-auto mb-2" />
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Stratpoint Marketing</p>
-          <h1 className="font-brand text-2xl font-bold text-brand">{theme.appName}</h1>
+          <h1 className="font-brand text-2xl font-bold text-brand">{theme.suiteName}</h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
         {children}

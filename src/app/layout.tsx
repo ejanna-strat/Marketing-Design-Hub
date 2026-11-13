@@ -11,7 +11,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// The "Marketing Creative Hub" name is set in Inter bold (class `font-brand`).
+// The app and hub names are set in Inter bold (class `font-brand`).
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: theme.appName,
+  title: theme.suiteName,
   description:
     "One place to submit design requests, track progress, and understand our design service timelines.",
 };

@@ -13,7 +13,7 @@ export default async function LoginPage({
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub) redirect("/");
+  if (data?.claims?.sub) redirect("/hubs");
 
   return (
     <AuthShell subtitle="Sign in with your @stratpoint.com email.">
