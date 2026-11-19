@@ -33,7 +33,7 @@ export default async function HubsPage() {
             {firstName ? `Hi, ${firstName}` : "Stratpoint Marketing"}
           </p>
           <h1 className="font-brand text-3xl font-bold text-brand">Where would you like to go?</h1>
-          <p className="text-muted-foreground">Choose the hub for what you need from the Marketing team.</p>
+          <p className="text-muted-foreground">Pick a space to get started.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -44,7 +44,7 @@ export default async function HubsPage() {
             <span className="flex size-11 items-center justify-center rounded-lg bg-brand-soft text-brand">
               <PaletteIcon className="size-6" aria-hidden />
             </span>
-            <span className="font-brand text-xl font-bold">{theme.appName}</span>
+            <span className="font-brand text-xl font-bold text-brand">{theme.appName}</span>
             <span className="flex-1 text-sm text-muted-foreground">
               Design requests: decks, social media, event materials and more. File a request and track it to delivery.
             </span>
