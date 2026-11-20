@@ -266,7 +266,7 @@ function AnnouncementDialog({
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground">Preview</p>
             <AnnouncementStrip
-              className="overflow-hidden rounded-lg border [&_a]:pointer-events-none [&>div]:px-4"
+              className="overflow-hidden rounded-lg border [&_a]:pointer-events-none [&>[data-strip-body]]:px-4"
               a={{
                 headline: form.headline || "Your headline",
                 message: form.message,

@@ -84,8 +84,9 @@ export function AnnouncementBanner({ items }: { items: Announcement[] }) {
         a={current}
         className={cn(
           "transition-colors duration-500",
-          count > 1 && "[&>div]:pb-6",
-          !reduced && "[&>div]:animate-in [&>div]:fade-in-0 [&>div]:duration-500",
+          count > 1 && "[&>[data-strip-body]]:pb-6",
+          !reduced &&
+            "[&>[data-strip-body]]:animate-in [&>[data-strip-body]]:fade-in-0 [&>[data-strip-body]]:duration-500",
         )}
       >
         {count > 1 && (
