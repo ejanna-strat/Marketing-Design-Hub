@@ -19,9 +19,10 @@ import { PipelineMenu } from "./PipelineMenu";
 
 type MenuItem = { title: string; icon: typeof ClipboardListIcon; href?: string } | "pipeline" | "pendings";
 
-// Later phases show as disabled "Coming soon" items. Settings is for Super
-// Admins, Admins and Lead Designers (Members), and announcement posters.
-function menuFor(canOpenSettings: boolean): MenuItem[] {
+// Later phases show as disabled "Coming soon" items. Hub settings (Requester
+// FAQs) is for Super Admins and Lead Designers; Members and Announcements are
+// in the Marketing Support Hub's Settings (profile menu, owner Nov 20).
+function menuFor(isManager: boolean): MenuItem[] {
   return [
     { title: "Dashboard", icon: LayoutDashboardIcon, href: "/admin/dashboard" },
     "pipeline",
@@ -31,7 +32,7 @@ function menuFor(canOpenSettings: boolean): MenuItem[] {
     { title: "Inactive Requests", icon: ArchiveIcon, href: "/admin/inactive" },
     { title: "Feedback", icon: MessageSquareHeartIcon, href: "/admin/feedback" },
     { title: "Analytics", icon: BarChart3Icon, href: "/admin/analytics" },
-    ...(canOpenSettings ? [{ title: "Settings", icon: SettingsIcon, href: "/admin/settings" }] : []),
+    ...(isManager ? [{ title: "Hub settings", icon: SettingsIcon, href: "/admin/settings/faqs" }] : []),
   ];
 }
 
@@ -83,7 +84,7 @@ export async function StaffMenu({ user }: { user: CurrentUser }) {
   const { pendingTabs, pipelineItems } = await loadMenuData(user.designerId);
   return (
     <>
-      {menuFor(user.canOpenSettings).map((item) =>
+      {menuFor(user.isManager).map((item) =>
         item === "pipeline" ? (
           <Suspense key="pipeline">
             <PipelineMenu items={pipelineItems} />

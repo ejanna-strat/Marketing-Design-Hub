@@ -1,16 +1,9 @@
 import { requireStaff } from "@/lib/auth";
-import { SettingsTabs } from "./SettingsTabs";
 
-export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireStaff();
-  return (
-    <div className="space-y-6">
-      <SettingsTabs
-        showMembers={user.canManageMembers}
-        showFaqs={user.isManager}
-        showAnnouncements={user.canPostAnnouncements}
-      />
-      {children}
-    </div>
-  );
+// Creative Hub's own settings ("Hub settings"): Requester FAQs. Members and
+// Announcements moved to the Marketing Support Hub's Settings (/settings,
+// owner Nov 20).
+export default async function HubSettingsLayout({ children }: { children: React.ReactNode }) {
+  await requireStaff();
+  return <div className="space-y-6">{children}</div>;
 }

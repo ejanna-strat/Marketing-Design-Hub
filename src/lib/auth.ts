@@ -27,7 +27,7 @@ export type CurrentUser = {
   canManageMembers: boolean;
   // Super Admins, plus anyone a Super Admin ticked: Settings → Announcements (owner, Nov 20).
   canPostAnnouncements: boolean;
-  // Members or Announcements: shows Settings in the menu.
+  // Marketing Support Hub Settings (/settings): Members or Announcements.
   canOpenSettings: boolean;
   // Admin, Lead Designer or Designer: can open the pipeline.
   isStaff: boolean;
@@ -100,6 +100,6 @@ export async function requireStaff(): Promise<CurrentUser> {
 // back to the pipeline.
 export async function requireMembersManager(): Promise<CurrentUser> {
   const user = await requireStaff();
-  if (!user.canManageMembers) redirect("/admin/pipeline");
+  if (!user.canManageMembers) redirect(user.canOpenSettings ? "/settings" : "/admin/pipeline");
   return user;
 }
