@@ -5,7 +5,7 @@ import { CalendarIcon, CheckIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { AnnouncementStrip } from "@/components/announcements/AnnouncementStrip";
+import { AnnouncementStrip, PriorityTag } from "@/components/announcements/AnnouncementStrip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,9 +27,10 @@ import {
   MAX_IN_BANNER,
   type Phase,
   phaseOf,
-  TONE_STYLES,
-  TONES,
-  type Tone,
+  byPriority,
+  type Priority,
+  PRIORITIES,
+  PRIORITY_STYLES,
 } from "@/lib/announcements";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,7 @@ type Form = {
   buttonAction: "link" | "details";
   linkUrl: string;
   details: string;
-  tone: Tone;
+  priority: Priority;
   inBanner: boolean;
   startsOn: string;
   endsOn: string | null;
@@ -73,7 +74,7 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
       buttonAction: "link",
       linkUrl: "",
       details: "",
-      tone: "blue",
+      priority: "new",
       inBanner: bannerCount < MAX_IN_BANNER,
       startsOn: today,
       endsOn: null,
@@ -89,7 +90,7 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
       buttonAction: a.details ? "details" : "link",
       linkUrl: (a.linkUrl ?? "").replace(/^mailto:/, ""),
       details: a.details ?? "",
-      tone: a.tone,
+      priority: a.priority,
       inBanner: a.inBanner,
       startsOn: a.startsOn,
       endsOn: a.endsOn,
@@ -122,7 +123,7 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
       </div>
 
       {GROUPS.map((g) => {
-        const items = announcements.filter((a) => phaseOf(a, today) === g.phase);
+        const items = announcements.filter((a) => phaseOf(a, today) === g.phase).sort(byPriority);
         if (items.length === 0 && !g.empty) return null;
         return (
           <section key={g.phase} className="space-y-2">
@@ -135,10 +136,11 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
                   <li key={a.id} className="flex items-start gap-3 p-4">
                     <span
                       aria-hidden
-                      className={cn("mt-1 size-4 shrink-0 rounded-full ring-1", TONE_STYLES[a.tone].swatch)}
+                      className={cn("mt-1 size-4 shrink-0 rounded-full ring-1", PRIORITY_STYLES[a.priority].swatch)}
                     />
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="font-medium">
+                        <PriorityTag priority={a.priority} className="mr-2" />
                         {a.headline}
                         <Badge variant="secondary" className="ml-2 align-middle">
                           {a.inBanner ? "Banner + panel" : "Panel only"}
@@ -240,7 +242,7 @@ function AnnouncementDialog({
         buttonAction: form.buttonAction,
         linkUrl: form.linkUrl,
         details: form.details,
-        tone: form.tone,
+        priority: form.priority,
         inBanner: form.inBanner,
         startsOn: form.startsOn,
         endsOn: form.endsOn,
@@ -273,7 +275,7 @@ function AnnouncementDialog({
                 linkLabel: form.linkLabel || null,
                 linkUrl: form.linkLabel && form.buttonAction === "link" ? "#" : null,
                 details: form.buttonAction === "details" ? form.details || "Your longer message" : null,
-                tone: form.tone,
+                priority: form.priority,
               }}
             />
           </div>
@@ -372,22 +374,36 @@ function AnnouncementDialog({
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Colour</legend>
-            <div className="flex flex-wrap gap-2">
-              {TONES.map((t) => (
+            <legend className="text-sm font-medium">Priority</legend>
+            <p className="text-xs text-muted-foreground">
+              The colour follows the priority, and higher priority shows first. Do they need to act today? Urgent. Will
+              it affect them soon? Important. Is it something new they can use? New. Anything else: FYI.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {PRIORITIES.map((p) => (
                 <button
-                  key={t}
+                  key={p}
                   type="button"
-                  aria-pressed={form.tone === t}
-                  onClick={() => set({ tone: t })}
+                  aria-pressed={form.priority === p}
+                  onClick={() => set({ priority: p })}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                    form.tone === t ? "border-brand ring-2 ring-brand/30" : "hover:bg-muted",
+                    "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-colors",
+                    form.priority === p ? "border-brand ring-2 ring-brand/30" : "hover:bg-muted",
                   )}
                 >
-                  <span aria-hidden className={cn("size-4 rounded-full ring-1", TONE_STYLES[t].swatch)} />
-                  {TONE_STYLES[t].label}
-                  {form.tone === t && <CheckIcon className="size-3.5 text-brand" aria-hidden />}
+                  <span
+                    aria-hidden
+                    className={cn("mt-0.5 size-4 shrink-0 rounded-full ring-1", PRIORITY_STYLES[p].swatch)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-sm font-medium">
+                      {PRIORITY_STYLES[p].label}
+                      {form.priority === p && <CheckIcon className="size-3.5 text-brand" aria-hidden />}
+                    </span>
+                    <span className="block text-xs leading-snug text-muted-foreground">
+                      {PRIORITY_STYLES[p].description}
+                    </span>
+                  </span>
                 </button>
               ))}
             </div>

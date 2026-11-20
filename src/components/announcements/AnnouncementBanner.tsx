@@ -44,15 +44,18 @@ function usePrefersReducedMotion() {
 
 // The main page's top banner: up to 3 announcements that take turns every
 // few seconds (paused while the pointer or keyboard is on it, and for people
-// who turn motion off). Dots jump to one; ✕ hides the banner.
-export function AnnouncementBanner({ items }: { items: Announcement[] }) {
-  const signature = items.map((a) => `${a.id}:${a.updatedAt}`).join("|");
+// who turn motion off). Dots jump to one; ✕ hides the banner, except Urgent
+// announcements, which stay until they end (owner, Nov 20).
+export function AnnouncementBanner({ items: all }: { items: Announcement[] }) {
+  const signature = all.map((a) => `${a.id}:${a.updatedAt}`).join("|");
   // null until the browser has checked whether it was closed (no flash).
   const closed = useSyncExternalStore(
     subscribe,
     () => readClosed() === signature,
     () => null,
   );
+  const items = closed ? all.filter((a) => a.priority === "urgent") : all;
+  const canClose = items.some((a) => a.priority !== "urgent");
   const reduced = usePrefersReducedMotion();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -60,12 +63,12 @@ export function AnnouncementBanner({ items }: { items: Announcement[] }) {
   const current = items[Math.min(index, count - 1)];
 
   useEffect(() => {
-    if (count < 2 || paused || reduced || closed !== false) return;
+    if (count < 2 || paused || reduced) return;
     const t = setInterval(() => setIndex((i) => (i + 1) % count), ROTATE_MS);
     return () => clearInterval(t);
-  }, [count, paused, reduced, closed]);
+  }, [count, paused, reduced]);
 
-  if (!current || closed !== false) return null;
+  if (!current || closed === null) return null;
 
   return (
     <section
@@ -110,15 +113,24 @@ export function AnnouncementBanner({ items }: { items: Announcement[] }) {
             ))}
           </div>
         )}
-        <button
-          type="button"
-          aria-label="Close the announcements banner"
-          title="Close (it comes back the next time you sign in)"
-          onClick={() => writeClosed(signature)}
-          className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 opacity-60 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-current dark:hover:bg-white/10 sm:right-4"
-        >
-          <XIcon className="size-4" />
-        </button>
+        {canClose && (
+          <button
+            type="button"
+            aria-label="Close the announcements banner"
+            title={
+              items.some((a) => a.priority === "urgent")
+                ? "Close (Urgent announcements stay; the rest come back the next time you sign in)"
+                : "Close (it comes back the next time you sign in)"
+            }
+            onClick={() => {
+              writeClosed(signature);
+              setIndex(0);
+            }}
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 opacity-60 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-current dark:hover:bg-white/10 sm:right-4"
+          >
+            <XIcon className="size-4" />
+          </button>
+        )}
       </AnnouncementStrip>
     </section>
   );

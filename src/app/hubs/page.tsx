@@ -7,7 +7,7 @@ import { IdleSignOut } from "@/components/shell/IdleSignOut";
 import { roleLabel } from "@/components/shell/AppHeader";
 import { UserMenu } from "@/components/shell/UserMenu";
 import { theme } from "@/config/theme";
-import { ANNOUNCEMENT_COLUMNS, MAX_IN_BANNER, toAnnouncement } from "@/lib/announcements";
+import { ANNOUNCEMENT_COLUMNS, byPriority, MAX_IN_BANNER, toAnnouncement } from "@/lib/announcements";
 import { requireUser } from "@/lib/auth";
 import { todayInManila } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +22,7 @@ export default async function HubsPage() {
   const user = await requireUser();
   const firstName = user.fullName.split(" ")[0];
 
-  // Live announcements, newest first. The banner takes up to 3 of them.
+  // Live announcements, highest priority first, then newest. The banner takes up to 3.
   const today = todayInManila();
   const supabase = await createClient();
   const { data } = await supabase
@@ -32,7 +32,7 @@ export default async function HubsPage() {
     .or(`ends_on.is.null,ends_on.gte.${today}`)
     .order("starts_on", { ascending: false })
     .order("created_at", { ascending: false });
-  const announcements = (data ?? []).map(toAnnouncement);
+  const announcements = (data ?? []).map(toAnnouncement).sort(byPriority);
   const banner = announcements.filter((a) => a.inBanner).slice(0, MAX_IN_BANNER);
 
   return (

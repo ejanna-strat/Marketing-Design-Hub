@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { MAX_IN_BANNER, TONES } from "@/lib/announcements";
+import { MAX_IN_BANNER, PRIORITIES } from "@/lib/announcements";
 import { getCurrentUser } from "@/lib/auth";
 import { todayInManila } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -37,7 +37,7 @@ const announcementSchema = z
     buttonAction: z.enum(["link", "details"]),
     linkUrl: z.string().trim().max(2000).transform(normalizeUrl),
     details: z.string().trim().max(5000, "Please keep the longer message under 5,000 characters."),
-    tone: z.enum(TONES),
+    priority: z.enum(PRIORITIES),
     inBanner: z.boolean(),
     startsOn: z.string().regex(DATE, "Please pick a start date."),
     endsOn: z.string().regex(DATE).nullable(),
@@ -105,7 +105,7 @@ export async function saveAnnouncement(input: AnnouncementInput): Promise<Result
     link_label: a.linkLabel || null,
     link_url: a.linkUrl || null,
     details: a.details || null,
-    tone: a.tone,
+    priority: a.priority,
     in_banner: a.inBanner,
     starts_on: a.startsOn,
     ends_on: a.endsOn,
