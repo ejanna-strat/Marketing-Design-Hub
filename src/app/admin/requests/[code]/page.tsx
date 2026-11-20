@@ -19,7 +19,7 @@ import { formatDate, formatDateTime } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { getRequestByCode } from "@/lib/requests/detail";
 import { myRow, sortDesigners } from "@/lib/requests/designers";
-import { designerAccess, holdOrCancelOnly, statusLabel } from "@/lib/statuses";
+import { adminOnly, designerAccess, statusLabel } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { outputLinks } from "@/lib/links";
@@ -38,7 +38,9 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     supabase.from("designers").select("id, display_name, active").order("display_name"),
     supabase
       .from("activity_log")
-      .select("id, action, from_value, to_value, note, created_at, actor_label, actor:profiles(full_name), request:requests!inner(request_code)")
+      .select(
+        "id, action, from_value, to_value, note, created_at, actor_label, actor:profiles(full_name), request:requests!inner(request_code)",
+      )
       .eq("request.request_code", code.toUpperCase())
       .order("created_at", { ascending: false }),
     supabase.from("teams").select("id, name").eq("active", true).order("sort_order"),
@@ -120,15 +122,20 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardHeader>
             <CardContent>
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                <Item label="Status" value={<StatusSelect
+                <Item
+                  label="Status"
+                  value={
+                    <StatusSelect
                       requestId={request.id}
                       value={request.status}
                       hasDesigner={team.length > 0}
                       hasLink={outputLinks(request).length > 0}
                       accepted={request.designer_response === "accepted"}
-                      holdOrCancelOnly={holdOrCancelOnly(viewer)}
+                      designTeamOnly={adminOnly(viewer)}
                       awaitingMe={awaitingMe}
-                    />} />
+                    />
+                  }
+                />
                 <Item
                   label={team.length > 1 ? "Assigned Designers" : "Assigned Designer"}
                   value={
@@ -142,22 +149,38 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                     />
                   }
                 />
-                <Item label="Link to Output" value={<LinkEditor
+                <Item
+                  label="Link to Output"
+                  value={
+                    <LinkEditor
                       requestId={request.id}
                       links={request}
                       locked={closed || awaitingMe}
                       notStarted={!request.date_started}
-                    />} />
+                    />
+                  }
+                />
                 <Item
                   label="Date Needed"
-                  value={closed ? formatDate(request.date_needed) : <DateNeededEditor requestId={request.id} value={request.date_needed} />}
+                  value={
+                    closed ? (
+                      formatDate(request.date_needed)
+                    ) : (
+                      <DateNeededEditor requestId={request.id} value={request.date_needed} />
+                    )
+                  }
                 />
                 <Item label="Date Started" value={formatDate(request.date_started)} />
                 <Item label="Date Completed" value={formatDate(request.date_completed)} />
               </dl>
             </CardContent>
           </Card>
-          <FeedbackCard feedback={one(request.feedback)} status={request.status} code={request.request_code} audience="staff" />
+          <FeedbackCard
+            feedback={one(request.feedback)}
+            status={request.status}
+            code={request.request_code}
+            audience="staff"
+          />
           <RequestInfo
             request={request}
             copyApprover
@@ -208,7 +231,10 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   );
 }
 
-type LogEntry = Pick<Tables<"activity_log">, "id" | "action" | "from_value" | "to_value" | "note" | "created_at" | "actor_label"> & {
+type LogEntry = Pick<
+  Tables<"activity_log">,
+  "id" | "action" | "from_value" | "to_value" | "note" | "created_at" | "actor_label"
+> & {
   actor: { full_name: string } | null;
 };
 
@@ -252,8 +278,10 @@ function designerSentence(e: LogEntry): string | null {
 // The old single-designer entries keep their wording: a taken request reads
 // like the new one.
 const sentence = (e: LogEntry) =>
-  designerSentence(e) ?? (e.action === "designer" && e.note === "Took the request" ? "took the request" : null) ??
-  SENTENCES[e.action] ?? null;
+  designerSentence(e) ??
+  (e.action === "designer" && e.note === "Took the request" ? "took the request" : null) ??
+  SENTENCES[e.action] ??
+  null;
 
 function showValue(action: string, value: string | null) {
   if (!value) return "—";

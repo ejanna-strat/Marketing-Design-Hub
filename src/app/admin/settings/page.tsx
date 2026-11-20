@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 
-export default async function SettingsHome() {
+export default async function HubSettingsHome() {
   const user = await requireStaff();
-  if (user.canManageMembers) redirect("/admin/settings/members");
-  if (user.canPostAnnouncements) redirect("/admin/settings/announcements");
-  redirect("/admin/pipeline");
+  if (user.isManager) redirect("/admin/settings/faqs");
+  redirect(user.canOpenSettings ? "/settings" : "/admin/pipeline");
 }

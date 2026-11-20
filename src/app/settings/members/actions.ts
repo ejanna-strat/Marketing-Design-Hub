@@ -14,7 +14,9 @@ const memberSchema = z.object({
     .toLowerCase()
     .regex(/^[^@\s]+@stratpoint\.com$/, "Please enter a @stratpoint.com email address."),
   fullName: z.string().trim().min(1, "Please enter the member's name.").max(200),
-  roles: z.array(z.enum(["super_admin", "admin", "lead_designer", "designer"])).min(1, "Please choose at least one tag."),
+  roles: z
+    .array(z.enum(["super_admin", "admin", "lead_designer", "designer"]))
+    .min(1, "Please choose at least one tag."),
   designerName: z.string().trim().max(60),
   copyLeadEmails: z.boolean(),
   copyRequesterEmails: z.boolean(),
@@ -53,7 +55,7 @@ export async function saveMember(input: MemberInput): Promise<Result> {
   });
   if (error) return { ok: false, error: friendly(error) };
 
-  revalidatePath("/admin", "layout");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -68,6 +70,6 @@ export async function removeMember(email: string): Promise<Result> {
   const { error } = await supabase.rpc("remove_team_member", { p_email: email });
   if (error) return { ok: false, error: friendly(error) };
 
-  revalidatePath("/admin", "layout");
+  revalidatePath("/", "layout");
   return { ok: true };
 }

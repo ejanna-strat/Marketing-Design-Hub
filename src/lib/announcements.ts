@@ -56,6 +56,54 @@ export function toAnnouncement(r: Row): Announcement {
   };
 }
 
+// The add/edit form's values (Settings and the main page's panel).
+export type AnnouncementForm = {
+  id: string;
+  headline: string;
+  message: string;
+  linkLabel: string;
+  buttonAction: "link" | "details";
+  linkUrl: string;
+  details: string;
+  priority: Priority;
+  inBanner: boolean;
+  startsOn: string;
+  endsOn: string | null;
+};
+
+// A blank form (new announcements start today, in the banner if there's room).
+export function newAnnouncementForm(today: string, inBanner = true): AnnouncementForm {
+  return {
+    id: "",
+    headline: "",
+    message: "",
+    linkLabel: "",
+    buttonAction: "link",
+    linkUrl: "",
+    details: "",
+    priority: "new",
+    inBanner,
+    startsOn: today,
+    endsOn: null,
+  };
+}
+
+export function announcementForm(a: Announcement): AnnouncementForm {
+  return {
+    id: a.id,
+    headline: a.headline,
+    message: a.message,
+    linkLabel: a.linkLabel ?? "",
+    buttonAction: a.details ? "details" : "link",
+    linkUrl: (a.linkUrl ?? "").replace(/^mailto:/, ""),
+    details: a.details ?? "",
+    priority: a.priority,
+    inBanner: a.inBanner,
+    startsOn: a.startsOn,
+    endsOn: a.endsOn,
+  };
+}
+
 export type Phase = "live" | "scheduled" | "ended";
 
 export function phaseOf(a: Pick<Announcement, "startsOn" | "endsOn">, today: string): Phase {

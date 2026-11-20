@@ -2,22 +2,12 @@
 
 import { NavLink } from "@/components/shell/NavLink";
 
-// Settings pages, one tab each. Members: Super Admins, Admins and Lead
-// Designers. Requester FAQs: Super Admins and Lead Designers. Announcements:
-// Super Admins and the people they tick (owner, Nov 20).
-export function SettingsTabs({
-  showMembers,
-  showFaqs,
-  showAnnouncements,
-}: {
-  showMembers: boolean;
-  showFaqs: boolean;
-  showAnnouncements: boolean;
-}) {
+// Marketing Support Hub Settings, one tab each. Members: Super Admins, Admins
+// and Lead Designers. Announcements: Super Admins and the people they tick.
+export function SettingsTabs({ showMembers, showAnnouncements }: { showMembers: boolean; showAnnouncements: boolean }) {
   const tabs = [
-    ...(showMembers ? [{ href: "/admin/settings/members", label: "Members" }] : []),
-    ...(showFaqs ? [{ href: "/admin/settings/faqs", label: "Requester FAQs" }] : []),
-    ...(showAnnouncements ? [{ href: "/admin/settings/announcements", label: "Announcements" }] : []),
+    ...(showMembers ? [{ href: "/settings/members", label: "Members" }] : []),
+    ...(showAnnouncements ? [{ href: "/settings/announcements", label: "Announcements" }] : []),
   ];
   return (
     <nav aria-label="Settings" className="flex gap-1 overflow-x-auto border-b">

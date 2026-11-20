@@ -38,7 +38,11 @@ const TAG_STYLES: Record<string, string> = {
   designer: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300",
 };
 
-const EMPTY: Member = { email: "", fullName: "", roles: [], designerName: "",
+const EMPTY: Member = {
+  email: "",
+  fullName: "",
+  roles: [],
+  designerName: "",
   copyLeadEmails: false,
   copyRequesterEmails: false,
   signedIn: false,
@@ -172,7 +176,13 @@ export function MembersManager({
                           size="icon-sm"
                           aria-label={`Remove ${m.fullName}`}
                           disabled={isMe || protectedAdmin}
-                          title={isMe ? "You can't remove yourself" : protectedAdmin ? `${onlyWho} can remove ${who}` : undefined}
+                          title={
+                            isMe
+                              ? "You can't remove yourself"
+                              : protectedAdmin
+                                ? `${onlyWho} can remove ${who}`
+                                : undefined
+                          }
                           onClick={() => setRemoving(m)}
                           className="text-destructive hover:text-destructive"
                         >
@@ -437,7 +447,8 @@ function MemberDialog({
                 <Label htmlFor="member-lead-emails" className="block font-normal leading-snug">
                   <span className="font-medium">Copy on Lead&apos;s email</span>
                   <span className="block text-xs text-muted-foreground">
-                    New Design Request, the daily New Request Reminder and the 3-day Deadline reminder, for every request.
+                    New Design Request, the daily New Request Reminder and the 3-day Deadline reminder, for every
+                    request.
                   </span>
                 </Label>
               </div>

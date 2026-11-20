@@ -14,7 +14,7 @@ import { one, overallRating } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
 import { designerNames, joinNames, myRow, pending } from "@/lib/requests/designers";
 import type { RequestListRow } from "@/lib/requests/list";
-import { designerAccess, type DesignerViewer, holdOrCancelOnly } from "@/lib/statuses";
+import { adminOnly, designerAccess, type DesignerViewer } from "@/lib/statuses";
 
 const col = columnHelper<RequestListRow>();
 const INACTIVE = new Set(["cancelled", "rejected"]);
@@ -152,7 +152,7 @@ export function PipelineTable({
                   hasDesigner={r.designer_ids.length > 0}
                   hasLink={outputLinks(r).length > 0}
                   accepted={r.designer_response === "accepted"}
-                  holdOrCancelOnly={holdOrCancelOnly(viewer)}
+                  designTeamOnly={adminOnly(viewer)}
                   awaitingMe={
                     !viewer.isManager && myRow(r.request_designers, viewer.designerId)?.response === "pending"
                   }
@@ -188,7 +188,10 @@ export function PipelineTable({
           );
         },
       }),
-      col.accessor("requester_name", { header: "Requester's Name", cell: (info) => <Highlight text={info.getValue()} /> }),
+      col.accessor("requester_name", {
+        header: "Requester's Name",
+        cell: (info) => <Highlight text={info.getValue()} />,
+      }),
       col.accessor((r) => r.team?.name ?? "", { id: "team", header: "Requester's Team" }),
       // Requester's Email is on the request page, not in the tables (owner, Oct 21).
       ...closingColumns,

@@ -84,7 +84,13 @@ export function AppHeader({ user }: { user: CurrentUser }) {
           )}
         </nav>
         <span className="flex-1 md:hidden" />
-        <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
+        <UserMenu
+          name={user.fullName}
+          email={user.email}
+          roleLabel={roleLabel(user)}
+          theme={user.theme}
+          showSettings={user.canOpenSettings}
+        />
       </div>
       {/* Any team tag gets the longer limit, even on requester pages. */}
       <IdleSignOut team={user.isStaff} />

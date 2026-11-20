@@ -1,11 +1,9 @@
-import { ArrowRightIcon, ConstructionIcon, PaletteIcon } from "lucide-react";
-import Image from "next/image";
+import { ArrowRightIcon, ConstructionIcon, PaletteIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { AnnouncementsPanel } from "@/components/announcements/AnnouncementsPanel";
-import { IdleSignOut } from "@/components/shell/IdleSignOut";
-import { roleLabel } from "@/components/shell/AppHeader";
-import { UserMenu } from "@/components/shell/UserMenu";
+import { SuiteHeader } from "@/components/shell/SuiteHeader";
+import { Button } from "@/components/ui/button";
 import { theme } from "@/config/theme";
 import { ANNOUNCEMENT_COLUMNS, byPriority, MAX_IN_BANNER, toAnnouncement } from "@/lib/announcements";
 import { requireUser } from "@/lib/auth";
@@ -37,15 +35,18 @@ export default async function HubsPage() {
 
   return (
     <div className="min-h-screen bg-brand-soft/40">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="flex h-14 items-center gap-2 px-4 sm:px-6">
-          <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
-          <span className="flex-1 font-brand font-bold text-brand">{theme.suiteName}</span>
-          {announcements.length > 0 && <AnnouncementsPanel items={announcements} />}
-          <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
-        </div>
-        <IdleSignOut team={user.isStaff} />
-      </header>
+      <SuiteHeader user={user}>
+        {(announcements.length > 0 || user.canPostAnnouncements) && (
+          <AnnouncementsPanel items={announcements} canPost={user.canPostAnnouncements} today={today} />
+        )}
+        {user.canOpenSettings && (
+          <Button asChild variant="ghost" size="icon" aria-label="Settings" title="Settings">
+            <Link href="/settings">
+              <SettingsIcon />
+            </Link>
+          </Button>
+        )}
+      </SuiteHeader>
       {banner.length > 0 && <AnnouncementBanner items={banner} />}
 
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-12 sm:px-6">

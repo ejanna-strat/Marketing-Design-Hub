@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserPenIcon } from "lucide-react";
+import { ChevronDownIcon, LogOutIcon, MonitorIcon, MoonIcon, SettingsIcon, SunIcon, UserPenIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -43,11 +44,14 @@ export function UserMenu({
   email,
   roleLabel,
   theme: savedTheme,
+  showSettings = false,
 }: {
   name: string;
   email: string;
   roleLabel: string;
   theme: Theme;
+  // Marketing Support Hub Settings (Members, Announcements), from any page (owner, Nov 20).
+  showSettings?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -131,6 +135,14 @@ export function UserMenu({
             ))}
           </DropdownMenuRadioGroup>
           <DropdownMenuSeparator />
+          {showSettings && (
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <SettingsIcon />
+                Settings
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => setEditing(true)}>
             <UserPenIcon />
             Change my name
