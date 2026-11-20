@@ -7,11 +7,31 @@ export type RequestStatus = Enums<"request_status">;
 // `requesterLabel` is what requesters see when it differs.
 export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: string; badge: string }[] = [
   { value: "new_request", label: "New request", badge: "bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300" },
-  { value: "designer_assigned", label: "Designer assigned (not yet started)", badge: "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300" },
-  { value: "in_progress", label: "In progress", badge: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300" },
-  { value: "for_review", label: "For requester's review", badge: "bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300" },
-  { value: "for_revision", label: "For revision", badge: "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300" },
-  { value: "completed", label: "Completed", badge: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300" },
+  {
+    value: "designer_assigned",
+    label: "Designer assigned (not yet started)",
+    badge: "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300",
+  },
+  {
+    value: "in_progress",
+    label: "In progress",
+    badge: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300",
+  },
+  {
+    value: "for_review",
+    label: "For requester's review",
+    badge: "bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300",
+  },
+  {
+    value: "for_revision",
+    label: "For revision",
+    badge: "bg-orange-100 dark:bg-orange-500/20 text-orange-900 dark:text-orange-300",
+  },
+  {
+    value: "completed",
+    label: "Completed",
+    badge: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
+  },
   // Stored as "rejected" in the database; shown as "Returned" to everyone (Oct 17).
   { value: "rejected", label: "Returned", badge: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300" },
   { value: "cancelled", label: "Cancelled", badge: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300" },
@@ -35,7 +55,13 @@ export const PENDING_TABS: { status: RequestStatus; label: string }[] = [
 
 // Reached Designer assigned or later: "Accepted" on the Dashboard and the
 // Completed Requests page (the rate's basis).
-export const ACCEPTED_STATUSES = ["designer_assigned", "in_progress", "for_review", "for_revision", "completed"] as const;
+export const ACCEPTED_STATUSES = [
+  "designer_assigned",
+  "in_progress",
+  "for_review",
+  "for_revision",
+  "completed",
+] as const;
 
 // Statuses that need an assigned designer first (owner, Oct 18; the
 // database enforces this too).
@@ -73,7 +99,10 @@ export function statusBadgeClass(status: string): string {
 }
 
 export function statusOptions(audience: "staff" | "requester" = "staff") {
-  return STATUSES.map((s) => ({ value: s.value, label: audience === "requester" ? (s.requesterLabel ?? s.label) : s.label }));
+  return STATUSES.map((s) => ({
+    value: s.value,
+    label: audience === "requester" ? (s.requesterLabel ?? s.label) : s.label,
+  }));
 }
 
 // Why the designer / link can't change: Completed keeps its designer, and
@@ -96,11 +125,11 @@ export function statusFilterOptions(include: readonly string[] | null, present: 
 }
 
 // Admins who aren't in the Designer list (and aren't Leads or Super Admins)
-// can only put a request On hold or cancel it, and can't change designers
-// (owner, Oct 30). The database checks too (0025_admin_status_limits.sql).
+// don't change a request's status at all, On hold and Cancel included (owner,
+// Nov 20; was On hold / Cancel only since Oct 30), and can't change designers.
+// The database checks too (0043_admins_no_status.sql).
 export type DesignerViewer = { designerId: string | null; isManager: boolean; isAdmin: boolean };
-export const ADMIN_STATUSES = new Set<string>(["on_hold", "cancelled"]);
-export function holdOrCancelOnly(viewer: DesignerViewer) {
+export function adminOnly(viewer: DesignerViewer) {
   return viewer.isAdmin && !viewer.isManager && !viewer.designerId;
 }
 
@@ -113,11 +142,7 @@ export function holdOrCancelOnly(viewer: DesignerViewer) {
 //   (`canTake`), or adds themselves once it has one (`canAddMe`).
 // - Completed, Cancelled and Returned stay locked.
 // The database checks the same (0033_multiple_designers.sql).
-export function designerAccess(
-  status: string,
-  designerIds: readonly string[],
-  viewer: DesignerViewer,
-) {
+export function designerAccess(status: string, designerIds: readonly string[], viewer: DesignerViewer) {
   const hasDesigners = designerIds.length > 0;
   const closed = lockedFor(status, true);
   const onIt = !!viewer.designerId && designerIds.includes(viewer.designerId);
