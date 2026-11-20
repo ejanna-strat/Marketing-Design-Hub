@@ -66,7 +66,7 @@ function failed(error: { message: string }): Result {
 }
 
 function refresh() {
-  revalidatePath("/admin/settings/announcements");
+  revalidatePath("/settings/announcements");
   revalidatePath("/hubs");
 }
 
@@ -149,6 +149,7 @@ export async function setPoster(userId: string, canPost: boolean): Promise<Resul
     : await supabase.from("announcement_posters").delete().eq("user_id", userId);
   if (error) return failed(error);
 
-  revalidatePath("/admin", "layout");
+  // Who sees Settings and the panel's Add button changes everywhere.
+  revalidatePath("/", "layout");
   return { ok: true };
 }

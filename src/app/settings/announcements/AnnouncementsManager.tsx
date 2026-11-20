@@ -36,7 +36,7 @@ import {
 } from "@/lib/announcements";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { FaqAnswerEditor } from "../faqs/FaqAnswerEditor";
+import { FaqAnswerEditor } from "@/app/admin/settings/faqs/FaqAnswerEditor";
 import { deleteAnnouncement, saveAnnouncement } from "./actions";
 
 const GROUPS: { phase: Phase; title: string; empty?: string }[] = [
