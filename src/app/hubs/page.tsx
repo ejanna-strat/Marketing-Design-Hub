@@ -1,4 +1,4 @@
-import { ArrowRightIcon, ConstructionIcon, PaletteIcon } from "lucide-react";
+import { ArrowRightIcon, ConstructionIcon, PaletteIcon, SettingsIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
@@ -6,6 +6,7 @@ import { AnnouncementsPanel } from "@/components/announcements/AnnouncementsPane
 import { IdleSignOut } from "@/components/shell/IdleSignOut";
 import { roleLabel } from "@/components/shell/AppHeader";
 import { UserMenu } from "@/components/shell/UserMenu";
+import { Button } from "@/components/ui/button";
 import { theme } from "@/config/theme";
 import { ANNOUNCEMENT_COLUMNS, byPriority, MAX_IN_BANNER, toAnnouncement } from "@/lib/announcements";
 import { requireUser } from "@/lib/auth";
@@ -41,7 +42,16 @@ export default async function HubsPage() {
         <div className="flex h-14 items-center gap-2 px-4 sm:px-6">
           <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
           <span className="flex-1 font-brand font-bold text-brand">{theme.suiteName}</span>
-          {announcements.length > 0 && <AnnouncementsPanel items={announcements} />}
+          {(announcements.length > 0 || user.canPostAnnouncements) && (
+            <AnnouncementsPanel items={announcements} canPost={user.canPostAnnouncements} today={today} />
+          )}
+          {user.canOpenSettings && (
+            <Button asChild variant="ghost" size="icon" aria-label="Settings" title="Settings">
+              <Link href="/admin/settings">
+                <SettingsIcon />
+              </Link>
+            </Button>
+          )}
           <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
         </div>
         <IdleSignOut team={user.isStaff} />
