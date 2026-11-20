@@ -37,7 +37,7 @@ import {
 } from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
 import { type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
-import { ADMIN_STATUSES, NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
+import { NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
 
 // Inline editors for pipeline fields, used in the Pipeline table and on the
@@ -96,7 +96,7 @@ export function StatusSelect({
   hasDesigner = true,
   hasLink = true,
   accepted = false,
-  holdOrCancelOnly = false,
+  designTeamOnly = false,
   awaitingMe = false,
 }: {
   requestId: string;
@@ -106,8 +106,9 @@ export function StatusSelect({
   hasLink?: boolean;
   // The assigned designer has accepted the task.
   accepted?: boolean;
-  // Admins who don't design: only On hold and Cancelled (owner, Oct 30).
-  holdOrCancelOnly?: boolean;
+  // Admins who don't design: they see the status but can't change it,
+  // On hold and Cancel included (owner, Nov 20).
+  designTeamOnly?: boolean;
   // The viewer is a designer on the request who hasn't accepted yet: no
   // status changes until they do (owner, Nov 12).
   awaitingMe?: boolean;
@@ -125,53 +126,54 @@ export function StatusSelect({
 
   return (
     <>
-    <CancelDialog
-      requestId={requestId}
-      open={cancelling}
-      onClose={() => setCancelling(false)}
-      onCancelled={() => {
-        setCancelling(false);
-        setCurrent("cancelled");
-      }}
-    />
-    <Select
-      value={current}
-      disabled={pending || awaitingMe}
-      onValueChange={(next) => {
-        if (next === "cancelled") {
-          setCancelling(true);
-          return;
-        }
-        const previous = current;
-        setCurrent(next);
-        save({ status: next as RequestPatch["status"] }, "Status updated", () => setCurrent(previous));
-      }}
-    >
-      <SelectTrigger
-        size="sm"
-        aria-label={label ?? "Status"}
-        title={awaitingMe ? "Accept the request first to change its status" : undefined}
-        className={cn("h-7 max-w-56 rounded-full border-0 text-xs font-medium", statusBadgeClass(current))}
+      <CancelDialog
+        requestId={requestId}
+        open={cancelling}
+        onClose={() => setCancelling(false)}
+        onCancelled={() => {
+          setCancelling(false);
+          setCurrent("cancelled");
+        }}
+      />
+      <Select
+        value={current}
+        disabled={pending || awaitingMe || designTeamOnly}
+        onValueChange={(next) => {
+          if (next === "cancelled") {
+            setCancelling(true);
+            return;
+          }
+          const previous = current;
+          setCurrent(next);
+          save({ status: next as RequestPatch["status"] }, "Status updated", () => setCurrent(previous));
+        }}
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent position="popper">
-        {STATUSES.map((s) => {
-          const reason =
-            s.value === current
-              ? null
-              : holdOrCancelOnly && !ADMIN_STATUSES.has(s.value)
-                ? "the designer sets this"
-                : lockReason(s.value, hasDesigner, hasLink, accepted);
-          return (
-            <SelectItem key={s.value} value={s.value} disabled={!!reason}>
-              {s.label}
-              {reason && <span className="text-xs text-muted-foreground">· {reason}</span>}
-            </SelectItem>
-          );
-        })}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          size="sm"
+          aria-label={label ?? "Status"}
+          title={
+            designTeamOnly
+              ? "Only the Design team changes the status"
+              : awaitingMe
+                ? "Accept the request first to change its status"
+                : undefined
+          }
+          className={cn("h-7 max-w-56 rounded-full border-0 text-xs font-medium", statusBadgeClass(current))}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          {STATUSES.map((s) => {
+            const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink, accepted);
+            return (
+              <SelectItem key={s.value} value={s.value} disabled={!!reason}>
+                {s.label}
+                {reason && <span className="text-xs text-muted-foreground">· {reason}</span>}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
     </>
   );
 }
@@ -280,8 +282,7 @@ export function DesignersEditor({
   const [picked, setPicked] = useState<string[]>([]);
   // Former designers stay listed only on requests they already have.
   const options = designers.filter((d) => d.active || current.some((c) => c.designer_id === d.id));
-  const changed =
-    picked.length !== current.length || picked.some((id) => !current.some((c) => c.designer_id === id));
+  const changed = picked.length !== current.length || picked.some((id) => !current.some((c) => c.designer_id === id));
 
   function save() {
     startTransition(async () => {
@@ -686,7 +687,8 @@ export function GeneralInfoEditor({
       patch.final_approver_email = form.approverEmail;
     }
     const dealChanged =
-      form.isDeal !== value.isDeal || (form.isDeal && (form.dealName.trim() !== value.dealName || form.dealSize !== value.dealSize));
+      form.isDeal !== value.isDeal ||
+      (form.isDeal && (form.dealName.trim() !== value.dealName || form.dealSize !== value.dealSize));
     if (dealChanged) {
       if (form.isDeal && (!form.dealName.trim() || !form.dealSize)) {
         toast.error("Please enter the deal name and deal size.");
@@ -744,7 +746,9 @@ export function GeneralInfoEditor({
           <form ref={formRef} onSubmit={submit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Edit request details</DialogTitle>
-              <DialogDescription>Changes are saved to the activity log. The type of request can&apos;t change.</DialogDescription>
+              <DialogDescription>
+                Changes are saved to the activity log. The type of request can&apos;t change.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
               <Label htmlFor="gi-title">Request Title</Label>
@@ -788,12 +792,22 @@ export function GeneralInfoEditor({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="gi-approver-email">Approver Email</Label>
-                <Input id="gi-approver-email" type="email" value={form.approverEmail} onChange={set("approverEmail")} required />
+                <Input
+                  id="gi-approver-email"
+                  type="email"
+                  value={form.approverEmail}
+                  onChange={set("approverEmail")}
+                  required
+                />
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <Checkbox id="gi-deal" checked={form.isDeal} onCheckedChange={(on) => setForm({ ...form, isDeal: on === true })} />
+                <Checkbox
+                  id="gi-deal"
+                  checked={form.isDeal}
+                  onCheckedChange={(on) => setForm({ ...form, isDeal: on === true })}
+                />
                 <Label htmlFor="gi-deal">Associated with a deal</Label>
               </div>
               {form.isDeal && (
@@ -815,7 +829,11 @@ export function GeneralInfoEditor({
               )}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => (changed ? setConfirmClose(true) : setOpen(false))}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => (changed ? setConfirmClose(true) : setOpen(false))}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={pending || !changed}>
