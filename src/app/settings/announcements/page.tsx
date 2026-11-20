@@ -40,23 +40,31 @@ export default async function AnnouncementsPage() {
     </div>
   );
 
+  // The whole team (Settings → Members), like the Members page, including
+  // people who haven't signed in yet (owner, Nov 20). Ticking needs an account.
   async function loadPosters(): Promise<Poster[]> {
-    const [{ data: people, error: peopleError }, { data: posters, error: postersError }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email, user_roles(role)").order("full_name"),
-      supabase.from("announcement_posters").select("user_id"),
-    ]);
-    if (peopleError) throw new Error(peopleError.message);
+    const [{ data: members, error: membersError }, { data: profiles }, { data: posters, error: postersError }] =
+      await Promise.all([
+        supabase.from("team_members").select("email, full_name, roles").order("full_name"),
+        supabase.from("profiles").select("id, email, full_name"),
+        supabase.from("announcement_posters").select("user_id"),
+      ]);
+    if (membersError) throw new Error(membersError.message);
     if (postersError) throw new Error(postersError.message);
     const ticked = new Set((posters ?? []).map((p) => p.user_id));
-    return (people ?? [])
-      .map((p) => ({ ...p, roles: p.user_roles.map((r) => r.role as string) }))
-      .filter((p) => p.roles.some((r) => STAFF_ROLES.includes(r)))
-      .map((p) => ({
-        id: p.id,
-        name: p.full_name || p.email,
-        email: p.email,
-        alwaysLabel: p.roles.includes("super_admin") ? "Super Admin" : p.roles.includes("admin") ? "Admin" : null,
-        canPost: ticked.has(p.id),
-      }));
+    const accounts = new Map((profiles ?? []).map((p) => [p.email.toLowerCase(), p]));
+    return (members ?? [])
+      .filter((m) => m.roles.some((r) => STAFF_ROLES.includes(r)))
+      .map((m) => {
+        const account = accounts.get(m.email.toLowerCase());
+        return {
+          id: account?.id ?? null,
+          name: account?.full_name || m.full_name || m.email,
+          email: m.email,
+          alwaysLabel: m.roles.includes("super_admin") ? "Super Admin" : m.roles.includes("admin") ? "Admin" : null,
+          canPost: !!account && ticked.has(account.id),
+        };
+      })
+      .sort((x, y) => x.name.localeCompare(y.name));
   }
 }
