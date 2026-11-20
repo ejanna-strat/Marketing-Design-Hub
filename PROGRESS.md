@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 20, 2026 · version 0.79.1_
+_Last updated: Nov 20, 2026 · version 0.80.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 20, 2026 · version 0.79.1_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.80.0 (owner, Nov 20): **Admins no longer put requests On hold or cancel them**, so the Design team has more say in Creative Hub; Admins see the status but can't change it. They still see everything, edit details and the Link to Output, manage Members and post announcements. Admins who are also Designers keep the Designer's rights (migration 0043).
 - v0.79.1 (owner, Nov 20): fix: "Who can post announcements" lists the whole team (like Members), including people who haven't signed in yet, so Admins show as "always can post"; others can be ticked after their first sign-in.
 - v0.79.0 (owner, Nov 20): **Admins can always post announcements**, like Super Admins; Lead Designers and Designers still need a Super Admin's tick (migration 0042).
 - v0.78.0 (owner, Nov 20): **Settings moved up to the Marketing Support Hub** (`/settings`), ready for future hubs: Members (who has access) and Announcements, with the main page's top bar. Opened from the gear on the main page or **Settings in the profile menu** (top right) from any page. Inside Creative Hub the sidebar item is now **Hub settings** with Requester FAQs only (Super Admins and Lead Designers). Old Settings links redirect.

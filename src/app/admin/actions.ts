@@ -15,7 +15,7 @@ import {
   notifyReturned,
 } from "@/lib/email/notifications";
 import { buildAnswersSchema, QUESTION_COLUMNS, toAnswersPayload, toFormQuestion } from "@/lib/requests/schema";
-import { ADMIN_STATUSES, holdOrCancelOnly } from "@/lib/statuses";
+import { adminOnly } from "@/lib/statuses";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,7 +47,11 @@ const patchSchema = z
     link_label_2: linkLabel,
     link_label_3: linkLabel,
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
-    title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
+    title: z
+      .string()
+      .trim()
+      .min(1, "Please enter a request title.")
+      .max(200, "Please keep the title under 200 characters."),
     project_overview: z
       .string()
       .trim()
@@ -107,14 +111,10 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     .eq("id", requestId)
     .maybeSingle();
   if (!before) return { ok: false, error: "Request not found." };
-  // Admins who don't design: On hold only here (Cancel has its own note
-  // pop-up) (owner, Oct 30).
+  // Admins who don't design don't change the status (owner, Nov 20).
   const newStatus = changes.status;
-  if (holdOrCancelOnly(user) && newStatus && newStatus !== before.status && !ADMIN_STATUSES.has(newStatus)) {
-    return {
-      ok: false,
-      error: "Admins can put a request On hold or cancel it; the designer changes the other statuses.",
-    };
+  if (adminOnly(user) && newStatus && newStatus !== before.status) {
+    return { ok: false, error: "Only the Design team changes a request's status." };
   }
   const touchesWork = fields.some((f) => f === "status" || f.startsWith("link_"));
   const mine = before.request_designers.find((d) => d.designer_id === user.designerId);
@@ -130,7 +130,10 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
     .maybeSingle();
   if (error) {
     console.error("updateRequest failed", error);
-    return { ok: false, error: error.code === "42501" ? error.message : "We couldn't save the change. Please try again." };
+    return {
+      ok: false,
+      error: error.code === "42501" ? error.message : "We couldn't save the change. Please try again.",
+    };
   }
   if (!data) return { ok: false, error: "You can't change this request." };
 
@@ -177,7 +180,10 @@ export async function updateSpecifications(requestId: string, answers: unknown):
     console.error("update_request_specs failed", error);
     return {
       ok: false,
-      error: error.code === "P0001" || error.code === "42501" ? error.message : "We couldn't save the changes. Please try again.",
+      error:
+        error.code === "P0001" || error.code === "42501"
+          ? error.message
+          : "We couldn't save the changes. Please try again.",
     };
   }
   revalidatePath("/admin/pipeline");
@@ -212,6 +218,7 @@ export async function returnRequest(requestId: string, reason: string): Promise<
 export async function cancelRequest(requestId: string, note: string): Promise<Result> {
   const user = await getCurrentUser();
   if (!user?.isStaff) return { ok: false, error: "Only the Marketing team can cancel requests here." };
+  if (adminOnly(user)) return { ok: false, error: "Only the Design team can cancel requests." };
   if (!note.trim()) return { ok: false, error: "Please add a note on why the request is cancelled." };
   if (note.length > 1000) return { ok: false, error: "Please keep the note under 1,000 characters." };
 
