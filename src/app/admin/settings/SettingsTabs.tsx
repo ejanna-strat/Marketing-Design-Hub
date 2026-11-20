@@ -2,11 +2,22 @@
 
 import { NavLink } from "@/components/shell/NavLink";
 
-// Settings pages, one tab each. Requester FAQs: Super Admins and Lead Designers.
-export function SettingsTabs({ showFaqs }: { showFaqs: boolean }) {
+// Settings pages, one tab each. Members: Super Admins, Admins and Lead
+// Designers. Requester FAQs: Super Admins and Lead Designers. Announcements:
+// Super Admins and the people they tick (owner, Nov 20).
+export function SettingsTabs({
+  showMembers,
+  showFaqs,
+  showAnnouncements,
+}: {
+  showMembers: boolean;
+  showFaqs: boolean;
+  showAnnouncements: boolean;
+}) {
   const tabs = [
-    { href: "/admin/settings/members", label: "Members" },
+    ...(showMembers ? [{ href: "/admin/settings/members", label: "Members" }] : []),
     ...(showFaqs ? [{ href: "/admin/settings/faqs", label: "Requester FAQs" }] : []),
+    ...(showAnnouncements ? [{ href: "/admin/settings/announcements", label: "Announcements" }] : []),
   ];
   return (
     <nav aria-label="Settings" className="flex gap-1 overflow-x-auto border-b">

@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { FormError, FormNotice } from "@/components/shell/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { forgetClosedBanner } from "@/lib/announcements";
 import { resendConfirmation, signIn } from "./actions";
 
-export function LoginForm({
-  next,
-  initialError,
-}: {
-  next?: string;
-  initialError?: string;
-}) {
+export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
+  // Signed out (even by an expired session): the announcements banner shows
+  // again after the next sign-in (owner, Nov 20).
+  useEffect(() => forgetClosedBanner(), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(initialError);
