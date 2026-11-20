@@ -4,10 +4,10 @@ import { MegaphoneIcon, XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { type Announcement, ANNOUNCEMENTS_SEEN_KEY, TONE_STYLES } from "@/lib/announcements";
+import { type Announcement, ANNOUNCEMENTS_SEEN_KEY, PRIORITY_STYLES } from "@/lib/announcements";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { AnnouncementButton } from "./AnnouncementStrip";
+import { AnnouncementButton, PriorityTag } from "./AnnouncementStrip";
 
 // Which announcements this browser has opened the panel on (for the dot).
 const listeners = new Set<() => void>();
@@ -86,7 +86,8 @@ export function AnnouncementsPanel({ items }: { items: Announcement[] }) {
               <p className="py-10 text-center text-sm text-muted-foreground">No announcements right now.</p>
             ) : (
               items.map((a) => (
-                <article key={a.id} className={cn("space-y-2 rounded-xl p-4", TONE_STYLES[a.tone].strip)}>
+                <article key={a.id} className={cn("space-y-2 rounded-xl p-4", PRIORITY_STYLES[a.priority].strip)}>
+                  <PriorityTag priority={a.priority} />
                   <h3 className="font-bold leading-snug">{a.headline}</h3>
                   {a.message && <p className="text-sm leading-relaxed">{a.message}</p>}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
