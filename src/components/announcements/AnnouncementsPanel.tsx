@@ -94,7 +94,7 @@ export function AnnouncementsPanel({ items }: { items: Announcement[] }) {
                       {formatDate(a.startsOn)}
                       {a.endsOn && ` – ${formatDate(a.endsOn)}`}
                     </p>
-                    {a.linkLabel && a.linkUrl && <AnnouncementButton label={a.linkLabel} url={a.linkUrl} small />}
+                    <AnnouncementButton a={a} small />
                   </div>
                 </article>
               ))
