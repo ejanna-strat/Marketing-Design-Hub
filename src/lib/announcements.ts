@@ -2,7 +2,7 @@
 // banner; the side panel lists every live one. Dates are Manila calendar
 // days (YYYY-MM-DD): live from startsOn through endsOn (no end = until removed).
 
-export const TONES = ["blue", "green", "amber", "neutral"] as const;
+export const TONES = ["blue", "pink", "amber", "neutral"] as const;
 export type Tone = (typeof TONES)[number];
 
 export const MAX_IN_BANNER = 3;
@@ -63,27 +63,29 @@ export function phaseOf(a: Pick<Announcement, "startsOn" | "endsOn">, today: str
   return "live";
 }
 
-// Colour choices: the strip's background and its label in Settings.
+// Colour choices: the strip's background and its label in Settings. Mid
+// tones so the banner stands out from the page (owner, Nov 20: the first
+// blue was too faint; green became pink). Dark text reads on all of them.
 export const TONE_STYLES: Record<Tone, { label: string; strip: string; swatch: string }> = {
   blue: {
     label: "Blue",
-    strip: "bg-brand-soft text-gray-900 dark:text-gray-100",
-    swatch: "bg-brand-soft ring-brand/40",
+    strip: "bg-[#b5d8f5] text-gray-900 dark:bg-[#123d63] dark:text-gray-100",
+    swatch: "bg-[#b5d8f5] ring-[#5a9fd6] dark:bg-[#123d63]",
   },
-  green: {
-    label: "Green",
-    strip: "bg-[#c4d4c6] text-gray-900 dark:bg-[#22342a] dark:text-gray-100",
-    swatch: "bg-[#c4d4c6] ring-[#7f9a84] dark:bg-[#22342a]",
+  pink: {
+    label: "Pink",
+    strip: "bg-[#f7c6d0] text-gray-900 dark:bg-[#4f1f2c] dark:text-gray-100",
+    swatch: "bg-[#f7c6d0] ring-[#d9788d] dark:bg-[#4f1f2c]",
   },
   amber: {
     label: "Amber",
-    strip: "bg-amber-100 text-gray-900 dark:bg-amber-950 dark:text-amber-50",
-    swatch: "bg-amber-100 ring-amber-400 dark:bg-amber-950",
+    strip: "bg-[#fbdc8e] text-gray-900 dark:bg-[#4a3610] dark:text-amber-50",
+    swatch: "bg-[#fbdc8e] ring-[#d9a62a] dark:bg-[#4a3610]",
   },
   neutral: {
     label: "Grey",
-    strip: "bg-slate-100 text-gray-900 dark:bg-slate-800 dark:text-gray-100",
-    swatch: "bg-slate-100 ring-slate-400 dark:bg-slate-800",
+    strip: "bg-[#d3d9e1] text-gray-900 dark:bg-[#2f3a48] dark:text-gray-100",
+    swatch: "bg-[#d3d9e1] ring-[#8a96a6] dark:bg-[#2f3a48]",
   },
 };
 
