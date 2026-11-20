@@ -25,7 +25,7 @@ export type CurrentUser = {
   isManager: boolean;
   // Super Admin, Admin or Lead Designer: Settings → Members.
   canManageMembers: boolean;
-  // Super Admins, plus anyone a Super Admin ticked: Settings → Announcements (owner, Nov 20).
+  // Super Admins and Admins, plus anyone a Super Admin ticked: Announcements (owner, Nov 20).
   canPostAnnouncements: boolean;
   // Marketing Support Hub Settings (/settings): Members or Announcements.
   canOpenSettings: boolean;
@@ -62,7 +62,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const isStaff = isAdmin || isDesigner;
   const poster = Array.isArray(profile?.poster) ? profile.poster[0] : profile?.poster;
   // Posters must be on the team (Settings is team-only).
-  const canPostAnnouncements = isSuperAdmin || (isStaff && !!poster);
+  const canPostAnnouncements = isAdmin || (isStaff && !!poster);
   return {
     id: userId,
     email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
