@@ -114,7 +114,7 @@ export type Database = {
           link_url: string | null
           message: string
           starts_on: string
-          tone: string
+          priority: string
           updated_at: string
         }
         Insert: {
@@ -129,7 +129,7 @@ export type Database = {
           link_url?: string | null
           message?: string
           starts_on?: string
-          tone?: string
+          priority?: string
           updated_at?: string
         }
         Update: {
@@ -144,7 +144,7 @@ export type Database = {
           link_url?: string | null
           message?: string
           starts_on?: string
-          tone?: string
+          priority?: string
           updated_at?: string
         }
         Relationships: [
