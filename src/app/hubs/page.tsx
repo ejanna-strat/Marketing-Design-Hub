@@ -1,20 +1,39 @@
 import { ArrowRightIcon, ConstructionIcon, PaletteIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
+import { AnnouncementsPanel } from "@/components/announcements/AnnouncementsPanel";
 import { IdleSignOut } from "@/components/shell/IdleSignOut";
 import { roleLabel } from "@/components/shell/AppHeader";
 import { UserMenu } from "@/components/shell/UserMenu";
 import { theme } from "@/config/theme";
+import { ANNOUNCEMENT_COLUMNS, byPriority, MAX_IN_BANNER, toAnnouncement } from "@/lib/announcements";
 import { requireUser } from "@/lib/auth";
+import { todayInManila } from "@/lib/dates";
+import { createClient } from "@/lib/supabase/server";
 
 // The Marketing Support Hub's front door (owner, Nov 13): everyone lands here
 // after signing in and picks a hub. Creative Hub is the design-request app;
 // a generic "Coming soon" card stands in for the next hub. Old links and email buttons still open
-// their page directly.
+// their page directly. Announcements (owner, Nov 20) show here only, so they
+// don't get in the way of work screens.
 
 export default async function HubsPage() {
   const user = await requireUser();
   const firstName = user.fullName.split(" ")[0];
+
+  // Live announcements, highest priority first, then newest. The banner takes up to 3.
+  const today = todayInManila();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("announcements")
+    .select(ANNOUNCEMENT_COLUMNS)
+    .lte("starts_on", today)
+    .or(`ends_on.is.null,ends_on.gte.${today}`)
+    .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  const announcements = (data ?? []).map(toAnnouncement).sort(byPriority);
+  const banner = announcements.filter((a) => a.inBanner).slice(0, MAX_IN_BANNER);
 
   return (
     <div className="min-h-screen bg-brand-soft/40">
@@ -22,10 +41,12 @@ export default async function HubsPage() {
         <div className="flex h-14 items-center gap-2 px-4 sm:px-6">
           <Image src="/brand/logo.png" alt="" width={30} height={30} priority />
           <span className="flex-1 font-brand font-bold text-brand">{theme.suiteName}</span>
+          {announcements.length > 0 && <AnnouncementsPanel items={announcements} />}
           <UserMenu name={user.fullName} email={user.email} roleLabel={roleLabel(user)} theme={user.theme} />
         </div>
         <IdleSignOut team={user.isStaff} />
       </header>
+      {banner.length > 0 && <AnnouncementBanner items={banner} />}
 
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-12 sm:px-6">
         <div className="space-y-2 text-center">

@@ -68,6 +68,95 @@ export type Database = {
           },
         ]
       }
+      announcement_posters: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_posters_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcement_posters_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          details: string | null
+          ends_on: string | null
+          headline: string
+          id: string
+          in_banner: boolean
+          link_label: string | null
+          link_url: string | null
+          message: string
+          starts_on: string
+          priority: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          ends_on?: string | null
+          headline: string
+          id?: string
+          in_banner?: boolean
+          link_label?: string | null
+          link_url?: string | null
+          message?: string
+          starts_on?: string
+          priority?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          ends_on?: string | null
+          headline?: string
+          id?: string
+          in_banner?: boolean
+          link_label?: string | null
+          link_url?: string | null
+          message?: string
+          starts_on?: string
+          priority?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       designers: {
         Row: {
           active: boolean
@@ -666,6 +755,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       remove_team_member: { Args: { p_email: string }; Returns: undefined }
       save_team_member: {
         Args: {
@@ -689,6 +779,7 @@ export type Database = {
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       can_manage_members: { Args: never; Returns: boolean }
+      can_post_announcements: { Args: never; Returns: boolean }
       submit_feedback: {
         Args: { p_comments: string; p_output: number; p_process: number; p_request_code: string }
         Returns: Json

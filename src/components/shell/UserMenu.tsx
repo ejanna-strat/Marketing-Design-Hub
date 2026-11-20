@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateMyName, updateMyTheme } from "@/app/account/actions";
 import { signOut } from "@/app/login/actions";
+import { forgetClosedBanner } from "@/lib/announcements";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -206,21 +207,29 @@ function SignOutDialog({ onClose }: { onClose: () => void }) {
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Sign out?</DialogTitle>
-          <DialogDescription>You&apos;ll need to sign in again with your email and password to come back.</DialogDescription>
+          <DialogDescription>
+            You&apos;ll need to sign in again with your email and password to come back.
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose} autoFocus>
             Stay signed in
           </Button>
-          <Button type="button" disabled={pending} onClick={() =>
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() =>
               startTransition(() => {
                 // The next person to sign in on this browser gets their own saved theme.
                 try {
                   sessionStorage.removeItem(SYNCED_KEY);
                 } catch {}
+                // The announcements banner shows again after the next sign-in.
+                forgetClosedBanner();
                 return signOut();
               })
-            }>
+            }
+          >
             <LogOutIcon />
             {pending ? "Signing out…" : "Sign out"}
           </Button>
