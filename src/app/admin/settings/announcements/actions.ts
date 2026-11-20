@@ -33,15 +33,26 @@ const announcementSchema = z
       .max(80, "Please keep the headline under 80 characters."),
     message: z.string().trim().max(240, "Please keep the message under 240 characters."),
     linkLabel: z.string().trim().max(30, "Please keep the button text under 30 characters."),
+    // The button opens a link, or a longer message in a pop-up (owner, Nov 20).
+    buttonAction: z.enum(["link", "details"]),
     linkUrl: z.string().trim().max(2000).transform(normalizeUrl),
+    details: z.string().trim().max(5000, "Please keep the longer message under 5,000 characters."),
     tone: z.enum(TONES),
     inBanner: z.boolean(),
     startsOn: z.string().regex(DATE, "Please pick a start date."),
     endsOn: z.string().regex(DATE).nullable(),
   })
   .refine((a) => !a.endsOn || a.endsOn >= a.startsOn, { message: "The end date can't be before the start date." })
-  .refine((a) => !a.linkLabel === !a.linkUrl, {
-    message: "For a button, please fill in both the button text and its link (or leave both empty).",
+  .transform((a) => ({
+    ...a,
+    linkUrl: a.linkLabel && a.buttonAction === "link" ? a.linkUrl : "",
+    details: a.linkLabel && a.buttonAction === "details" ? a.details : "",
+  }))
+  .refine((a) => !a.linkLabel || a.linkUrl || a.details, {
+    message: "Please add what the button opens: a link, or the longer message.",
+  })
+  .refine((a) => a.linkLabel || (!a.linkUrl && !a.details), {
+    message: "Please enter the button text.",
   })
   .refine((a) => !a.linkUrl || /^(https:\/\/[^\s]+\.[^\s]+|mailto:[^\s@]+@[^\s@]+)$/i.test(a.linkUrl), {
     message: "Please enter a web address (https://…) or an email address for the button.",
@@ -93,6 +104,7 @@ export async function saveAnnouncement(input: AnnouncementInput): Promise<Result
     message: a.message,
     link_label: a.linkLabel || null,
     link_url: a.linkUrl || null,
+    details: a.details || null,
     tone: a.tone,
     in_banner: a.inBanner,
     starts_on: a.startsOn,

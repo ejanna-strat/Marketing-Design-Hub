@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 20, 2026 · version 0.73.0_
+_Last updated: Nov 20, 2026 · version 0.74.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 20, 2026 · version 0.73.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.74.0 (owner, Nov 20): an announcement's **button can open a link or a longer message**. The longer message opens in a pop-up with bold, italic, underline, links and bullets (same editor as the FAQs); the preview in Settings opens it too (migration 0039).
 - v0.73.0 (owner, Nov 20): **Announcements** on the main page (where people pick a space). Up to 3 rotate in a top banner (bold headline, message, optional button; blue, green, amber or grey); a megaphone at the top right opens a side panel with every live one (red dot for new ones). People can close the banner until they sign out or close the tab. Posted in **Settings → Announcements** with start and optional end dates; Super Admins always post and tick who else can (migration 0038).
 - v0.72.0 (owner, Nov 20): Dashboard **Top 5 types of request**: each type name and bar opens Design Pipeline › All for that type and this year (Jan 1 to today), so the list matches the bar (All leaves out Returned and Cancelled, like the chart). Bars in Requests by status open their list too.
 - v0.71.4 (owner, Nov 19): Choose a hub page: the line under the title reads "Pick a space to get started." (fits future Marketing-only tools, not just requesters); the Creative Hub card title is brand blue, like the emails.
