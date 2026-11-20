@@ -13,6 +13,8 @@ export type Announcement = {
   message: string;
   linkLabel: string | null;
   linkUrl: string | null;
+  // The longer message the button opens instead of a link (FAQ formatting codes).
+  details: string | null;
   tone: Tone;
   inBanner: boolean;
   startsOn: string;
@@ -21,7 +23,7 @@ export type Announcement = {
 };
 
 export const ANNOUNCEMENT_COLUMNS =
-  "id, headline, message, link_label, link_url, tone, in_banner, starts_on, ends_on, updated_at" as const;
+  "id, headline, message, link_label, link_url, details, tone, in_banner, starts_on, ends_on, updated_at" as const;
 
 type Row = {
   id: string;
@@ -29,6 +31,7 @@ type Row = {
   message: string;
   link_label: string | null;
   link_url: string | null;
+  details: string | null;
   tone: string;
   in_banner: boolean;
   starts_on: string;
@@ -43,6 +46,7 @@ export function toAnnouncement(r: Row): Announcement {
     message: r.message,
     linkLabel: r.link_label,
     linkUrl: r.link_url,
+    details: r.details,
     tone: (TONES as readonly string[]).includes(r.tone) ? (r.tone as Tone) : "blue",
     inBanner: r.in_banner,
     startsOn: r.starts_on,

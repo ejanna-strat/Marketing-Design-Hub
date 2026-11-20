@@ -33,6 +33,7 @@ import {
 } from "@/lib/announcements";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { FaqAnswerEditor } from "../faqs/FaqAnswerEditor";
 import { deleteAnnouncement, saveAnnouncement } from "./actions";
 
 type Form = {
@@ -40,7 +41,9 @@ type Form = {
   headline: string;
   message: string;
   linkLabel: string;
+  buttonAction: "link" | "details";
   linkUrl: string;
+  details: string;
   tone: Tone;
   inBanner: boolean;
   startsOn: string;
@@ -67,7 +70,9 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
       headline: "",
       message: "",
       linkLabel: "",
+      buttonAction: "link",
       linkUrl: "",
+      details: "",
       tone: "blue",
       inBanner: bannerCount < MAX_IN_BANNER,
       startsOn: today,
@@ -81,7 +86,9 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
       headline: a.headline,
       message: a.message,
       linkLabel: a.linkLabel ?? "",
+      buttonAction: a.details ? "details" : "link",
       linkUrl: (a.linkUrl ?? "").replace(/^mailto:/, ""),
+      details: a.details ?? "",
       tone: a.tone,
       inBanner: a.inBanner,
       startsOn: a.startsOn,
@@ -140,7 +147,8 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
                       {a.message && <p className="line-clamp-2 text-sm text-muted-foreground">{a.message}</p>}
                       <p className="text-xs text-muted-foreground">
                         {formatDate(a.startsOn)} – {a.endsOn ? formatDate(a.endsOn) : "no end date"}
-                        {a.linkLabel && ` · Button: ${a.linkLabel}`}
+                        {a.linkLabel &&
+                          ` · Button: ${a.linkLabel} (${a.details ? "opens a longer message" : "opens a link"})`}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1">
@@ -229,7 +237,9 @@ function AnnouncementDialog({
         headline: form.headline,
         message: form.message,
         linkLabel: form.linkLabel,
+        buttonAction: form.buttonAction,
         linkUrl: form.linkUrl,
+        details: form.details,
         tone: form.tone,
         inBanner: form.inBanner,
         startsOn: form.startsOn,
@@ -261,7 +271,8 @@ function AnnouncementDialog({
                 headline: form.headline || "Your headline",
                 message: form.message,
                 linkLabel: form.linkLabel || null,
-                linkUrl: form.linkLabel ? "#" : null,
+                linkUrl: form.linkLabel && form.buttonAction === "link" ? "#" : null,
+                details: form.buttonAction === "details" ? form.details || "Your longer message" : null,
                 tone: form.tone,
               }}
             />
@@ -293,7 +304,7 @@ function AnnouncementDialog({
             <p className="text-right text-xs text-muted-foreground">{form.message.length}/240</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+          <div className="space-y-3 rounded-lg border p-4">
             <div className="space-y-2">
               <Label htmlFor="ann-link-label">Button text (optional)</Label>
               <Input
@@ -302,17 +313,62 @@ function AnnouncementDialog({
                 placeholder="e.g. Learn more"
                 value={form.linkLabel}
                 onChange={(e) => set({ linkLabel: e.target.value })}
+                className="sm:max-w-xs"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ann-link-url">Button link</Label>
-              <Input
-                id="ann-link-url"
-                placeholder="https://… or name@stratpoint.com"
-                value={form.linkUrl}
-                onChange={(e) => set({ linkUrl: e.target.value })}
-              />
-            </div>
+            {form.linkLabel.trim() && (
+              <>
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium">When someone clicks it</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["link", "Open a link"],
+                        ["details", "Show a longer message"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={form.buttonAction === value}
+                        onClick={() => set({ buttonAction: value })}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                          form.buttonAction === value ? "border-brand ring-2 ring-brand/30" : "hover:bg-muted",
+                        )}
+                      >
+                        {form.buttonAction === value && <CheckIcon className="size-3.5 text-brand" aria-hidden />}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                {form.buttonAction === "link" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="ann-link-url">Link</Label>
+                    <Input
+                      id="ann-link-url"
+                      placeholder="https://… or name@stratpoint.com"
+                      value={form.linkUrl}
+                      onChange={(e) => set({ linkUrl: e.target.value })}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label id="ann-details-label">Longer message</Label>
+                    <FaqAnswerEditor
+                      labelId="ann-details-label"
+                      initial={initial.details}
+                      onChange={(details) => set({ details })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Opens in a pop-up. Highlight words and use the buttons above for bold, italic, underline, links
+                      and bullets. Click the button in the preview to see it.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <fieldset className="space-y-2">
