@@ -38,18 +38,55 @@ export function BarList({
           ) : (
             <span className="text-right text-xs leading-snug text-muted-foreground">{d.label}</span>
           )}
-          <span className="flex items-center gap-2">
-            {d.value > 0 && (
-              <span className={`h-[18px] rounded-r ${d.muted ? "bg-slate-400 dark:bg-slate-500" : "bg-brand"}`} style={{ width: `${(d.value / max) * 75}%` }} aria-hidden />
-            )}
-            <span className="shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 dark:text-gray-300 tabular-nums">
-              {d.value}
-              {pct(d.value)}
-              <span className="sr-only"> {unit}</span>
+          {d.href ? (
+            // The bar opens the same list as its name (owner, Nov 20); the
+            // name link carries the label for screen readers.
+            <Link href={d.href} tabIndex={-1} aria-hidden className="group flex items-center gap-2">
+              <Bar d={d} max={max} pct={pct} unit={unit} linked />
+            </Link>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Bar d={d} max={max} pct={pct} unit={unit} />
             </span>
-          </span>
+          )}
         </li>
       ))}
     </ul>
+  );
+}
+
+function Bar({
+  d,
+  max,
+  pct,
+  unit,
+  linked = false,
+}: {
+  d: BarDatum;
+  max: number;
+  pct: (v: number) => string;
+  unit: string;
+  linked?: boolean;
+}) {
+  const fill = d.muted ? "bg-slate-400 dark:bg-slate-500" : "bg-brand";
+  return (
+    <>
+      {d.value > 0 && (
+        <span
+          className={`h-[18px] rounded-r ${fill} ${linked ? "transition-opacity group-hover:opacity-80" : ""}`}
+          style={{ width: `${(d.value / max) * 75}%` }}
+          aria-hidden
+        />
+      )}
+      <span
+        className={`shrink-0 text-xs font-semibold whitespace-nowrap text-gray-700 dark:text-gray-300 tabular-nums ${
+          linked ? "group-hover:underline" : ""
+        }`}
+      >
+        {d.value}
+        {pct(d.value)}
+        <span className="sr-only"> {unit}</span>
+      </span>
+    </>
   );
 }
