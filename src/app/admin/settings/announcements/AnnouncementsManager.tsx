@@ -24,11 +24,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import {
   type Announcement,
+  type AnnouncementForm,
+  announcementForm,
+  newAnnouncementForm,
   MAX_IN_BANNER,
   type Phase,
   phaseOf,
   byPriority,
-  type Priority,
   PRIORITIES,
   PRIORITY_STYLES,
 } from "@/lib/announcements";
@@ -36,20 +38,6 @@ import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { FaqAnswerEditor } from "../faqs/FaqAnswerEditor";
 import { deleteAnnouncement, saveAnnouncement } from "./actions";
-
-type Form = {
-  id: string;
-  headline: string;
-  message: string;
-  linkLabel: string;
-  buttonAction: "link" | "details";
-  linkUrl: string;
-  details: string;
-  priority: Priority;
-  inBanner: boolean;
-  startsOn: string;
-  endsOn: string | null;
-};
 
 const GROUPS: { phase: Phase; title: string; empty?: string }[] = [
   { phase: "live", title: "Live now", empty: "Nothing on the main page right now." },
@@ -59,42 +47,18 @@ const GROUPS: { phase: Phase; title: string; empty?: string }[] = [
 
 export function AnnouncementsManager({ announcements, today }: { announcements: Announcement[]; today: string }) {
   const router = useRouter();
-  const [editing, setEditing] = useState<Form | null>(null);
+  const [editing, setEditing] = useState<AnnouncementForm | null>(null);
   const [deleting, setDeleting] = useState<Announcement | null>(null);
   const [pending, startTransition] = useTransition();
 
   const bannerCount = announcements.filter((a) => a.inBanner && phaseOf(a, today) !== "ended").length;
 
   function add() {
-    setEditing({
-      id: "",
-      headline: "",
-      message: "",
-      linkLabel: "",
-      buttonAction: "link",
-      linkUrl: "",
-      details: "",
-      priority: "new",
-      inBanner: bannerCount < MAX_IN_BANNER,
-      startsOn: today,
-      endsOn: null,
-    });
+    setEditing(newAnnouncementForm(today, bannerCount < MAX_IN_BANNER));
   }
 
   function edit(a: Announcement) {
-    setEditing({
-      id: a.id,
-      headline: a.headline,
-      message: a.message,
-      linkLabel: a.linkLabel ?? "",
-      buttonAction: a.details ? "details" : "link",
-      linkUrl: (a.linkUrl ?? "").replace(/^mailto:/, ""),
-      details: a.details ?? "",
-      priority: a.priority,
-      inBanner: a.inBanner,
-      startsOn: a.startsOn,
-      endsOn: a.endsOn,
-    });
+    setEditing(announcementForm(a));
   }
 
   function remove(a: Announcement) {
@@ -215,12 +179,14 @@ export function AnnouncementsManager({ announcements, today }: { announcements: 
   );
 }
 
-function AnnouncementDialog({
+// Add or edit one announcement. Also opened from the megaphone panel on the
+// main page (owner, Nov 20: fewer clicks).
+export function AnnouncementDialog({
   initial,
   onClose,
   onSaved,
 }: {
-  initial: Form;
+  initial: AnnouncementForm;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -228,7 +194,7 @@ function AnnouncementDialog({
   const [form, setForm] = useState(initial);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
-  const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
+  const set = (patch: Partial<AnnouncementForm>) => setForm((f) => ({ ...f, ...patch }));
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
