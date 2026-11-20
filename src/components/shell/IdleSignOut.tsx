@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { forgetClosedBanner } from "@/lib/announcements";
 import { ACTIVE_COOKIE, ACTIVE_MAX_AGE, IDLE_LIMIT_MS, SIGN_OUT_PATH, WARN_BEFORE_MS } from "@/lib/idle";
 import { SYNCED_KEY } from "./UserMenu";
 
@@ -33,6 +34,8 @@ async function signOutNow() {
   try {
     sessionStorage.removeItem(SYNCED_KEY);
   } catch {}
+  // The announcements banner shows again after the next sign-in.
+  forgetClosedBanner();
   const here = location.pathname + location.search;
   const next = here === "/" ? "" : `&next=${encodeURIComponent(here)}`;
   location.replace(`/login?reason=idle${next}`);

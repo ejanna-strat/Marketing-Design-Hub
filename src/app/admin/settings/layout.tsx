@@ -5,7 +5,11 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const user = await requireStaff();
   return (
     <div className="space-y-6">
-      <SettingsTabs showFaqs={user.isManager} />
+      <SettingsTabs
+        showMembers={user.canManageMembers}
+        showFaqs={user.isManager}
+        showAnnouncements={user.canPostAnnouncements}
+      />
       {children}
     </div>
   );

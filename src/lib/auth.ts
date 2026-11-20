@@ -25,6 +25,10 @@ export type CurrentUser = {
   isManager: boolean;
   // Super Admin, Admin or Lead Designer: Settings → Members.
   canManageMembers: boolean;
+  // Super Admins, plus anyone a Super Admin ticked: Settings → Announcements (owner, Nov 20).
+  canPostAnnouncements: boolean;
+  // Members or Announcements: shows Settings in the menu.
+  canOpenSettings: boolean;
   // Admin, Lead Designer or Designer: can open the pipeline.
   isStaff: boolean;
   // The designers row linked to this person, if they are a designer.
@@ -43,7 +47,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, team_id, theme, user_roles(role), designers(id)")
+    .select(
+      "full_name, email, team_id, theme, user_roles(role), designers(id), poster:announcement_posters!announcement_posters_user_id_fkey(user_id)",
+    )
     .eq("id", userId)
     .maybeSingle();
 
@@ -53,6 +59,10 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const isAdmin = isSuperAdmin || roles.includes("admin");
   const isLeadDesigner = roles.includes("lead_designer");
   const isDesigner = isLeadDesigner || roles.includes("designer");
+  const isStaff = isAdmin || isDesigner;
+  const poster = Array.isArray(profile?.poster) ? profile.poster[0] : profile?.poster;
+  // Posters must be on the team (Settings is team-only).
+  const canPostAnnouncements = isSuperAdmin || (isStaff && !!poster);
   return {
     id: userId,
     email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
@@ -66,7 +76,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     isDesigner,
     isManager: isSuperAdmin || isLeadDesigner,
     canManageMembers: isAdmin || isLeadDesigner,
-    isStaff: isAdmin || isDesigner,
+    canPostAnnouncements,
+    canOpenSettings: isAdmin || isLeadDesigner || canPostAnnouncements,
+    isStaff,
     designerId: designer?.id ?? null,
   };
 });
