@@ -24,7 +24,10 @@ export function AnnouncementStrip({
 }) {
   return (
     <div className={cn("relative", TONE_STYLES[a.tone].strip, className)}>
-      <div className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-12 py-3 text-center text-sm sm:text-base">
+      <div
+        data-strip-body
+        className="mx-auto flex min-h-14 max-w-5xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-12 py-3 text-center text-sm sm:text-base"
+      >
         <p className="min-w-0 leading-snug">
           <strong className="font-bold">{a.headline}</strong>
           {a.message && <> {a.message}</>}
