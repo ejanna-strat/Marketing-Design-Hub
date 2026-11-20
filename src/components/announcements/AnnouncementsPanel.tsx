@@ -22,7 +22,7 @@ import { AnnouncementButton, PriorityTag } from "./AnnouncementStrip";
 // The editor loads only when someone who can post opens it, so the main page
 // stays light for everyone else.
 const AnnouncementDialog = dynamic(
-  () => import("@/app/admin/settings/announcements/AnnouncementsManager").then((m) => m.AnnouncementDialog),
+  () => import("@/app/settings/announcements/AnnouncementsManager").then((m) => m.AnnouncementDialog),
   { ssr: false },
 );
 
@@ -123,7 +123,7 @@ export function AnnouncementsPanel({
                   <PlusIcon />
                   Add announcement
                 </Button>
-                <Link href="/admin/settings/announcements" className="text-sm font-medium text-brand hover:underline">
+                <Link href="/settings/announcements" className="text-sm font-medium text-brand hover:underline">
                   Manage all
                 </Link>
               </div>
