@@ -41,7 +41,9 @@ export default async function DashboardPage() {
   const [{ data: requests, error }, { data: open }, { data: feedback }, { data: acceptedLog }] = await Promise.all([
     supabase
       .from("requests")
-      .select("id, status, created_at, date_completed, is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name)")
+      .select(
+        "id, status, created_at, date_completed, is_deal, deal_size, request_type_id, team:teams(name, is_marketing), request_type:request_types(name)",
+      )
       .gte("created_at", yearStart),
     supabase.from("requests").select("status").in("status", PENDING_TABS.map((t) => t.status)),
     supabase
@@ -71,8 +73,19 @@ export default async function DashboardPage() {
   // Top 5 types count active requests only: Returned and Cancelled are left
   // out (owner, Oct 23).
   const activeRows = rows.filter((r) => !(INACTIVE_STATUSES as readonly string[]).includes(r.status));
-  const activeByType = new Map<string, number>();
-  for (const r of activeRows) activeByType.set(r.request_type?.name ?? "—", (activeByType.get(r.request_type?.name ?? "—") ?? 0) + 1);
+  // Each bar opens Design Pipeline › All for that type and this year (owner,
+  // Nov 20); All leaves out Returned and Cancelled too, so the list matches.
+  const activeByType = new Map<string, { label: string; value: number; href: string }>();
+  for (const r of activeRows) {
+    const row = activeByType.get(r.request_type_id) ?? {
+      label: r.request_type?.name ?? "—",
+      value: 0,
+      href: `/admin/pipeline?view=all&type=${r.request_type_id}&${yearRange}`,
+    };
+    row.value += 1;
+    activeByType.set(r.request_type_id, row);
+  }
+  const topTypes = [...activeByType.values()].sort((a, b) => b.value - a.value).slice(0, 5);
   const sorted = (m: Map<string, number>) =>
     [...m.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
 
@@ -300,7 +313,7 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList data={sorted(activeByType).slice(0, 5)} total={activeRows.length} />
+            <BarList data={topTypes} total={activeRows.length} />
           </CardContent>
         </Card>
       </div>
