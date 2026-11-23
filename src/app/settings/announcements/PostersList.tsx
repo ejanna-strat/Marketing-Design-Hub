@@ -7,12 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { setPoster } from "./actions";
 
-// alwaysLabel: "Super Admin" or "Admin" (they always can post), else null.
+// alwaysLabel: "Super Admin" (always can post), else null.
 // id: their account, or null if they haven't signed in yet.
 export type Poster = { id: string | null; name: string; email: string; alwaysLabel: string | null; canPost: boolean };
 
 // Super Admins only: tick the team members who can also post (owner, Nov 20).
-// Super Admins and Admins can always post. Everyone on the team is listed;
+// Super Admins can always post; Admins are ticked like everyone else (owner, Nov 23). Everyone on the team is listed;
 // others can be ticked once they've signed in for the first time.
 export function PostersList({ people, myId }: { people: Poster[]; myId: string }) {
   const router = useRouter();
@@ -40,8 +40,8 @@ export function PostersList({ people, myId }: { people: Poster[]; myId: string }
       <div className="space-y-1">
         <h2 className="font-semibold">Who can post announcements</h2>
         <p className="text-sm text-muted-foreground">
-          Super Admins and Admins always can. Tick the Lead Designers or Designers who should. Only Super Admins see
-          this list.
+          Super Admins always can. Tick the Admins, Lead Designers or Designers who should. Only Super Admins see this
+          list.
         </p>
       </div>
       <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
