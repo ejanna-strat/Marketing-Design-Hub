@@ -9,7 +9,7 @@ import { PostersList, type Poster } from "./PostersList";
 const STAFF_ROLES = ["super_admin", "admin", "lead_designer", "designer"];
 
 export default async function AnnouncementsPage() {
-  // Super Admins and Admins, and the team members a Super Admin ticked below.
+  // Super Admins, and the team members a Super Admin ticked below.
   const user = await requireStaff();
   if (!user.canPostAnnouncements) redirect("/settings");
   const supabase = await createClient();
@@ -61,7 +61,7 @@ export default async function AnnouncementsPage() {
           id: account?.id ?? null,
           name: account?.full_name || m.full_name || m.email,
           email: m.email,
-          alwaysLabel: m.roles.includes("super_admin") ? "Super Admin" : m.roles.includes("admin") ? "Admin" : null,
+          alwaysLabel: m.roles.includes("super_admin") ? "Super Admin" : null,
           canPost: !!account && ticked.has(account.id),
         };
       })
