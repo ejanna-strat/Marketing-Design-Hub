@@ -1,9 +1,8 @@
--- Owner, Nov 24: Settings → Reports.
--- 1. Anyone on the Marketing team downloads a summary report (no personal
---    details) for a month or a year.
--- 2. Archive a year: once every request filed that year is finished
+-- Owner, Nov 24: Analytics → Download report (no personal details, built in
+-- the app) and Creative Hub's Hub settings → Archive.
+-- Archive a year: once every request filed that year is finished
 --    (Completed, Cancelled or Returned) and the last one finished at least 2
---    years ago, anyone on the team can download its requests as a
+--    years ago, Super Admins and Lead Designers can download its requests as a
 --    pipeline-style file with names and emails replaced ("Requester 1"...).
 --    A Super Admin who downloaded it can then remove those requests. The
 --    year's report is saved first (archived_years), so Analytics and the
@@ -75,8 +74,8 @@ returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if not public.is_staff() then
-    raise exception 'Only the Marketing team can download this.' using errcode = '42501';
+  if not public.is_manager() then
+    raise exception 'Only Super Admins and Lead Designers can download this.' using errcode = '42501';
   end if;
   insert into public.archive_exports (year, request_count, exported_by) values (p_year, p_count, auth.uid());
 end;
