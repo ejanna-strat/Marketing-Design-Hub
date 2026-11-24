@@ -775,6 +775,7 @@ export type Database = {
       }
       set_request_designers: { Args: { p_designer_ids: string[]; p_request_id: string }; Returns: Json }
       add_me_as_designer: { Args: { p_request_id: string }; Returns: Json }
+      app_usage: { Args: never; Returns: Json }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }

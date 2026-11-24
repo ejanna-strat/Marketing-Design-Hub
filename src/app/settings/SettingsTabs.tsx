@@ -4,10 +4,20 @@ import { NavLink } from "@/components/shell/NavLink";
 
 // Marketing Support Hub Settings, one tab each. Members: Super Admins, Admins
 // and Lead Designers. Announcements: Super Admins and the people they tick.
-export function SettingsTabs({ showMembers, showAnnouncements }: { showMembers: boolean; showAnnouncements: boolean }) {
+// Usage: everyone on the Marketing team.
+export function SettingsTabs({
+  showMembers,
+  showAnnouncements,
+  showUsage,
+}: {
+  showMembers: boolean;
+  showAnnouncements: boolean;
+  showUsage: boolean;
+}) {
   const tabs = [
     ...(showMembers ? [{ href: "/settings/members", label: "Members" }] : []),
     ...(showAnnouncements ? [{ href: "/settings/announcements", label: "Announcements" }] : []),
+    ...(showUsage ? [{ href: "/settings/usage", label: "Usage" }] : []),
   ];
   return (
     <nav aria-label="Settings" className="flex gap-1 overflow-x-auto border-b">
