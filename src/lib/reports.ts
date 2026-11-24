@@ -1,13 +1,13 @@
 import "server-only";
-import { endOfMonth, format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { type Analytics, firstRequestDay, loadAnalytics } from "@/lib/analytics";
 import { todayInManila } from "@/lib/dates";
 import type { createClient } from "@/lib/supabase/server";
 
-// Settings → Reports (owner, Nov 24): the downloadable summary report and the
-// yearly archive. A year that's been archived (its finished requests removed)
-// keeps the report saved at that moment in `archived_years`, so Analytics'
-// Month on Month and the report download still show it.
+// Analytics → Download report and Hub settings → Archive (owner, Nov 24).
+// A year that's been archived (its finished requests removed) keeps the report
+// saved at that moment in `archived_years`, so Analytics' Month on Month and
+// the report download still show it.
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -41,28 +41,13 @@ export async function archivedReport(supabase: Supabase, year: number): Promise<
   return data ? deserializeAnalytics(data.report) : null;
 }
 
-// A year's or a month's report: from the saved archive when that year was
-// archived (whole year only), else from the live data.
-export async function loadReport(supabase: Supabase, year: number, month: number | null) {
+// A year's report (Month on Month): the saved one when that year was
+// archived, else from the live data.
+export async function loadReport(supabase: Supabase, year: number) {
   const archived = await archivedReport(supabase, year);
-  if (archived) {
-    if (month === null) return { a: archived, byMonth: true, archived: true };
-    // One month of an archived year: its row from the saved month-by-month.
-    return { a: archived, byMonth: true, archived: true, onlyMonth: `${year}-${String(month).padStart(2, "0")}` };
-  }
-  const first = await firstRequestDay(supabase);
-  if (month === null) {
-    const { from, to } = yearRange(year, first);
-    return { a: await loadAnalytics(supabase, from, to, true), byMonth: true, archived: false };
-  }
-  const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  const last = format(endOfMonth(parseISO(from)), "yyyy-MM-dd");
-  const today = todayInManila();
-  return {
-    a: await loadAnalytics(supabase, from, last < today ? last : today, false),
-    byMonth: false,
-    archived: false,
-  };
+  if (archived) return { a: archived, archived: true };
+  const { from, to } = yearRange(year, await firstRequestDay(supabase));
+  return { a: await loadAnalytics(supabase, from, to, true), archived: false };
 }
 
 // ---- CSV ----
@@ -94,9 +79,8 @@ const avgDays = (v: number | null) => (v === null ? "" : v.toFixed(1));
 
 // The summary report: totals, month by month (for a year), business units,
 // types of request, turnaround per type and deals. No names or emails.
-export function reportCsv(a: Analytics, period: string, opts: { byMonth: boolean; onlyMonth?: string }) {
-  const month = opts.onlyMonth ? a.months.find((m) => m.month === opts.onlyMonth) : null;
-  const t = month ?? a.totals;
+export function reportCsv(a: Analytics, period: string, opts: { byMonth: boolean }) {
+  const t = a.totals;
   const rows: Cell[][] = [
     ["Marketing Creative Hub report"],
     ["Period", period],
@@ -120,7 +104,7 @@ export function reportCsv(a: Analytics, period: string, opts: { byMonth: boolean
     ["Feedback responses", t.feedbackCount],
   ];
 
-  if (opts.byMonth && !month) {
+  if (opts.byMonth) {
     rows.push(
       [],
       [
@@ -158,22 +142,17 @@ export function reportCsv(a: Analytics, period: string, opts: { byMonth: boolean
     );
   }
 
-  // The breakdowns below cover the whole period (they aren't saved per month).
-  if (!month) {
-    rows.push([], ["Business unit", "Requests filed"], ...a.byTeam.map((s) => [s.label, s.value]));
-    rows.push([], ["Type of request", "Requests filed"], ...a.byType.map((s) => [s.label, s.value]));
-    rows.push(
-      [],
-      ["Type of request", "Completed", "Avg. turnaround (working days)"],
-      ...a.typeTurnaround.map((x) => [x.label, x.completed, avgDays(x.avg)]),
-    );
-    rows.push(
-      [],
-      ["Deals by type of request", "Deal requests", "Deal size (PHP)"],
-      ...a.dealTypes.map((d) => [d.label, d.requests, d.size]),
-    );
-  } else {
-    rows.push([], ["Business unit, type and turnaround breakdowns are in the whole-year report for archived years."]);
-  }
+  rows.push([], ["Business unit", "Requests filed"], ...a.byTeam.map((s) => [s.label, s.value]));
+  rows.push([], ["Type of request", "Requests filed"], ...a.byType.map((s) => [s.label, s.value]));
+  rows.push(
+    [],
+    ["Type of request", "Completed", "Avg. turnaround (working days)"],
+    ...a.typeTurnaround.map((x) => [x.label, x.completed, avgDays(x.avg)]),
+  );
+  rows.push(
+    [],
+    ["Deals by type of request", "Deal requests", "Deal size (PHP)"],
+    ...a.dealTypes.map((d) => [d.label, d.requests, d.size]),
+  );
   return toCsv(rows);
 }

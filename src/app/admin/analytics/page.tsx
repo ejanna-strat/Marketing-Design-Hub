@@ -5,6 +5,7 @@ import {
   ArrowUpIcon,
   BarChart3Icon,
   BriefcaseBusinessIcon,
+  DownloadIcon,
   LayoutDashboardIcon,
   type LucideIcon,
   UsersIcon,
@@ -158,9 +159,19 @@ export default async function AnalyticsPage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground">Marketing Design Pipeline · {periodLabel}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-muted-foreground">Marketing Design Pipeline · {periodLabel}</p>
+        </div>
+        {/* The period on screen as a CSV, no names (owner, Nov 24). */}
+        <a
+          href={mom ? `/admin/analytics/download?tab=mom&year=${year}` : `/admin/analytics/download?${range}`}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted"
+        >
+          <DownloadIcon className="size-4" />
+          Download report
+        </a>
       </div>
 
       <PeriodControls

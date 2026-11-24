@@ -4,7 +4,7 @@ import { NavLink } from "@/components/shell/NavLink";
 
 // Marketing Support Hub Settings, one tab each. Members: Super Admins, Admins
 // and Lead Designers. Announcements: Super Admins and the people they tick.
-// Reports and Usage: everyone on the Marketing team.
+// Usage: everyone on the Marketing team.
 export function SettingsTabs({
   showMembers,
   showAnnouncements,
@@ -17,7 +17,6 @@ export function SettingsTabs({
   const tabs = [
     ...(showMembers ? [{ href: "/settings/members", label: "Members" }] : []),
     ...(showAnnouncements ? [{ href: "/settings/announcements", label: "Announcements" }] : []),
-    ...(showUsage ? [{ href: "/settings/reports", label: "Reports" }] : []),
     ...(showUsage ? [{ href: "/settings/usage", label: "Usage" }] : []),
   ];
   return (
