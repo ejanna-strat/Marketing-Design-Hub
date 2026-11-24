@@ -7,7 +7,7 @@ import { statusLabel } from "@/lib/statuses";
 import { csvResponse, toCsv } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
 
-// Settings → Reports → Archive (owner, Nov 24): a year's finished requests
+// Hub settings → Archive (owner, Nov 24; Super Admins and Lead Designers): a year's finished requests
 // (Completed, Cancelled, Returned) as a pipeline-style CSV, once the year can
 // be archived. Names and emails are replaced ("Requester 1", "Approver 1",
 // "Designer 1"; the same person keeps the same number). No specification

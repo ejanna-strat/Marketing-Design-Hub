@@ -30,6 +30,6 @@ export async function archiveYear(year: number, expected: number): Promise<Resul
           : "We couldn't archive the year. Nothing was removed.",
     };
   }
-  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
   return { ok: true, removed: (data as { removed: number }).removed };
 }
