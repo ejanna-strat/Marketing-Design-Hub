@@ -157,6 +157,54 @@ export type Database = {
           },
         ]
       }
+      archive_exports: {
+        Row: {
+          exported_at: string
+          exported_by: string
+          id: string
+          request_count: number
+          year: number
+        }
+        Insert: {
+          exported_at?: string
+          exported_by: string
+          id?: string
+          request_count: number
+          year: number
+        }
+        Update: {
+          exported_at?: string
+          exported_by?: string
+          id?: string
+          request_count?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      archived_years: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          report: Json
+          requests_removed: number
+          year: number
+        }
+        Insert: {
+          archived_at?: string
+          archived_by?: string | null
+          report: Json
+          requests_removed: number
+          year: number
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          report?: Json
+          requests_removed?: number
+          year?: number
+        }
+        Relationships: []
+      }
       designers: {
         Row: {
           active: boolean
@@ -761,6 +809,7 @@ export type Database = {
         Returns: boolean
       }
       keep_on_hold: { Args: { p_request_id: string }; Returns: Json }
+      log_archive_export: { Args: { p_count: number; p_year: number }; Returns: undefined }
       resume_request: { Args: { p_request_id: string }; Returns: Json }
       hook_restrict_signup_domain: { Args: { event: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
@@ -788,6 +837,8 @@ export type Database = {
       set_request_designers: { Args: { p_designer_ids: string[]; p_request_id: string }; Returns: Json }
       add_me_as_designer: { Args: { p_request_id: string }; Returns: Json }
       app_usage: { Args: never; Returns: Json }
+      archive_status: { Args: { p_year: number }; Returns: Json }
+      archive_year: { Args: { p_expected: number; p_report: Json; p_year: number }; Returns: Json }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
