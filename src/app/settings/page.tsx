@@ -5,5 +5,6 @@ export default async function SettingsHome() {
   const user = await requireUser();
   if (user.canManageMembers) redirect("/settings/members");
   if (user.canPostAnnouncements) redirect("/settings/announcements");
+  if (user.isStaff) redirect("/settings/usage");
   redirect("/hubs");
 }

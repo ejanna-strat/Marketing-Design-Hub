@@ -77,7 +77,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     isManager: isSuperAdmin || isLeadDesigner,
     canManageMembers: isAdmin || isLeadDesigner,
     canPostAnnouncements,
-    canOpenSettings: isAdmin || isLeadDesigner || canPostAnnouncements,
+    // Everyone on the Marketing team sees Settings → Usage (owner, Nov 24).
+    canOpenSettings: isStaff,
     isStaff,
     designerId: designer?.id ?? null,
   };

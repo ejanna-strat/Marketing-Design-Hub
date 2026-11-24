@@ -157,6 +157,54 @@ export type Database = {
           },
         ]
       }
+      archive_exports: {
+        Row: {
+          exported_at: string
+          exported_by: string
+          id: string
+          request_count: number
+          year: number
+        }
+        Insert: {
+          exported_at?: string
+          exported_by: string
+          id?: string
+          request_count: number
+          year: number
+        }
+        Update: {
+          exported_at?: string
+          exported_by?: string
+          id?: string
+          request_count?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      archived_years: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          report: Json
+          requests_removed: number
+          year: number
+        }
+        Insert: {
+          archived_at?: string
+          archived_by?: string | null
+          report: Json
+          requests_removed: number
+          year: number
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          report?: Json
+          requests_removed?: number
+          year?: number
+        }
+        Relationships: []
+      }
       designers: {
         Row: {
           active: boolean
@@ -533,6 +581,9 @@ export type Database = {
           link_to_output: string | null
           link_to_output_2: string | null
           link_to_output_3: string | null
+          on_hold_checked_at: string | null
+          on_hold_from: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since: string | null
           link_label_1: string | null
           link_label_2: string | null
           link_label_3: string | null
@@ -575,6 +626,9 @@ export type Database = {
           link_to_output?: string | null
           link_to_output_2?: string | null
           link_to_output_3?: string | null
+          on_hold_checked_at?: string | null
+          on_hold_from?: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since?: string | null
           link_label_1?: string | null
           link_label_2?: string | null
           link_label_3?: string | null
@@ -617,6 +671,9 @@ export type Database = {
           link_to_output?: string | null
           link_to_output_2?: string | null
           link_to_output_3?: string | null
+          on_hold_checked_at?: string | null
+          on_hold_from?: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since?: string | null
           link_label_1?: string | null
           link_label_2?: string | null
           link_label_3?: string | null
@@ -751,8 +808,12 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      keep_on_hold: { Args: { p_request_id: string }; Returns: Json }
+      log_archive_export: { Args: { p_count: number; p_year: number }; Returns: undefined }
+      resume_request: { Args: { p_request_id: string }; Returns: Json }
       hook_restrict_signup_domain: { Args: { event: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_admin_only: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
@@ -775,6 +836,9 @@ export type Database = {
       }
       set_request_designers: { Args: { p_designer_ids: string[]; p_request_id: string }; Returns: Json }
       add_me_as_designer: { Args: { p_request_id: string }; Returns: Json }
+      app_usage: { Args: never; Returns: Json }
+      archive_status: { Args: { p_year: number }; Returns: Json }
+      archive_year: { Args: { p_expected: number; p_report: Json; p_year: number }; Returns: Json }
       return_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_my_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
       cancel_request: { Args: { p_reason: string; p_request_id: string }; Returns: Json }
