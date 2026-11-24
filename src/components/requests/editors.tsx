@@ -178,7 +178,7 @@ export function StatusSelect({
   );
 }
 
-function CancelDialog({
+export function CancelDialog({
   requestId,
   open,
   onClose,

@@ -12,8 +12,10 @@ import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
 import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
 import { N12FeedbackReceived, n12Subject } from "@/emails/N12FeedbackReceived";
+import { N13OnHold, n13Subject } from "@/emails/N13OnHold";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
+import { statusLabel } from "@/lib/statuses";
 import { type OutputLinkFields, outputLinks } from "@/lib/links";
 import { accepted, joinNames, type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,7 +27,9 @@ import { sendEmail } from "./send";
 async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, return_reason, returned_by, cancel_reason, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))")
+    .select(
+      "id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, return_reason, returned_by, cancel_reason, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))",
+    )
     .eq("id", requestId)
     .single();
   if (error) throw new Error(`Request ${requestId} not found: ${error.message}`);
@@ -37,8 +41,7 @@ async function loadRequest(requestId: string) {
 // designers who have accepted.
 const namesOf = (rows: RequestDesigner[], fallback: string) =>
   joinNames(rows.map((d) => d.designer?.display_name).filter((n): n is string => !!n)) || fallback;
-const emailsOf = (rows: RequestDesigner[]) =>
-  rows.map((d) => d.designer?.email).filter((e): e is string => !!e);
+const emailsOf = (rows: RequestDesigner[]) => rows.map((d) => d.designer?.email).filter((e): e is string => !!e);
 const nameOf = (rows: RequestDesigner[], designerId: string) =>
   rows.find((d) => d.designer_id === designerId)?.designer?.display_name;
 
@@ -269,7 +272,9 @@ export async function sendDueReminders(appUrl: string) {
   const until = format(addDays(parseISO(today), 3), "yyyy-MM-dd");
   const { data, error } = await createAdminClient()
     .from("requests")
-    .select("id, request_code, title, status, requester_name, date_needed, team:teams(name), request_designers(designer:designers(email))")
+    .select(
+      "id, request_code, title, status, requester_name, date_needed, team:teams(name), request_designers(designer:designers(email))",
+    )
     .in("status", [...REMIND_STATUSES])
     .gte("date_needed", today)
     .lte("date_needed", until);
@@ -344,7 +349,10 @@ export async function sendUnassignedReminders(appUrl: string) {
   const { data: unassigned } = await db
     .from("activity_log")
     .select("request_id, created_at")
-    .in("request_id", data.map((r) => r.id))
+    .in(
+      "request_id",
+      data.map((r) => r.id),
+    )
     .or("action.in.(reassign_requested,designer_removed),and(action.eq.designer,to_value.is.null)");
   const lastUnassigned = new Map<string, string>();
   for (const u of unassigned ?? []) {
@@ -440,4 +448,72 @@ export async function notifyFeedback(requestCode: string, appUrl: string) {
   } catch (e) {
     console.error("[email feedback] failed", e);
   }
+}
+
+// N13 — On hold reminder (owner, Nov 24): once a request has been On hold for
+// 30 days, then every 30 days, to its designers and the Lead Designers (not
+// the requester). The clock restarts when someone picks Keep on hold
+// (`on_hold_checked_at`) or after each reminder.
+const ON_HOLD_DAYS = 30;
+export async function sendOnHoldReminders(appUrl: string) {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("requests")
+    .select(
+      "id, request_code, title, requester_name, on_hold_since, on_hold_from, on_hold_checked_at, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))",
+    )
+    .eq("status", "on_hold")
+    .not("on_hold_since", "is", null);
+  if (error) throw new Error(error.message);
+
+  const results: Record<string, string> = {};
+  if (!data?.length) return results;
+  const { data: sent } = await db
+    .from("notifications_log")
+    .select("request_id, sent_at")
+    .in(
+      "request_id",
+      data.map((r) => r.id),
+    )
+    .like("notification_key", "N13_ON_HOLD:%")
+    .eq("status", "sent");
+  const lastSent = new Map<string, string>();
+  for (const row of sent ?? []) {
+    if (row.request_id && (!lastSent.has(row.request_id) || row.sent_at > lastSent.get(row.request_id)!)) {
+      lastSent.set(row.request_id, row.sent_at);
+    }
+  }
+  const { data: leads } = await db.from("team_members").select("email").contains("roles", ["lead_designer"]);
+  const leadEmails = (leads ?? []).map((m) => m.email);
+  const today = todayInManila();
+  const day = 24 * 60 * 60 * 1000;
+
+  for (const r of data) {
+    // The latest of: went On hold / Keep on hold, or the last reminder for this hold.
+    const marks = [r.on_hold_checked_at ?? r.on_hold_since!, lastSent.get(r.id)].filter(
+      (d): d is string => !!d && d >= r.on_hold_since!,
+    );
+    const since = Math.max(...marks.map((d) => new Date(d).getTime()));
+    if (Date.now() - since < ON_HOLD_DAYS * day) continue;
+    const team = sortDesigners(r.request_designers);
+    const days = Math.floor((Date.now() - new Date(r.on_hold_since!).getTime()) / day);
+    results[r.request_code] = await sendEmail({
+      key: `N13_ON_HOLD:${today}`,
+      requestId: r.id,
+      to: [...emailsOf(team), ...leadEmails],
+      subject: n13Subject(r.title),
+      email: N13OnHold({
+        title: r.title,
+        code: r.request_code,
+        requesterName: r.requester_name,
+        team: r.team?.name ?? "—",
+        days,
+        since: formatDate(r.on_hold_since),
+        before: r.on_hold_from ? statusLabel(r.on_hold_from) : null,
+        designers: namesOf(team, "No designer yet"),
+        url: `${appUrl}/admin/requests/${r.request_code}`,
+      }),
+    });
+  }
+  return results;
 }
