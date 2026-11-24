@@ -230,6 +230,34 @@ export async function cancelRequest(requestId: string, note: string): Promise<Re
   return { ok: true };
 }
 
+// On hold reminders (owner, Nov 24): Keep on hold pushes the next reminder
+// 30 days out; Resume puts the request back to the status it had before On
+// hold (resume_request() checks the usual rules; no email). Cancel uses
+// cancelRequest.
+export async function keepOnHold(requestId: string): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isStaff || adminOnly(user))
+    return { ok: false, error: "Only the Design team can update an On hold request." };
+  if (!z.uuid().safeParse(requestId).success) return { ok: false, error: "Request not found." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("keep_on_hold", { p_request_id: requestId });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't update the request. Please try again.") };
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+export async function resumeRequest(requestId: string): Promise<Result> {
+  const user = await getCurrentUser();
+  if (!user?.isStaff || adminOnly(user)) return { ok: false, error: "Only the Design team can resume a request." };
+  if (!z.uuid().safeParse(requestId).success) return { ok: false, error: "Request not found." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("resume_request", { p_request_id: requestId });
+  if (error) return { ok: false, error: rpcError(error, "We couldn't resume the request. Please try again.") };
+  revalidatePath("/admin", "layout");
+  revalidatePath(`/my-requests/${(data as { request_code: string }).request_code}`);
+  return { ok: true };
+}
+
 // What the designer functions return (0033_multiple_designers.sql).
 type DesignerChange = {
   id: string;

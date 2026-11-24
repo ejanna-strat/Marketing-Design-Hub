@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 24, 2026 · version 0.81.0_
+_Last updated: Nov 24, 2026 · version 0.82.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 24, 2026 · version 0.81.0_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.82.0 (owner, Nov 24): **On hold reminder**: once a request has been On hold for 30 days, then every 30 days, an email goes to its designers and the Lead Designers (not the requester). The request page shows "On hold for X days" with **Keep on hold** (next reminder in 30 days), **Resume** (back to the status before On hold, no email) and **Cancel request** (migration 0046).
 - v0.81.0 (owner, Nov 24): **Settings → Usage** for everyone on the Marketing team: how much of the Supabase Free plan the app uses (database 500 MB, file storage 1 GB) as bars that turn amber at 80% and red at 95%, plus the biggest tables in plain names. Designers now see Settings too (Usage, and Announcements if ticked) (migration 0045, `app_usage()`).
 - v0.80.1 (owner, Nov 23): **Admins are ticked for announcements** like everyone else in "Who can post announcements" (only Super Admins always can), so a Super Admin can add or remove an Admin's posting access. Admins who already had an account start ticked (migration 0044).
 - v0.80.0 (owner, Nov 20): **Admins no longer put requests On hold or cancel them**, so the Design team has more say in Creative Hub; Admins see the status but can't change it. They still see everything, edit details and the Link to Output, manage Members and post announcements. Admins who are also Designers keep the Designer's rights (migration 0043).

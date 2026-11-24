@@ -533,6 +533,9 @@ export type Database = {
           link_to_output: string | null
           link_to_output_2: string | null
           link_to_output_3: string | null
+          on_hold_checked_at: string | null
+          on_hold_from: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since: string | null
           link_label_1: string | null
           link_label_2: string | null
           link_label_3: string | null
@@ -575,6 +578,9 @@ export type Database = {
           link_to_output?: string | null
           link_to_output_2?: string | null
           link_to_output_3?: string | null
+          on_hold_checked_at?: string | null
+          on_hold_from?: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since?: string | null
           link_label_1?: string | null
           link_label_2?: string | null
           link_label_3?: string | null
@@ -617,6 +623,9 @@ export type Database = {
           link_to_output?: string | null
           link_to_output_2?: string | null
           link_to_output_3?: string | null
+          on_hold_checked_at?: string | null
+          on_hold_from?: Database["public"]["Enums"]["request_status"] | null
+          on_hold_since?: string | null
           link_label_1?: string | null
           link_label_2?: string | null
           link_label_3?: string | null
@@ -751,8 +760,11 @@ export type Database = {
         Args: { r: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      keep_on_hold: { Args: { p_request_id: string }; Returns: Json }
+      resume_request: { Args: { p_request_id: string }; Returns: Json }
       hook_restrict_signup_domain: { Args: { event: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_admin_only: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }

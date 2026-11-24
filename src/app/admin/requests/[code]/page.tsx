@@ -11,6 +11,7 @@ import {
   StatusSelect,
 } from "@/components/requests/editors";
 import { Item, RequestInfo } from "@/components/requests/RequestInfo";
+import { OnHoldBar } from "@/components/requests/OnHoldBar";
 import { WorkflowPanel } from "@/components/requests/WorkflowPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,6 +114,15 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
           }}
         />
       </div>
+
+      {request.status === "on_hold" && (
+        <OnHoldBar
+          requestId={request.id}
+          since={request.on_hold_since}
+          from={request.on_hold_from}
+          canAct={!adminOnly(viewer) && !awaitingMe}
+        />
+      )}
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
@@ -261,6 +271,7 @@ const SENTENCES: Record<string, string> = {
   reassign_requested: "asked to reassign the request",
   returned: "returned the request",
   cancelled: "cancelled the request",
+  kept_on_hold: "kept the request on hold",
   project_overview: "changed Project Overview and Objective",
 };
 
