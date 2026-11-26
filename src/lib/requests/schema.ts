@@ -23,7 +23,15 @@ export const QUESTION_COLUMNS =
 export function toFormQuestion(
   row: Pick<
     Tables<"form_questions">,
-    "id" | "request_type_id" | "label" | "help_text" | "field_type" | "options" | "allow_other" | "required" | "is_output_needed"
+    | "id"
+    | "request_type_id"
+    | "label"
+    | "help_text"
+    | "field_type"
+    | "options"
+    | "allow_other"
+    | "required"
+    | "is_output_needed"
   >,
 ): FormQuestion {
   return {
@@ -55,13 +63,23 @@ export const FINAL_APPROVER = {
 
 const MAX_TEXT = 5000;
 
-// keepDate: a Date Needed that is allowed even if it's now in the past (the
-// request's current date, when the requester edits it).
-export function buildRequestSchema(questions: FormQuestion[], today: string, keepDate?: string) {
+// keepDate / keepFirstDraft: a Final Deadline / First Draft Deadline that is
+// allowed even if it's now in the past (the request's current date, when the
+// requester edits it).
+export function buildRequestSchema(
+  questions: FormQuestion[],
+  today: string,
+  keepDate?: string,
+  keepFirstDraft?: string,
+) {
   return z
     .object({
       requester_name: z.string().trim().min(1, "Please enter your name.").max(200),
-      title: z.string().trim().min(1, "Please enter a request title.").max(200, "Please keep the title under 200 characters."),
+      title: z
+        .string()
+        .trim()
+        .min(1, "Please enter a request title.")
+        .max(200, "Please keep the title under 200 characters."),
       // General Information for every type (owner, Oct 22).
       project_overview: z
         .string()
@@ -70,10 +88,16 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
         .max(5000, "Please keep the Project Overview and Objective under 5,000 characters."),
       team_id: z.string().min(1, "Please choose your business unit."),
       request_type_id: z.string().min(1, "Please choose a type of design request."),
+      // "Date Needed" is shown as the Final Deadline (owner, Nov 26).
       date_needed: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose the date needed.")
-        .refine((d) => d >= today || d === keepDate, "The date needed cannot be in the past."),
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose the Final Deadline.")
+        .refine((d) => d >= today || d === keepDate, "The Final Deadline cannot be in the past."),
+      // Required on every request (owner, Nov 26), on or before the Final Deadline.
+      first_draft_due: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose the First Draft Deadline.")
+        .refine((d) => d >= today || d === keepFirstDraft, "The First Draft Deadline cannot be in the past."),
       final_approver: z.enum(["myself", "other"], { error: "Please choose the final approver of the design." }),
       approver_name: z.string().trim().max(200),
       approver_email: z.string().trim().max(200),
@@ -83,6 +107,13 @@ export function buildRequestSchema(questions: FormQuestion[], today: string, kee
       answers: answersRecord,
     })
     .superRefine((v, ctx) => {
+      if (v.first_draft_due && v.date_needed && v.first_draft_due > v.date_needed) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["first_draft_due"],
+          message: "The First Draft Deadline must be on or before the Final Deadline.",
+        });
+      }
       if (v.final_approver === "other") {
         if (!v.approver_name) {
           ctx.addIssue({ code: "custom", path: ["approver_name"], message: "Please enter the approver's name." });
@@ -114,7 +145,11 @@ export function buildAnswersSchema(questions: FormQuestion[]) {
 export type AnswersFormValues = z.input<ReturnType<typeof buildAnswersSchema>>;
 
 // The rules every answer must pass; errors go on ["answers", questionId].
-function checkAnswers(answers: Record<string, AnswerValue | undefined>, questions: FormQuestion[], ctx: z.RefinementCtx) {
+function checkAnswers(
+  answers: Record<string, AnswerValue | undefined>,
+  questions: FormQuestion[],
+  ctx: z.RefinementCtx,
+) {
   for (const q of questions) {
     const path = ["answers", q.id];
     const items = answerItems(answers[q.id]);
@@ -127,7 +162,8 @@ function checkAnswers(answers: Record<string, AnswerValue | undefined>, question
         ctx.addIssue({ code: "custom", path, message: `Please keep this under ${MAX_TEXT} characters.` });
       } else if (isOtherAnswer(item)) {
         if (!q.allowOther) ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
-        else if (!otherText(item).trim()) ctx.addIssue({ code: "custom", path, message: "Please type your answer for Other." });
+        else if (!otherText(item).trim())
+          ctx.addIssue({ code: "custom", path, message: "Please type your answer for Other." });
       } else if ((q.fieldType === "single_select" || q.fieldType === "multi_select") && !q.options.includes(item)) {
         ctx.addIssue({ code: "custom", path, message: "Please choose one of the options." });
       }
@@ -158,6 +194,7 @@ export function toSubmitPayload(values: RequestFormValues, questions: FormQuesti
     team_id: values.team_id,
     request_type_id: values.request_type_id,
     date_needed: values.date_needed,
+    first_draft_due: values.first_draft_due,
     final_approver: values.final_approver,
     approver_name: values.approver_name.trim(),
     approver_email: values.approver_email.trim(),
@@ -181,6 +218,9 @@ export function toAnswersPayload(
   }
   return answers;
 }
+
+export const FIRST_DRAFT_HELP =
+  "Select the date when you need the first draft to review. It should be on or before the Final Deadline, so there's time for revisions.";
 
 export const PROJECT_OVERVIEW_HELP =
   "Please provide a brief background of the project, its purpose, and the objective you want to achieve. This will help the Designers better understand the context and direction of your request.";

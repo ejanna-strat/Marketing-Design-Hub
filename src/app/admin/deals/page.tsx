@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { SummaryBox, shareOf } from "@/components/SummaryBox";
 import { facetsInView, listRequests, markAvailable, parseListParams } from "@/lib/requests/list";
-import { INACTIVE_STATUSES, PENDING_TABS, statusFilterOptions } from "@/lib/statuses";
+import { INACTIVE_STATUSES, PENDING_STATUSES, statusFilterOptions } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { PipelineTable } from "../pipeline/PipelineTable";
 
@@ -26,13 +26,17 @@ export default async function DealRequestsPage({
     facetsInView(supabase, params, options),
     supabase.from("teams").select("id, name").order("sort_order"),
     supabase.from("request_types").select("id, name").order("sort_order"),
-    supabase.from("requests").select("status, deal_size").eq("is_deal", true).not("status", "in", `(${INACTIVE_STATUSES.join(",")})`),
+    supabase
+      .from("requests")
+      .select("status, deal_size")
+      .eq("is_deal", true)
+      .not("status", "in", `(${INACTIVE_STATUSES.join(",")})`),
   ]);
   // Summary boxes (owner, Oct 21): all active deal requests, then the pending
   // and completed ones with their deal size and share of the total.
   const deals = sums.data ?? [];
   const size = (list: typeof deals) => list.reduce((n, r) => n + (r.deal_size ?? 0), 0);
-  const pendingStatuses: string[] = PENDING_TABS.map((t) => t.status);
+  const pendingStatuses: string[] = PENDING_STATUSES;
   const pending = deals.filter((r) => pendingStatuses.includes(r.status));
   const completed = deals.filter((r) => r.status === "completed");
 
@@ -73,12 +77,18 @@ export default async function DealRequestsPage({
           {
             key: "team",
             label: "Team",
-            options: markAvailable((teams.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.team),
+            options: markAvailable(
+              (teams.data ?? []).map((t) => ({ value: t.id, label: t.name })),
+              facets.team,
+            ),
           },
           {
             key: "type",
             label: "Type",
-            options: markAvailable((types.data ?? []).map((t) => ({ value: t.id, label: t.name })), facets.type),
+            options: markAvailable(
+              (types.data ?? []).map((t) => ({ value: t.id, label: t.name })),
+              facets.type,
+            ),
           },
         ]}
       />

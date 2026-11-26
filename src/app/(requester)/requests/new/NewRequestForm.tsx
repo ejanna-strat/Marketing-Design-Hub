@@ -20,15 +20,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { links } from "@/config/links";
-import { PROJECT_OVERVIEW_HELP } from "@/lib/requests/schema";
+import { FIRST_DRAFT_HELP, PROJECT_OVERVIEW_HELP } from "@/lib/requests/schema";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { digitsOnly } from "@/lib/money";
-import {
-  buildRequestSchema,
-  FINAL_APPROVER,
-  type FormQuestion,
-  type RequestFormValues,
-} from "@/lib/requests/schema";
+import { buildRequestSchema, FINAL_APPROVER, type FormQuestion, type RequestFormValues } from "@/lib/requests/schema";
 import { updateMyRequest } from "../../my-requests/[code]/edit/actions";
 import { submitRequest } from "./actions";
 
@@ -53,7 +48,6 @@ export function NewRequestForm({
   recentApprovers?: Approver[];
 }) {
   const today = useMemo(() => todayInManila(), []);
-  const [dateOpen, setDateOpen] = useState(false);
 
   const questionsByType = useMemo(() => {
     const map = new Map<string, FormQuestion[]>();
@@ -65,13 +59,14 @@ export function NewRequestForm({
   const resolver = useCallback<Resolver<RequestFormValues>>(
     (values, context, options) =>
       zodResolver(
-        buildRequestSchema(questionsByType.get(values.request_type_id) ?? [], today, edit?.values.date_needed),
-      )(
-        values,
-        context,
-        options,
-      ) as ReturnType<Resolver<RequestFormValues>>,
-    [questionsByType, today, edit?.values.date_needed],
+        buildRequestSchema(
+          questionsByType.get(values.request_type_id) ?? [],
+          today,
+          edit?.values.date_needed,
+          edit?.values.first_draft_due || undefined,
+        ),
+      )(values, context, options) as ReturnType<Resolver<RequestFormValues>>,
+    [questionsByType, today, edit?.values.date_needed, edit?.values.first_draft_due],
   );
 
   const {
@@ -91,6 +86,7 @@ export function NewRequestForm({
       team_id: teams.some((t) => t.id === user.teamId) ? user.teamId! : "",
       request_type_id: "",
       date_needed: "",
+      first_draft_due: "",
       final_approver: "myself",
       approver_name: "",
       approver_email: "",
@@ -118,7 +114,9 @@ export function NewRequestForm({
     () => {
       toast.error("Please check the highlighted fields.");
       requestAnimationFrame(() =>
-        document.querySelector<HTMLElement>("[aria-invalid=true]")?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        document
+          .querySelector<HTMLElement>("[aria-invalid=true]")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" }),
       );
     },
   );
@@ -155,35 +153,36 @@ export function NewRequestForm({
       )}
 
       {!edit && (
-      <div className="space-y-3 rounded-xl border border-brand/20 bg-brand-soft/60 p-5 text-sm leading-relaxed">
-        <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
-        <p>
-          Please allow us one working day to acknowledge receipt of your request. If you do not receive a response
-          within this time, please follow up with <span className="font-bold">Jerome Casupanan</span> via Google Chat or email at{" "}
-          <a className="font-medium text-brand underline" href="mailto:jerome.casupanan@stratpoint.com">
-            jerome.casupanan@stratpoint.com
-          </a>
-          .
-        </p>
-        <p>
-          <span className="font-medium">Please note:</span> All requests are subject to review and approval. Submission
-          does not mean work has started. Your request will only be considered in progress once you receive
-          confirmation from one of our designers.
-        </p>
-        <p>Thank you!</p>
-        <div className="space-y-1 border-t border-brand/20 pt-3">
-          <p className="flex gap-2 font-medium">
-            <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
-            Please submit a separate request for each design type.
+        <div className="space-y-3 rounded-xl border border-brand/20 bg-brand-soft/60 p-5 text-sm leading-relaxed">
+          <p className="font-medium">Welcome to the Marketing Team’s Design Request Form!</p>
+          <p>
+            Please allow us one working day to acknowledge receipt of your request. If you do not receive a response
+            within this time, please follow up with <span className="font-bold">Jerome Casupanan</span> via Google Chat
+            or email at{" "}
+            <a className="font-medium text-brand underline" href="mailto:jerome.casupanan@stratpoint.com">
+              jerome.casupanan@stratpoint.com
+            </a>
+            .
           </p>
-          <p className="flex gap-2 font-medium">
-            <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
-            <span>
-              Reminder: Please review our <SlaLink /> to set expectations for request turnaround times.
-            </span>
+          <p>
+            <span className="font-medium">Please note:</span> All requests are subject to review and approval.
+            Submission does not mean work has started. Your request will only be considered in progress once you receive
+            confirmation from one of our designers.
           </p>
+          <p>Thank you!</p>
+          <div className="space-y-1 border-t border-brand/20 pt-3">
+            <p className="flex gap-2 font-medium">
+              <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+              Please submit a separate request for each design type.
+            </p>
+            <p className="flex gap-2 font-medium">
+              <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+              <span>
+                Reminder: Please review our <SlaLink /> to set expectations for request turnaround times.
+              </span>
+            </p>
+          </div>
         </div>
-      </div>
       )}
 
       <Card>
@@ -193,7 +192,12 @@ export function NewRequestForm({
         <CardContent className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Name" htmlFor="requester_name" required error={errors.requester_name?.message}>
-              <Input id="requester_name" autoComplete="name" aria-invalid={!!errors.requester_name || undefined} {...register("requester_name")} />
+              <Input
+                id="requester_name"
+                autoComplete="name"
+                aria-invalid={!!errors.requester_name || undefined}
+                {...register("requester_name")}
+              />
             </Field>
             <Field label="Email" htmlFor="email" required>
               <Input id="email" value={user.email} readOnly disabled />
@@ -247,54 +251,66 @@ export function NewRequestForm({
             />
           </Field>
 
-          <Field
-            label="Date Needed"
-            htmlFor="date_needed"
-            required
-            help={
-              <>
-                Select the date when you need the final design output delivered. For guidance on turnaround times,
-                please refer to our <SlaLink />.
-              </>
-            }
-            error={errors.date_needed?.message}
-          >
-            <Controller
-              control={control}
-              name="date_needed"
-              render={({ field }) => (
-                <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="date_needed"
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start font-normal sm:w-64"
-                      aria-invalid={!!errors.date_needed || undefined}
-                    >
-                      <CalendarIcon className="text-muted-foreground" />
-                      {field.value ? formatDate(field.value) : <span className="text-muted-foreground">Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? parseISO(field.value) : undefined}
-                      defaultMonth={field.value ? parseISO(field.value) : parseISO(today)}
-                      disabled={{ before: parseISO(today) }}
-                      onSelect={(d) => {
-                        if (!d) return;
-                        field.onChange(format(d, "yyyy-MM-dd"));
-                        setDateOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-            />
-          </Field>
+          {/* Two deadlines (owner, Nov 26): the First Draft Deadline, then
+              the Final Deadline (stored as date_needed), which keeps the SLA link. */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              label="First Draft Deadline"
+              htmlFor="first_draft_due"
+              required
+              help={FIRST_DRAFT_HELP}
+              error={errors.first_draft_due?.message}
+            >
+              <Controller
+                control={control}
+                name="first_draft_due"
+                render={({ field }) => (
+                  <DateInput
+                    id="first_draft_due"
+                    value={field.value}
+                    onChange={field.onChange}
+                    invalid={!!errors.first_draft_due}
+                    today={today}
+                    latest={watch("date_needed") || undefined}
+                  />
+                )}
+              />
+            </Field>
+            <Field
+              label="Final Deadline"
+              htmlFor="date_needed"
+              required
+              help={
+                <>
+                  Select the date when you need the final design output delivered. For guidance on turnaround times,
+                  please refer to our <SlaLink />.
+                </>
+              }
+              error={errors.date_needed?.message}
+            >
+              <Controller
+                control={control}
+                name="date_needed"
+                render={({ field }) => (
+                  <DateInput
+                    id="date_needed"
+                    value={field.value}
+                    onChange={field.onChange}
+                    invalid={!!errors.date_needed}
+                    today={today}
+                    earliest={watch("first_draft_due") || undefined}
+                  />
+                )}
+              />
+            </Field>
+          </div>
 
-          <Field label="Final Approver of the Design" htmlFor="final_approver" required error={errors.final_approver?.message}>
+          <Field
+            label="Final Approver of the Design"
+            htmlFor="final_approver"
+            required
+            error={errors.final_approver?.message}
+          >
             <Controller
               control={control}
               name="final_approver"
@@ -380,7 +396,12 @@ export function NewRequestForm({
                 <Field label="Deal Name Associated" htmlFor="deal_name" required error={errors.deal_name?.message}>
                   <Input id="deal_name" aria-invalid={!!errors.deal_name || undefined} {...register("deal_name")} />
                 </Field>
-                <Field label="Deal Size Associated (PHP)" htmlFor="deal_size" required error={errors.deal_size?.message}>
+                <Field
+                  label="Deal Size Associated (PHP)"
+                  htmlFor="deal_size"
+                  required
+                  error={errors.deal_size?.message}
+                >
                   <Controller
                     control={control}
                     name="deal_size"
@@ -406,7 +427,12 @@ export function NewRequestForm({
             )}
           </div>
 
-          <Field label="Type of Design Request" htmlFor="request_type_id" required error={errors.request_type_id?.message}>
+          <Field
+            label="Type of Design Request"
+            htmlFor="request_type_id"
+            required
+            error={errors.request_type_id?.message}
+          >
             <Controller
               control={control}
               name="request_type_id"
@@ -419,7 +445,11 @@ export function NewRequestForm({
                     clearErrors("answers");
                   }}
                 >
-                  <SelectTrigger id="request_type_id" className="w-full" aria-invalid={!!errors.request_type_id || undefined}>
+                  <SelectTrigger
+                    id="request_type_id"
+                    className="w-full"
+                    aria-invalid={!!errors.request_type_id || undefined}
+                  >
                     <SelectValue placeholder="Select the type of design request" />
                   </SelectTrigger>
                   <SelectContent position="popper">
@@ -436,8 +466,8 @@ export function NewRequestForm({
             {edit && (
               <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
                 <InfoIcon className="mt-0.5 size-4 shrink-0" />
-                The type of design request can&apos;t be changed. To change it, please cancel this request and file a new
-                design request.
+                The type of design request can&apos;t be changed. To change it, please cancel this request and file a
+                new design request.
               </p>
             )}
           </Field>
@@ -502,8 +532,59 @@ export function NewRequestForm({
           {edit ? (isSubmitting ? "Saving…" : "Save changes") : isSubmitting ? "Submitting…" : "Submit Request"}
         </Button>
       </div>
-
     </form>
+  );
+}
+
+// A date picker for the deadlines: no past dates, and the First Draft
+// Deadline can't be after the Final Deadline (and the other way round).
+function DateInput({
+  id,
+  value,
+  onChange,
+  invalid,
+  today,
+  earliest,
+  latest,
+}: {
+  id: string;
+  value: string;
+  onChange: (date: string) => void;
+  invalid: boolean;
+  today: string;
+  earliest?: string;
+  latest?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const from = earliest && earliest > today ? earliest : today;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          className="w-full justify-start font-normal"
+          aria-invalid={invalid || undefined}
+        >
+          <CalendarIcon className="text-muted-foreground" />
+          {value ? formatDate(value) : <span className="text-muted-foreground">Pick a date</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value ? parseISO(value) : undefined}
+          defaultMonth={value ? parseISO(value) : parseISO(from)}
+          disabled={[{ before: parseISO(from) }, ...(latest ? [{ after: parseISO(latest) }] : [])]}
+          onSelect={(d) => {
+            if (!d) return;
+            onChange(format(d, "yyyy-MM-dd"));
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -526,7 +607,12 @@ function Field({
     <div className="space-y-2">
       <Label htmlFor={htmlFor}>
         {label}
-        {required && <span className="text-destructive" aria-hidden> *</span>}
+        {required && (
+          <span className="text-destructive" aria-hidden>
+            {" "}
+            *
+          </span>
+        )}
       </Label>
       {help && <p className="text-sm text-muted-foreground">{help}</p>}
       {children}
@@ -538,7 +624,12 @@ function Field({
 // "SLAs", linked to the Marketing Hub service-level agreement page.
 function SlaLink() {
   return (
-    <a href={links.designSlas} target="_blank" rel="noreferrer" className="font-medium text-brand underline underline-offset-2">
+    <a
+      href={links.designSlas}
+      target="_blank"
+      rel="noreferrer"
+      className="font-medium text-brand underline underline-offset-2"
+    >
       SLAs
     </a>
   );

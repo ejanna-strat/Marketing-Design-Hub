@@ -576,6 +576,8 @@ export type Database = {
           designer_response: string | null
           final_approver_email: string
           final_approver_name: string
+          first_draft_at: string | null
+          first_draft_due: string | null
           id: string
           is_deal: boolean
           link_to_output: string | null
@@ -596,6 +598,7 @@ export type Database = {
           requester_name: string
           return_reason: string | null
           returned_by: string | null
+          review_round: number
           status: Database["public"]["Enums"]["request_status"]
           team_id: string
           title: string
@@ -621,6 +624,8 @@ export type Database = {
           designer_response?: string | null
           final_approver_email: string
           final_approver_name: string
+          first_draft_at?: string | null
+          first_draft_due?: string | null
           id?: string
           is_deal?: boolean
           link_to_output?: string | null
@@ -641,6 +646,7 @@ export type Database = {
           requester_name: string
           return_reason?: string | null
           returned_by?: string | null
+          review_round?: number
           status?: Database["public"]["Enums"]["request_status"]
           team_id: string
           title: string
@@ -666,6 +672,8 @@ export type Database = {
           designer_response?: string | null
           final_approver_email?: string
           final_approver_name?: string
+          first_draft_at?: string | null
+          first_draft_due?: string | null
           id?: string
           is_deal?: boolean
           link_to_output?: string | null
@@ -686,6 +694,7 @@ export type Database = {
           requester_name?: string
           return_reason?: string | null
           returned_by?: string | null
+          review_round?: number
           status?: Database["public"]["Enums"]["request_status"]
           team_id?: string
           title?: string
@@ -867,6 +876,8 @@ export type Database = {
         | "designer_assigned"
         | "in_progress"
         | "for_review"
+        | "for_review_v2"
+        | "for_review_v3"
         | "for_revision"
         | "completed"
         | "rejected"
@@ -903,6 +914,8 @@ export const Constants = {
         "designer_assigned",
         "in_progress",
         "for_review",
+        "for_review_v2",
+        "for_review_v3",
         "for_revision",
         "completed",
         "rejected",

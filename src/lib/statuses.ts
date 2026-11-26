@@ -17,10 +17,22 @@ export const STATUSES: { value: RequestStatus; label: string; requesterLabel?: s
     label: "In progress",
     badge: "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300",
   },
+  // Three review rounds (owner, Nov 26): the old "For requester's review"
+  // is the 1st draft. V3 is the last round.
   {
     value: "for_review",
-    label: "For requester's review",
+    label: "For review – 1st draft",
     badge: "bg-violet-100 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300",
+  },
+  {
+    value: "for_review_v2",
+    label: "For review – V2",
+    badge: "bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300",
+  },
+  {
+    value: "for_review_v3",
+    label: "For review – V3",
+    badge: "bg-fuchsia-100 dark:bg-fuchsia-500/20 text-fuchsia-800 dark:text-fuchsia-300",
   },
   {
     value: "for_revision",
@@ -44,28 +56,67 @@ const byValue = new Map(STATUSES.map((s) => [s.value, s]));
 // Requests page (owner, Oct 20).
 export const INACTIVE_STATUSES = ["rejected", "cancelled"] as const;
 
-// The Pendings tabs (§7.2 #5), in order.
-export const PENDING_TABS: { status: RequestStatus; label: string }[] = [
-  { status: "new_request", label: "New Requests" },
-  { status: "designer_assigned", label: "Not Started" },
-  { status: "in_progress", label: "In Progress" },
-  { status: "for_review", label: "For Review" },
-  { status: "for_revision", label: "For Revision" },
+// The three review rounds, in order (owner, Nov 26).
+export const REVIEW_STATUSES = ["for_review", "for_review_v2", "for_review_v3"] as const;
+
+// Which review round a status is (1–3), or null.
+export function reviewStage(status: string): number | null {
+  const i = (REVIEW_STATUSES as readonly string[]).indexOf(status);
+  return i < 0 ? null : i + 1;
+}
+
+// Accepted work that's still open: Designer assigned → For revision.
+export const OPEN_WORK_STATUSES = [
+  "designer_assigned",
+  "in_progress",
+  ...REVIEW_STATUSES,
+  "for_revision",
+] as const satisfies readonly RequestStatus[];
+
+// The Pendings tabs (§7.2 #5), in order. For Review holds all three review
+// rounds; `status` is the tab's key in the URL.
+export const PENDING_TABS: { status: RequestStatus; statuses: readonly RequestStatus[]; label: string }[] = [
+  { status: "new_request", statuses: ["new_request"], label: "New Requests" },
+  { status: "designer_assigned", statuses: ["designer_assigned"], label: "Not Started" },
+  { status: "in_progress", statuses: ["in_progress"], label: "In Progress" },
+  { status: "for_review", statuses: REVIEW_STATUSES, label: "For Review" },
+  { status: "for_revision", statuses: ["for_revision"], label: "For Revision" },
 ];
+
+// Every status on the Pendings page.
+export const PENDING_STATUSES: RequestStatus[] = PENDING_TABS.flatMap((t) => t.statuses);
+
+// The Pendings tab a status belongs to (its key).
+export function pendingTabOf(status: string): RequestStatus | null {
+  return PENDING_TABS.find((t) => (t.statuses as readonly string[]).includes(status))?.status ?? null;
+}
 
 // Reached Designer assigned or later: "Accepted" on the Dashboard and the
 // Completed Requests page (the rate's basis).
-export const ACCEPTED_STATUSES = [
-  "designer_assigned",
-  "in_progress",
-  "for_review",
-  "for_revision",
-  "completed",
-] as const;
+export const ACCEPTED_STATUSES = [...OPEN_WORK_STATUSES, "completed"] as const;
 
 // Statuses that need an assigned designer first (owner, Oct 18; the
 // database enforces this too).
-export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", "for_review", "for_revision", "completed"]);
+export const NEEDS_DESIGNER = new Set<RequestStatus>(["in_progress", ...REVIEW_STATUSES, "for_revision", "completed"]);
+
+// Statuses that need a Link to Output (the database checks too).
+export const LINK_REQUIRED = new Set<string>([...REVIEW_STATUSES, "for_revision", "completed"]);
+
+// Why a review round can't be picked yet (owner, Nov 26): rounds go in
+// order, V3 is the last (after it only Completed, On hold or Cancelled), and
+// going back to an earlier round is a correction for Super Admins and Lead
+// Designers. `round` = the request's latest review round (0–3). The database
+// checks the same (0049_first_draft_and_rounds.sql).
+export function reviewLock(status: string, round: number, isManager: boolean): string | null {
+  const stage = reviewStage(status);
+  if (stage !== null) {
+    if (stage > round + 1) return stage === 2 ? "send the 1st draft first" : "send V2 first";
+    if (stage < round && !isManager) return "already past this round";
+    return null;
+  }
+  if (round >= 3 && (status === "in_progress" || status === "for_revision")) return "V3 is the last round";
+  return null;
+}
 
 // The same colours as hex, for emails (email programs ignore the app's CSS).
 const EMAIL_COLORS: Record<RequestStatus, { bg: string; text: string }> = {
@@ -73,6 +124,8 @@ const EMAIL_COLORS: Record<RequestStatus, { bg: string; text: string }> = {
   designer_assigned: { bg: "#e0e7ff", text: "#3730a3" },
   in_progress: { bg: "#fef3c7", text: "#78350f" },
   for_review: { bg: "#ede9fe", text: "#5b21b6" },
+  for_review_v2: { bg: "#f3e8ff", text: "#6b21a8" },
+  for_review_v3: { bg: "#fae8ff", text: "#86198f" },
   for_revision: { bg: "#ffedd5", text: "#7c2d12" },
   completed: { bg: "#d1fae5", text: "#065f46" },
   rejected: { bg: "#fee2e2", text: "#991b1b" },

@@ -46,7 +46,10 @@ export function RequestInfo({
         <CardContent>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Item label="Request ID" value={<span className="font-mono">{request.request_code}</span>} />
-            <Item label="Request Date" value={<span title={formatDateTime(request.created_at)}>{formatDate(request.created_at)}</span>} />
+            <Item
+              label="Request Date"
+              value={<span title={formatDateTime(request.created_at)}>{formatDate(request.created_at)}</span>}
+            />
             <Item label="Name" value={request.requester_name} />
             <Item
               label="Email"
@@ -64,7 +67,8 @@ export function RequestInfo({
               value={request.project_overview && <LinkifiedText text={request.project_overview} />}
               wide
             />
-            <Item label="Date Needed" value={formatDate(request.date_needed)} />
+            <Item label="First Draft Deadline" value={formatDate(request.first_draft_due)} />
+            <Item label="Final Deadline" value={formatDate(request.date_needed)} />
             <Item label="Final Approver of the Design" value={approver} wide />
             <Item
               label="Associated Deal"
@@ -89,7 +93,12 @@ export function RequestInfo({
           ) : (
             <dl className="space-y-4">
               {specAnswers.map((a) => (
-                <Item key={a.id} label={a.question_label_snapshot} value={<LinkifiedText text={answerText(a.value)} />} wide />
+                <Item
+                  key={a.id}
+                  label={a.question_label_snapshot}
+                  value={<LinkifiedText text={answerText(a.value)} />}
+                  wide
+                />
               ))}
             </dl>
           )}

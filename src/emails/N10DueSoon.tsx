@@ -1,6 +1,6 @@
 import { EmailLayout, FOOTERS, Paragraph } from "./Layout";
 
-// N10 — to Jerome + the assigned designer, once, 3 days before Date Needed.
+// N10 — to Jerome + the assigned designer, once, 3 days before the Final Deadline (Date Needed).
 export const n10Subject = () => "Design Request Due in 3 Days";
 
 export function N10DueSoon(p: {
@@ -21,7 +21,7 @@ export function N10DueSoon(p: {
         { label: "Request", value: p.title },
         { label: "Request ID", value: p.code },
         { label: "Requested by", value: `${p.requesterName} / ${p.team}` },
-        { label: "Date needed", value: p.dateNeeded },
+        { label: "Final deadline", value: p.dateNeeded },
       ]}
       button={{ text: "View Request", href: p.url }}
       footer={FOOTERS.reminder}

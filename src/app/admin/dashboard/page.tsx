@@ -1,5 +1,3 @@
-import { TZDate } from "@date-fns/tz";
-import { differenceInBusinessDays, format, parseISO } from "date-fns";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { BarList } from "@/components/charts/BarList";
@@ -7,28 +5,34 @@ import { foldShares } from "@/components/charts/palette";
 import { ShareDonut } from "@/components/charts/ShareDonut";
 import { FeedbackSummary } from "@/components/feedback/FeedbackSummary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { theme } from "@/config/theme";
 import { requireStaff } from "@/lib/auth";
 import { manilaDayStart, todayInManila } from "@/lib/dates";
 import { one } from "@/lib/feedback";
 import { formatPeso } from "@/lib/money";
-import { ACCEPTED_STATUSES, INACTIVE_STATUSES, PENDING_TABS, STATUSES } from "@/lib/statuses";
+import {
+  ACCEPTED_STATUSES,
+  INACTIVE_STATUSES,
+  OPEN_WORK_STATUSES,
+  PENDING_STATUSES,
+  PENDING_TABS,
+  pendingTabOf,
+  STATUSES,
+} from "@/lib/statuses";
 import { MetricRows } from "@/components/MetricRows";
+import { turnaroundRow } from "@/components/turnaroundRow";
+import { average, deadlineStats, workingDays } from "@/lib/turnaround";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-
-// Manila calendar date of a timestamp, for counting working days.
-const manilaDay = (ts: string) => parseISO(format(new TZDate(new Date(ts).getTime(), theme.timeZone), "yyyy-MM-dd"));
 
 // §7.2 #4: "Marketing Design Pipeline <year> YTD". Counts cover requests
 // filed this year; Pendings cover every open request.
 // Reached Designer assigned or later (same as Analytics' "Accepted").
 const ACCEPTED = new Set<string>(ACCEPTED_STATUSES);
 // Accepted and still being worked on.
-const OPEN_ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision"]);
+const OPEN_ACCEPTED = new Set<string>(OPEN_WORK_STATUSES);
 // Active requests by status: accepted work only, On hold after Completed
 // (owner, Oct 24).
-const ACTIVE_STATUS_ORDER = ["designer_assigned", "in_progress", "for_review", "for_revision", "completed", "on_hold"];
+const ACTIVE_STATUS_ORDER = [...OPEN_WORK_STATUSES, "completed", "on_hold"];
 
 export default async function DashboardPage() {
   await requireStaff();
@@ -42,10 +46,10 @@ export default async function DashboardPage() {
     supabase
       .from("requests")
       .select(
-        "id, status, created_at, date_completed, is_deal, deal_size, request_type_id, team:teams(name, is_marketing), request_type:request_types(name)",
+        "id, status, created_at, date_completed, date_needed, first_draft_at, first_draft_due, is_deal, deal_size, request_type_id, team:teams(name, is_marketing), request_type:request_types(name)",
       )
       .gte("created_at", yearStart),
-    supabase.from("requests").select("status").in("status", PENDING_TABS.map((t) => t.status)),
+    supabase.from("requests").select("status").in("status", PENDING_STATUSES),
     supabase
       .from("feedback")
       .select("process_rating, output_rating, request:requests(team:teams(is_marketing))")
@@ -89,15 +93,17 @@ export default async function DashboardPage() {
   const sorted = (m: Map<string, number>) =>
     [...m.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
 
-  const pendingCounts = PENDING_TABS.map((t) => ({ ...t, count: (open ?? []).filter((r) => r.status === t.status).length }));
+  const pendingCounts = PENDING_TABS.map((t) => ({
+    ...t,
+    count: (open ?? []).filter((r) => (t.statuses as readonly string[]).includes(r.status)).length,
+  }));
   const totalPending = pendingCounts.reduce((n, t) => n + t.count, 0);
 
   // Working days (Mon–Fri) from request date to date completed.
   const done = rows.filter((r) => r.status === "completed" && r.date_completed);
-  const turnaround = done.length
-    ? done.reduce((sum, r) => sum + Math.max(0, differenceInBusinessDays(manilaDay(r.date_completed!), manilaDay(r.created_at))), 0) /
-      done.length
-    : null;
+  const turnaround = average(done.map((r) => workingDays(r.created_at, r.date_completed!)));
+  // 1st drafts and deadlines for this year's requests (owner, Nov 26).
+  const deadlines = deadlineStats(rows, (ts) => !!ts);
 
   const counted = (feedback ?? []).filter((f) => !one(f.request)?.team?.is_marketing);
   const avg = (pick: (f: (typeof counted)[number]) => number) =>
@@ -141,7 +147,13 @@ export default async function DashboardPage() {
             basis: "% of total requests",
             tiles: [
               // Open the matching list for this year's requests (owner, Oct 24).
-              { label: "Total requests", value: total, note: "Filed this year", tone: "slate", href: `/admin/pipeline?view=all&${yearRange}` },
+              {
+                label: "Total requests",
+                value: total,
+                note: "Filed this year",
+                tone: "slate",
+                href: `/admin/pipeline?view=all&${yearRange}`,
+              },
               {
                 label: "Waiting for a designer",
                 value: waiting,
@@ -150,25 +162,55 @@ export default async function DashboardPage() {
                 tone: "sky",
                 href: "/admin/pendings?status=new_request",
               },
-              { label: "Accepted", value: accepted, rate: rate(accepted), note: "Accepted by a designer", tone: "blue", href: `/admin/pipeline?view=all&${yearRange}` },
-              { label: "Inactive", value: inactive, rate: rate(inactive), note: "Returned or cancelled", tone: "grey", href: "/admin/inactive" },
+              {
+                label: "Accepted",
+                value: accepted,
+                rate: rate(accepted),
+                note: "Accepted by a designer",
+                tone: "blue",
+                href: `/admin/pipeline?view=all&${yearRange}`,
+              },
+              {
+                label: "Inactive",
+                value: inactive,
+                rate: rate(inactive),
+                note: "Returned or cancelled",
+                tone: "grey",
+                href: "/admin/inactive",
+              },
             ],
           },
           {
             label: "Accepted work",
             basis: "% of accepted requests",
             tiles: [
-              { label: "Open", value: openNow, rate: rate(openNow, accepted), note: "Still being worked on", tone: "amber", href: "/admin/pendings" },
-              { label: "Completed", value: completed, rate: rate(completed, accepted), note: "Done and turned over", tone: "green", href: `/admin/completed?${yearRange}` },
-              { label: "On hold", value: onHold, rate: rate(onHold, accepted), note: "Paused", tone: "orange", href: "/admin/pipeline?view=on_hold" },
               {
-                label: "Average turnaround",
-                value: turnaround === null ? "—" : `${turnaround.toFixed(1)} days`,
-                note: "Working days, request to completed",
-                tone: "violet",
+                label: "Open",
+                value: openNow,
+                rate: rate(openNow, accepted),
+                note: "Still being worked on",
+                tone: "amber",
+                href: "/admin/pendings",
+              },
+              {
+                label: "Completed",
+                value: completed,
+                rate: rate(completed, accepted),
+                note: "Done and turned over",
+                tone: "green",
+                href: `/admin/completed?${yearRange}`,
+              },
+              {
+                label: "On hold",
+                value: onHold,
+                rate: rate(onHold, accepted),
+                note: "Paused",
+                tone: "orange",
+                href: "/admin/pipeline?view=on_hold",
               },
             ],
           },
+          turnaroundRow(deadlines, turnaround),
         ]}
       />
 
@@ -325,9 +367,9 @@ export default async function DashboardPage() {
 // statuses → their Pendings tab, Completed → Completed Requests, On hold →
 // that pipeline view, Returned / Cancelled → Inactive Requests.
 function statusPage(status: string) {
-  if ((PENDING_TABS as { status: string }[]).some((t) => t.status === status)) return `/admin/pendings?status=${status}`;
+  const tab = pendingTabOf(status);
+  if (tab) return `/admin/pendings?status=${tab}`;
   if (status === "completed") return "/admin/completed";
   if (status === "on_hold") return "/admin/pipeline?view=on_hold";
   return `/admin/inactive?status=${status}`;
 }
-

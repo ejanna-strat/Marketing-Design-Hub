@@ -54,6 +54,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ co
           team_id: request.team_id,
           request_type_id: request.request_type_id,
           date_needed: request.date_needed,
+          first_draft_due: request.first_draft_due ?? "",
           final_approver: approverIsMe ? "myself" : "other",
           approver_name: approverIsMe ? "" : request.final_approver_name,
           approver_email: approverIsMe ? "" : request.final_approver_email,

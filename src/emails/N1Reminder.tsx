@@ -11,6 +11,7 @@ export function N1Reminder(p: {
   requesterName: string;
   team: string;
   dateNeeded: string;
+  firstDraftDue?: string | null;
   waitingSince: string;
   days: number;
   url: string;
@@ -25,7 +26,8 @@ export function N1Reminder(p: {
         { label: "Request ID", value: p.code },
         { label: "Requested by", value: p.requesterName },
         { label: "Team", value: p.team },
-        { label: "Date Needed", value: p.dateNeeded },
+        ...(p.firstDraftDue ? [{ label: "First draft deadline", value: p.firstDraftDue }] : []),
+        { label: "Final deadline", value: p.dateNeeded },
         { label: "Waiting since", value: p.waitingSince },
       ]}
       button={{ text: "View New Design Request", href: p.url }}

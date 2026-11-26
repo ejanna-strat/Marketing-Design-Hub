@@ -15,7 +15,7 @@ import {
   notifyReturned,
 } from "@/lib/email/notifications";
 import { buildAnswersSchema, QUESTION_COLUMNS, toAnswersPayload, toFormQuestion } from "@/lib/requests/schema";
-import { adminOnly } from "@/lib/statuses";
+import { adminOnly, reviewStage } from "@/lib/statuses";
 import { Constants } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,6 +47,7 @@ const patchSchema = z
     link_label_2: linkLabel,
     link_label_3: linkLabel,
     date_needed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
+    first_draft_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please choose a valid date."),
     title: z
       .string()
       .trim()
@@ -137,9 +138,11 @@ export async function updateRequest(requestId: string, patch: RequestPatch): Pro
   }
   if (!data) return { ok: false, error: "You can't change this request." };
 
-  // Emails (each once): N7 on For requester's review, N8 on Completed.
+  // Emails (each once): N7 on each review round (1st draft, V2, V3; owner,
+  // Nov 26), N8 on Completed.
   const appUrl = await getAppUrl();
-  if (data.status === "for_review" && before.status !== "for_review") after(() => notifyForReview(data.id, appUrl));
+  const stage = reviewStage(data.status);
+  if (stage !== null && data.status !== before.status) after(() => notifyForReview(data.id, appUrl, stage));
   if (data.status === "completed" && before.status !== "completed") after(() => notifyFinalOutput(data.id, appUrl));
 
   revalidatePath("/admin/pipeline");
