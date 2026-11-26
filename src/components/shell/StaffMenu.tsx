@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { cache, Suspense } from "react";
 import type { CurrentUser } from "@/lib/auth";
-import { PENDING_TABS } from "@/lib/statuses";
+import { PENDING_STATUSES, PENDING_TABS } from "@/lib/statuses";
 import { createClient } from "@/lib/supabase/server";
 import { MenuTip } from "./MenuTip";
 import { NavLink } from "./NavLink";
@@ -47,18 +47,12 @@ const loadMenuData = cache(async (myId: string | null) => {
   const supabase = await createClient();
   // Open work (the Pendings statuses), counted per status and per designer.
   const [{ data: open }, { data: designers }] = await Promise.all([
-    supabase
-      .from("requests")
-      .select("status, designer_ids")
-      .in(
-        "status",
-        PENDING_TABS.map((t) => t.status),
-      ),
+    supabase.from("requests").select("status, designer_ids").in("status", PENDING_STATUSES),
     supabase.from("designers").select("id, display_name").eq("active", true).order("display_name"),
   ]);
   const pendingTabs = PENDING_TABS.map((t) => ({
     ...t,
-    count: (open ?? []).filter((r) => r.status === t.status).length,
+    count: (open ?? []).filter((r) => (t.statuses as readonly string[]).includes(r.status)).length,
   }));
   // A request counts for each of its designers; Unassigned = none (owner, Nov 12).
   const openFor = (id: string | null) =>

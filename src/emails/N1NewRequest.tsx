@@ -11,6 +11,7 @@ export function N1NewRequest({
   requesterName,
   team,
   dateNeeded,
+  firstDraftDue,
   url,
   status = "new_request",
 }: {
@@ -19,6 +20,7 @@ export function N1NewRequest({
   requesterName: string;
   team: string;
   dateNeeded: string;
+  firstDraftDue?: string | null;
   url: string;
   status?: string;
 }) {
@@ -32,7 +34,8 @@ export function N1NewRequest({
         { label: "Request ID", value: code },
         { label: "Requested by", value: requesterName },
         { label: "Team", value: team },
-        { label: "Date Needed", value: dateNeeded },
+        ...(firstDraftDue ? [{ label: "First draft deadline", value: firstDraftDue }] : []),
+        { label: "Final deadline", value: dateNeeded },
       ]}
       button={{ text: "View New Design Request", href: url }}
       footer={FOOTERS.team}

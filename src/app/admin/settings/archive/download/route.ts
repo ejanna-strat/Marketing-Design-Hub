@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from("requests")
     .select(
-      "request_code, created_at, date_needed, title, output_needed, status, requester_email, final_approver_email, date_started, date_completed, is_deal, deal_name, deal_size, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, request_type:request_types(name), team:teams(name), request_designers(designer_id, response, responded_at, added_at), feedback(process_rating, output_rating)",
+      "request_code, created_at, first_draft_due, date_needed, title, output_needed, status, requester_email, final_approver_email, date_started, date_completed, is_deal, deal_name, deal_size, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, request_type:request_types(name), team:teams(name), request_designers(designer_id, response, responded_at, added_at), feedback(process_rating, output_rating)",
     )
     .gte("created_at", `${year}-01-01T00:00:00+08:00`)
     .lt("created_at", `${year + 1}-01-01T00:00:00+08:00`)
@@ -61,7 +61,8 @@ export async function GET(request: Request) {
     [
       "Request ID",
       "Request date",
-      "Date needed",
+      "First draft deadline",
+      "Final deadline",
       "Request title",
       "Type of request",
       "Output needed",
@@ -86,6 +87,7 @@ export async function GET(request: Request) {
       return [
         r.request_code,
         formatDate(r.created_at),
+        formatDate(r.first_draft_due),
         formatDate(r.date_needed),
         r.title,
         r.request_type?.name ?? "",

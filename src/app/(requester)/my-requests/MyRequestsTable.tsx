@@ -24,7 +24,8 @@ const columns = col.columns([
     ),
   }),
   col.accessor("created_at", { header: "Request Date", cell: (info) => formatDate(info.getValue()) }),
-  col.accessor("date_needed", { header: "Date Needed", cell: (info) => formatDate(info.getValue()) }),
+  col.accessor("first_draft_due", { header: "First Draft", cell: (info) => formatDate(info.getValue()) }),
+  col.accessor("date_needed", { header: "Final Deadline", cell: (info) => formatDate(info.getValue()) }),
   col.accessor("title", { header: "Request Title", cell: (info) => <Highlight text={info.getValue()} /> }),
   col.accessor((r) => r.request_type?.name ?? "", {
     id: "type",
@@ -41,7 +42,8 @@ const columns = col.columns([
   col.accessor((r) => designerNames(accepted(r.request_designers)), {
     id: "designer",
     header: "Assigned Designer",
-    cell: (info) => (info.getValue() ? <Highlight text={info.getValue()} /> : <span className="text-muted-foreground">—</span>),
+    cell: (info) =>
+      info.getValue() ? <Highlight text={info.getValue()} /> : <span className="text-muted-foreground">—</span>,
   }),
   col.accessor("link_to_output", {
     header: "Link to Output",
@@ -85,7 +87,7 @@ export function MyRequestsTable({
       total={total}
       page={page}
       pageSize={pageSize}
-      sortable={["request_code", "created_at", "date_needed", "title", "output_needed", "status"]}
+      sortable={["request_code", "created_at", "first_draft_due", "date_needed", "title", "output_needed", "status"]}
       columnClassNames={{
         title: "min-w-48 whitespace-normal",
         output_needed: "min-w-36 whitespace-normal",

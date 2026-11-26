@@ -9,6 +9,7 @@ export function N3Assigned(p: {
   requesterName: string;
   team: string;
   dateNeeded: string;
+  firstDraftDue?: string | null;
   status: string;
   url: string;
 }) {
@@ -22,7 +23,8 @@ export function N3Assigned(p: {
         { label: "Request ID", value: p.code },
         { label: "Requested by", value: p.requesterName },
         { label: "Requester's Team", value: p.team },
-        { label: "Date needed", value: p.dateNeeded },
+        ...(p.firstDraftDue ? [{ label: "First draft deadline", value: p.firstDraftDue }] : []),
+        { label: "Final deadline", value: p.dateNeeded },
       ]}
       button={{ text: "View My Pipeline", href: p.url }}
       footer={FOOTERS.design}
