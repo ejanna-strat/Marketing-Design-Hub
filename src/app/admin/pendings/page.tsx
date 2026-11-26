@@ -17,8 +17,10 @@ export default async function PendingsPage({
   const user = await requireStaff();
   const params = parseListParams(await searchParams);
   // One tab at a time; the first tab is the default.
-  const current = PENDING_TABS.find((t) => t.status === params.status[0])?.status ?? "new_request";
-  params.status = [current];
+  // For Review holds all three review rounds (owner, Nov 26).
+  const tab = PENDING_TABS.find((t) => t.status === params.status[0]) ?? PENDING_TABS[0];
+  const current = tab.status;
+  params.status = [...tab.statuses];
   const supabase = await createClient();
 
   const options = { searchRequester: true } as const;
@@ -27,7 +29,11 @@ export default async function PendingsPage({
     facetsInView(supabase, params, options),
     Promise.all(
       PENDING_TABS.map((t) =>
-        supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", t.status).then((r) => r.count ?? 0),
+        supabase
+          .from("requests")
+          .select("id", { count: "exact", head: true })
+          .in("status", [...t.statuses])
+          .then((r) => r.count ?? 0),
       ),
     ),
     supabase.from("designers").select("id, display_name, active").order("display_name"),
@@ -46,7 +52,9 @@ export default async function PendingsPage({
       {/* Designer filter on every tab (owner, Oct 22). */}
       <DataTableToolbar
         showDates={false}
-        filters={[{ key: "assignee", label: "Designer", options: designerFilterOptions(designers.data ?? [], facets.assignee) }]}
+        filters={[
+          { key: "assignee", label: "Designer", options: designerFilterOptions(designers.data ?? [], facets.assignee) },
+        ]}
       />
       <PipelineTable
         rows={rows}

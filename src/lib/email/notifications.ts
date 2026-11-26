@@ -7,7 +7,7 @@ import { N2Returned, n2Subject } from "@/emails/N2Returned";
 import { N3Assigned, n3Subject } from "@/emails/N3Assigned";
 import { N4Accepted, n4Subject } from "@/emails/N4Accepted";
 import { N6Reassigned, n6Subject } from "@/emails/N6Reassigned";
-import { N7ForReview, n7Subject } from "@/emails/N7ForReview";
+import { N7ForReview, n7Subject, type ReviewStage } from "@/emails/N7ForReview";
 import { N8FinalOutput, n8Subject } from "@/emails/N8FinalOutput";
 import { N10DueSoon, n10Subject } from "@/emails/N10DueSoon";
 import { N11Cancelled, n11Subject } from "@/emails/N11Cancelled";
@@ -15,7 +15,7 @@ import { N12FeedbackReceived, n12Subject } from "@/emails/N12FeedbackReceived";
 import { N13OnHold, n13Subject } from "@/emails/N13OnHold";
 import { addDays, format, parseISO } from "date-fns";
 import { formatDate, todayInManila } from "@/lib/dates";
-import { statusLabel } from "@/lib/statuses";
+import { OPEN_WORK_STATUSES, statusLabel } from "@/lib/statuses";
 import { type OutputLinkFields, outputLinks } from "@/lib/links";
 import { accepted, joinNames, type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -28,7 +28,7 @@ async function loadRequest(requestId: string) {
   const { data, error } = await createAdminClient()
     .from("requests")
     .select(
-      "id, request_code, title, status, requester_name, requester_email, date_needed, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, return_reason, returned_by, cancel_reason, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))",
+      "id, request_code, title, status, requester_name, requester_email, date_needed, first_draft_due, link_to_output, link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3, return_reason, returned_by, cancel_reason, team:teams(name), request_designers(designer_id, response, responded_at, added_at, designer:designers(display_name, email))",
     )
     .eq("id", requestId)
     .single();
@@ -67,6 +67,7 @@ export async function notifyNewRequest(requestId: string, appUrl: string) {
         requesterName: request.requester_name,
         team: request.team?.name ?? "—",
         dateNeeded: formatDate(request.date_needed),
+        firstDraftDue: request.first_draft_due ? formatDate(request.first_draft_due) : null,
         url: `${appUrl}/admin/requests/${request.request_code}`,
         status: request.status,
       }),
@@ -164,6 +165,7 @@ export async function notifyAssigned(requestId: string, designerId: string, appU
         requesterName: r.requester_name,
         team: r.team?.name ?? "—",
         dateNeeded: formatDate(r.date_needed),
+        firstDraftDue: r.first_draft_due ? formatDate(r.first_draft_due) : null,
         status: r.status,
         url: `${appUrl}/admin/pipeline?designer=${designerId}`,
       }),
@@ -236,16 +238,19 @@ export async function notifyReassigned(requestId: string, designerId: string, ap
   }
 }
 
-// N7 — the requester, once, when the status becomes For requester's review.
-export async function notifyForReview(requestId: string, appUrl: string) {
+// N7 — the requester, once per review round (1st draft, V2, V3).
+// Once per round: the 1st draft keeps the old key so earlier sends count.
+export async function notifyForReview(requestId: string, appUrl: string, stage: number = 1) {
   try {
     const r = await loadRequest(requestId);
+    const round = (stage === 2 || stage === 3 ? stage : 1) as ReviewStage;
     await sendEmail({
-      key: "N7_FOR_REVIEW",
+      key: round === 1 ? "N7_FOR_REVIEW" : `N7_FOR_REVIEW_V${round}`,
       requestId,
       to: [r.requester_email],
-      subject: n7Subject(r.title),
+      subject: n7Subject(r.title, round),
       email: N7ForReview({
+        stage: round,
         title: r.title,
         code: r.request_code,
         designerName: namesOf(accepted(r.request_designers), "the designer"),
@@ -260,12 +265,12 @@ export async function notifyForReview(requestId: string, appUrl: string) {
 
 // Statuses that still get the 3-day reminder. On hold, Cancelled, Returned
 // and Completed don't (owner, Oct 21).
-const REMIND_STATUSES = ["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"] as const;
+const REMIND_STATUSES = ["new_request", ...OPEN_WORK_STATUSES] as const;
 
 // N10 — run every weekday at 8AM (Manila) by Vercel Cron. Sends once per
-// request and Date Needed to Lead Designers, "Copy me on Lead Designer
+// request and Final Deadline (Date Needed) to Lead Designers, "Copy me on Lead Designer
 // emails" members (owner, Oct 30) + every designer on it (Nov 12), for requests due
-// within the next 3 days (so weekends aren't skipped). A changed Date Needed
+// within the next 3 days (so weekends aren't skipped). A changed Final Deadline
 // gets its own reminder.
 export async function sendDueReminders(appUrl: string) {
   const today = todayInManila();
@@ -338,7 +343,7 @@ export async function sendUnassignedReminders(appUrl: string) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("requests")
-    .select("id, request_code, title, requester_name, date_needed, created_at, team:teams(name)")
+    .select("id, request_code, title, requester_name, date_needed, first_draft_due, created_at, team:teams(name)")
     .eq("status", "new_request")
     .is("assigned_designer_id", null);
   if (error) throw new Error(error.message);
@@ -384,6 +389,7 @@ export async function sendUnassignedReminders(appUrl: string) {
         requesterName: r.requester_name,
         team: r.team?.name ?? "—",
         dateNeeded: formatDate(r.date_needed),
+        firstDraftDue: r.first_draft_due ? formatDate(r.first_draft_due) : null,
         waitingSince: formatDate(since),
         days: Math.floor(hours / 24),
         url: `${appUrl}/admin/requests/${r.request_code}`,

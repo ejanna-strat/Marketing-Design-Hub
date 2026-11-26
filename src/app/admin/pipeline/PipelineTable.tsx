@@ -122,7 +122,9 @@ export function PipelineTable({
         ),
       }),
       col.accessor("created_at", { header: "Request Date", cell: (info) => formatDate(info.getValue()) }),
-      col.accessor("date_needed", { header: "Date Needed", cell: (info) => formatDate(info.getValue()) }),
+      // Both deadlines (owner, Nov 26); "Date Needed" is the Final Deadline.
+      col.accessor("first_draft_due", { header: "First Draft", cell: (info) => formatDate(info.getValue()) }),
+      col.accessor("date_needed", { header: "Final Deadline", cell: (info) => formatDate(info.getValue()) }),
       col.accessor("title", { header: "Request Title", cell: (info) => <Highlight text={info.getValue()} /> }),
       ...dealColumns,
       col.accessor((r) => r.request_type?.name ?? "", {
@@ -153,6 +155,8 @@ export function PipelineTable({
                   hasLink={outputLinks(r).length > 0}
                   accepted={r.designer_response === "accepted"}
                   designTeamOnly={adminOnly(viewer)}
+                  reviewRound={r.review_round}
+                  isManager={viewer.isManager}
                   awaitingMe={
                     !viewer.isManager && myRow(r.request_designers, viewer.designerId)?.response === "pending"
                   }
@@ -209,6 +213,7 @@ export function PipelineTable({
       sortable={[
         "request_code",
         "created_at",
+        "first_draft_due",
         "date_needed",
         "title",
         "output_needed",

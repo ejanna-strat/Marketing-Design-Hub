@@ -37,7 +37,7 @@ import {
 } from "@/lib/links";
 import { digitsOnly } from "@/lib/money";
 import { type RequestDesigner, sortDesigners } from "@/lib/requests/designers";
-import { NEEDS_DESIGNER, STATUSES, statusBadgeClass } from "@/lib/statuses";
+import { LINK_REQUIRED, NEEDS_DESIGNER, reviewLock, STATUSES, statusBadgeClass } from "@/lib/statuses";
 import { cn } from "@/lib/utils";
 
 // Inline editors for pipeline fields, used in the Pipeline table and on the
@@ -86,9 +86,10 @@ function useSave(requestId: string) {
 
 // Statuses that can't be picked right now are greyed out with the reason:
 // "Designer assigned" comes from the designer's Accept, "Returned" from the
-// Return button, work statuses need a designer, For requester's review / For
-// revision / Completed need a Link to Output, and New request is closed once
-// the designer has accepted. The database enforces the same rules.
+// Return button, work statuses need a designer, the review rounds / For
+// revision / Completed need a Link to Output, New request is closed once the
+// designer has accepted, and review rounds go in order (`reviewLock`). The
+// database enforces the same rules.
 export function StatusSelect({
   requestId,
   value,
@@ -98,6 +99,8 @@ export function StatusSelect({
   accepted = false,
   designTeamOnly = false,
   awaitingMe = false,
+  reviewRound = 0,
+  isManager = false,
 }: {
   requestId: string;
   value: string;
@@ -112,6 +115,10 @@ export function StatusSelect({
   // The viewer is a designer on the request who hasn't accepted yet: no
   // status changes until they do (owner, Nov 12).
   awaitingMe?: boolean;
+  // The request's latest review round (0–3) and whether the viewer may
+  // correct it back (owner, Nov 26).
+  reviewRound?: number;
+  isManager?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -164,7 +171,10 @@ export function StatusSelect({
         </SelectTrigger>
         <SelectContent position="popper">
           {STATUSES.map((s) => {
-            const reason = s.value === current ? null : lockReason(s.value, hasDesigner, hasLink, accepted);
+            const reason =
+              s.value === current
+                ? null
+                : (lockReason(s.value, hasDesigner, hasLink, accepted) ?? reviewLock(s.value, reviewRound, isManager));
             return (
               <SelectItem key={s.value} value={s.value} disabled={!!reason}>
                 {s.label}
@@ -249,8 +259,6 @@ function lockReason(status: string, hasDesigner: boolean, hasLink: boolean, acce
   if (accepted && status === "new_request") return "a designer already accepted";
   return null;
 }
-
-const LINK_REQUIRED = new Set(["for_review", "for_revision", "completed"]);
 
 // A request's designers (owner, Nov 12: several, all equal). Everyone sees
 // the names ("Sofia, Dasha"; "waiting" until that designer accepts); Super
@@ -571,27 +579,83 @@ export function LinkEditor({
   );
 }
 
-export function DateNeededEditor({ requestId, value }: { requestId: string; value: string }) {
+// Quick date editors on the request page's Pipeline section: Final Deadline
+// (`date_needed`) and First Draft Deadline (owner, Nov 26). The First Draft
+// Deadline can't be after the Final Deadline (the database checks too).
+export function DateNeededEditor({
+  requestId,
+  value,
+  firstDraftDue = null,
+}: {
+  requestId: string;
+  value: string;
+  firstDraftDue?: string | null;
+}) {
+  return (
+    <DateFieldEditor
+      requestId={requestId}
+      value={value}
+      label="Final Deadline"
+      onPick={(next) => ({ date_needed: next })}
+      disabled={firstDraftDue ? { before: parseISO(firstDraftDue) } : undefined}
+    />
+  );
+}
+
+export function FirstDraftDueEditor({
+  requestId,
+  value,
+  dateNeeded,
+}: {
+  requestId: string;
+  value: string | null;
+  dateNeeded: string;
+}) {
+  return (
+    <DateFieldEditor
+      requestId={requestId}
+      value={value}
+      label="First Draft Deadline"
+      onPick={(next) => ({ first_draft_due: next })}
+      disabled={{ after: parseISO(dateNeeded) }}
+    />
+  );
+}
+
+function DateFieldEditor({
+  requestId,
+  value,
+  label,
+  onPick,
+  disabled,
+}: {
+  requestId: string;
+  value: string | null;
+  label: string;
+  onPick: (date: string) => RequestPatch;
+  disabled?: { before: Date } | { after: Date };
+}) {
   const { save, pending } = useSave(requestId);
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" disabled={pending} aria-label="Change Date Needed" className="font-normal">
+        <Button variant="outline" size="sm" disabled={pending} aria-label={`Change ${label}`} className="font-normal">
           <CalendarIcon className="text-muted-foreground" />
-          {formatDate(value)}
+          {value ? formatDate(value) : <span className="text-muted-foreground">Set date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={parseISO(value)}
-          defaultMonth={parseISO(value)}
+          selected={value ? parseISO(value) : undefined}
+          defaultMonth={value ? parseISO(value) : undefined}
+          disabled={disabled}
           onSelect={(d) => {
             if (!d) return;
             setOpen(false);
             const next = format(d, "yyyy-MM-dd");
-            if (next !== value) save({ date_needed: next }, "Date Needed updated");
+            if (next !== value) save(onPick(next), `${label} updated`);
           }}
         />
       </PopoverContent>
@@ -599,21 +663,32 @@ export function DateNeededEditor({ requestId, value }: { requestId: string; valu
   );
 }
 
-function DatePickerField({ id, value, onChange }: { id: string; value: string; onChange: (date: string) => void }) {
+function DatePickerField({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (date: string) => void;
+  disabled?: { before: Date } | { after: Date };
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button id={id} type="button" variant="outline" className="w-full justify-start font-normal">
           <CalendarIcon className="text-muted-foreground" />
-          {formatDate(value)}
+          {value ? formatDate(value) : <span className="text-muted-foreground">Set date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={parseISO(value)}
-          defaultMonth={parseISO(value)}
+          selected={value ? parseISO(value) : undefined}
+          defaultMonth={value ? parseISO(value) : undefined}
+          disabled={disabled}
           onSelect={(d) => {
             if (!d) return;
             setOpen(false);
@@ -638,11 +713,13 @@ export type GeneralInfo = {
   dealSize: string;
   // yyyy-MM-dd
   dateNeeded: string;
+  // yyyy-MM-dd, "" when not set (requests filed before Nov 26)
+  firstDraftDue: string;
 };
 
 // Edit the request's title and General Information (any Marketing team
-// member), including Date Needed (owner, Oct 22; it also keeps its own quick
-// editor in the Pipeline section).
+// member), including the Final Deadline (owner, Oct 22) and First Draft
+// Deadline (Nov 26); both also keep quick editors in the Pipeline section.
 export function GeneralInfoEditor({
   requestId,
   value,
@@ -663,6 +740,7 @@ export function GeneralInfoEditor({
     form.requesterName.trim() !== value.requesterName ||
     form.teamId !== value.teamId ||
     form.dateNeeded !== value.dateNeeded ||
+    form.firstDraftDue !== value.firstDraftDue ||
     form.approverName.trim() !== value.approverName ||
     form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase() ||
     form.isDeal !== value.isDeal ||
@@ -681,7 +759,12 @@ export function GeneralInfoEditor({
     }
     if (form.requesterName.trim() !== value.requesterName) patch.requester_name = form.requesterName;
     if (form.teamId !== value.teamId) patch.team_id = form.teamId;
+    if (form.firstDraftDue && form.firstDraftDue > form.dateNeeded) {
+      toast.error("The First Draft Deadline must be on or before the Final Deadline.");
+      return;
+    }
     if (form.dateNeeded !== value.dateNeeded) patch.date_needed = form.dateNeeded;
+    if (form.firstDraftDue !== value.firstDraftDue && form.firstDraftDue) patch.first_draft_due = form.firstDraftDue;
     if (form.approverName.trim() !== value.approverName) patch.final_approver_name = form.approverName;
     if (form.approverEmail.trim().toLowerCase() !== value.approverEmail.toLowerCase()) {
       patch.final_approver_email = form.approverEmail;
@@ -777,13 +860,25 @@ export function GeneralInfoEditor({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gi-date">Date Needed</Label>
-              <DatePickerField
-                id="gi-date"
-                value={form.dateNeeded}
-                onChange={(dateNeeded) => setForm({ ...form, dateNeeded })}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="gi-first-draft">First Draft Deadline</Label>
+                <DatePickerField
+                  id="gi-first-draft"
+                  value={form.firstDraftDue}
+                  onChange={(firstDraftDue) => setForm({ ...form, firstDraftDue })}
+                  disabled={{ after: parseISO(form.dateNeeded) }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gi-date">Final Deadline</Label>
+                <DatePickerField
+                  id="gi-date"
+                  value={form.dateNeeded}
+                  onChange={(dateNeeded) => setForm({ ...form, dateNeeded })}
+                  disabled={form.firstDraftDue ? { before: parseISO(form.firstDraftDue) } : undefined}
+                />
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

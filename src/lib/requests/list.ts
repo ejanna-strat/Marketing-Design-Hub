@@ -16,6 +16,7 @@ export const SORTABLE_COLUMNS = [
   "request_code",
   "created_at",
   "date_needed",
+  "first_draft_due",
   "title",
   "output_needed",
   "status",
@@ -59,7 +60,14 @@ function one(sp: SearchParams, key: string): string {
 }
 
 function many(sp: SearchParams, key: string, valid: (v: string) => boolean): string[] {
-  return [...new Set(one(sp, key).split(",").map((v) => v.trim()).filter(valid))];
+  return [
+    ...new Set(
+      one(sp, key)
+        .split(",")
+        .map((v) => v.trim())
+        .filter(valid),
+    ),
+  ];
 }
 
 export function parseListParams(sp: SearchParams): ListParams {
@@ -87,7 +95,7 @@ export function parseListParams(sp: SearchParams): ListParams {
 }
 
 const LIST_COLUMNS = `
-  id, request_code, created_at, date_needed, date_started, title, output_needed, status, link_to_output,
+  id, request_code, created_at, date_needed, first_draft_due, review_round, date_started, title, output_needed, status, link_to_output,
   link_to_output_2, link_to_output_3, link_label_1, link_label_2, link_label_3,
   requester_name, requester_email, assigned_designer_id, designer_response, designer_ids, reassign_reason,
   is_deal, deal_name, deal_size, return_reason, cancel_reason, updated_at,
@@ -97,7 +105,6 @@ const LIST_COLUMNS = `
 `;
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
-
 
 type ListOptions = {
   requesterId?: string;

@@ -17,7 +17,7 @@ export async function updateMyRequest(requestId: string, values: unknown): Promi
   const supabase = await createClient();
   const { data: request } = await supabase
     .from("requests")
-    .select("id, request_code, request_type_id, date_needed, status, assigned_designer_id")
+    .select("id, request_code, request_type_id, date_needed, first_draft_due, status, assigned_designer_id")
     .eq("id", requestId)
     .eq("requester_id", user.id)
     .maybeSingle();
@@ -35,7 +35,12 @@ export async function updateMyRequest(requestId: string, values: unknown): Promi
   if (questionsError) return { error: "We couldn't load the form. Please try again." };
   const questions = rows.map(toFormQuestion);
 
-  const parsed = buildRequestSchema(questions, todayInManila(), request.date_needed).safeParse(values);
+  const parsed = buildRequestSchema(
+    questions,
+    todayInManila(),
+    request.date_needed,
+    request.first_draft_due ?? undefined,
+  ).safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please check the form." };
   if (parsed.data.request_type_id !== request.request_type_id) {
     return { error: "The type of request can't be changed. Please submit a new request instead." };

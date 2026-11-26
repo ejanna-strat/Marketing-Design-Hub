@@ -1,9 +1,9 @@
 import "server-only";
-import { TZDate } from "@date-fns/tz";
-import { addDays, addMonths, differenceInBusinessDays, format, parseISO } from "date-fns";
-import { theme } from "@/config/theme";
+import { addDays, addMonths, format, parseISO } from "date-fns";
 import { manilaDayStart } from "@/lib/dates";
 import { one } from "@/lib/feedback";
+import { ACCEPTED_STATUSES, OPEN_WORK_STATUSES, REVIEW_STATUSES } from "@/lib/statuses";
+import { average, deadlineStats, type DeadlineStats, manilaDay, workingDays, workingTime } from "@/lib/turnaround";
 import type { createClient } from "@/lib/supabase/server";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -13,19 +13,17 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 // Both use the same reports; Month on Month adds the month-by-month view.
 
 // A request counts as Accepted once it reached Designer assigned or later.
-const ACCEPTED = new Set(["designer_assigned", "in_progress", "for_review", "for_revision", "completed"]);
+const ACCEPTED = new Set<string>(ACCEPTED_STATUSES);
 // "Open at the end" = the Pendings categories: New request, Not started, In
 // progress, For review, For revision (owner, Oct 21).
-const OPEN_AT_END = new Set(["new_request", "designer_assigned", "in_progress", "for_review", "for_revision"]);
-
-const manilaDay = (ts: string) => format(new TZDate(new Date(ts).getTime(), theme.timeZone), "yyyy-MM-dd");
-const workingDays = (from: string, to: string) =>
-  Math.max(0, differenceInBusinessDays(parseISO(manilaDay(to)), parseISO(manilaDay(from))));
-const average = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : null);
+const OPEN_AT_END = new Set<string>(["new_request", ...OPEN_WORK_STATUSES]);
+const REVIEW = new Set<string>(REVIEW_STATUSES);
 const nextDay = (day: string) => format(addDays(parseISO(day), 1), "yyyy-MM-dd");
 
 // PostgREST returns at most 1,000 rows per call, so read in pages.
-async function readAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+async function readAll<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+) {
   const rows: T[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await page(from, from + 999);
@@ -37,35 +35,68 @@ async function readAll<T>(page: (from: number, to: number) => PromiseLike<{ data
 
 export type Share = { label: string; value: number };
 
-export type PeriodTotals = {
-  requestsIn: number;
-  accepted: number;
-  completed: number;
-  openAtEnd: number;
-  // Accepted work still open at the end, and New requests still waiting for
-  // a designer (owner, Oct 24: Open is a share of Accepted).
-  openAcceptedAtEnd: number;
-  waitingAtEnd: number;
-  // This period's accepted requests on hold at the end.
-  onHoldAccepted: number;
-  avgTurnaround: number | null;
-  dealRequests: number;
-  dealSize: number;
-  feedbackRating: number | null;
-  feedbackCount: number;
-  // Dashboard-style feedback (owner, Oct 23): Process and Output averages,
-  // and how many completed requests (Marketing team excluded) there were.
-  feedbackProcess: number | null;
-  feedbackOutput: number | null;
-  completedOutside: number;
-  // Responses rated 3 ★ or below on Process or Output, and with comments.
-  feedbackLow: number;
-  feedbackComments: number;
-  returned: number;
-  cancelled: number;
-  inactiveDeals: number;
-  inactiveDealSize: number;
+// The review back-and-forth (owner, Nov 26), for requests completed in the
+// period that went through at least one review round. Working days with
+// fractions (`workingTime`): the whole stretch from the 1st draft to
+// Completed, the time waiting on the requester (in a For review round), and
+// the time with the designer (For revision or In progress after the 1st
+// draft). On hold time is in the stretch only. Rounds = the last review round
+// before Completed (1st draft, V2, V3).
+export type ReviewStats = {
+  reviewed: number;
+  avgReviewDays: number | null;
+  avgRequesterDays: number | null;
+  avgDesignerDays: number | null;
+  avgRounds: number | null;
+  // How many finished at the 1st draft, V2 and V3.
+  finishedAt: [number, number, number];
 };
+
+export const EMPTY_TURNAROUND: DeadlineStats & ReviewStats = {
+  avgFirstDraft: null,
+  firstDrafts: 0,
+  firstOnTime: 0,
+  firstOnTimeOf: 0,
+  finalOnTime: 0,
+  finalOnTimeOf: 0,
+  reviewed: 0,
+  avgReviewDays: null,
+  avgRequesterDays: null,
+  avgDesignerDays: null,
+  avgRounds: null,
+  finishedAt: [0, 0, 0],
+};
+
+export type PeriodTotals = DeadlineStats &
+  ReviewStats & {
+    requestsIn: number;
+    accepted: number;
+    completed: number;
+    openAtEnd: number;
+    // Accepted work still open at the end, and New requests still waiting for
+    // a designer (owner, Oct 24: Open is a share of Accepted).
+    openAcceptedAtEnd: number;
+    waitingAtEnd: number;
+    // This period's accepted requests on hold at the end.
+    onHoldAccepted: number;
+    avgTurnaround: number | null;
+    dealRequests: number;
+    dealSize: number;
+    feedbackRating: number | null;
+    feedbackCount: number;
+    // Dashboard-style feedback (owner, Oct 23): Process and Output averages,
+    // and how many completed requests (Marketing team excluded) there were.
+    feedbackProcess: number | null;
+    feedbackOutput: number | null;
+    completedOutside: number;
+    // Responses rated 3 ★ or below on Process or Output, and with comments.
+    feedbackLow: number;
+    feedbackComments: number;
+    returned: number;
+    cancelled: number;
+    inactiveDeals: number;
+    inactiveDealSize: number;
+  };
 
 export type MonthRow = PeriodTotals & {
   month: string;
@@ -125,7 +156,7 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       supabase
         .from("requests")
         .select(
-          "id, status, created_at, date_completed, designer_ids, request_designers(designer_id, response), is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name, sort_order), feedback(process_rating, output_rating)",
+          "id, status, created_at, date_completed, date_needed, first_draft_at, first_draft_due, review_round, designer_ids, request_designers(designer_id, response), is_deal, deal_size, team:teams(name, is_marketing), request_type:request_types(name, sort_order), feedback(process_rating, output_rating)",
         )
         .lt("created_at", end)
         .order("created_at")
@@ -143,7 +174,9 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     readAll((a, b) =>
       supabase
         .from("feedback")
-        .select("process_rating, output_rating, comments, submitted_at, request:requests(request_designers(designer_id, response), team:teams(is_marketing))")
+        .select(
+          "process_rating, output_rating, comments, submitted_at, request:requests(request_designers(designer_id, response), team:teams(is_marketing))",
+        )
         .gte("submitted_at", start)
         .lt("submitted_at", end)
         .range(a, b),
@@ -160,7 +193,8 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     changes.set(h.request_id, list);
   }
   type Req = (typeof requests)[number];
-  const everAccepted = (r: Req) => ACCEPTED.has(r.status) || (changes.get(r.id) ?? []).some((c) => ACCEPTED.has(c.status));
+  const everAccepted = (r: Req) =>
+    ACCEPTED.has(r.status) || (changes.get(r.id) ?? []).some((c) => ACCEPTED.has(c.status));
   // A request's status at a moment: its last change before then.
   const statusAt = (id: string, moment: string) => {
     let status = "new_request";
@@ -177,6 +211,32 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
   };
 
   const isCompleted = (r: Req) => r.status === "completed" && !!r.date_completed;
+
+  // Time waiting on the requester vs with the designer, from the 1st draft
+  // to Completed (status history; On hold counts for neither).
+  const reviewSplit = (r: Req) => {
+    let requester = 0;
+    let designer = 0;
+    const list = (changes.get(r.id) ?? []).filter((c) => c.at >= r.first_draft_at!);
+    list.forEach((c, i) => {
+      const until = list[i + 1]?.at ?? r.date_completed!;
+      if (REVIEW.has(c.status)) requester += workingTime(c.at, until);
+      else if (c.status === "for_revision" || c.status === "in_progress") designer += workingTime(c.at, until);
+    });
+    return { requester, designer };
+  };
+  const reviewStats = (done: Req[]): ReviewStats => {
+    const reviewed = done.filter((r) => r.first_draft_at && r.review_round > 0);
+    const splits = reviewed.map(reviewSplit);
+    return {
+      reviewed: reviewed.length,
+      avgReviewDays: average(reviewed.map((r) => workingTime(r.first_draft_at!, r.date_completed!))),
+      avgRequesterDays: average(splits.map((x) => x.requester)),
+      avgDesignerDays: average(splits.map((x) => x.designer)),
+      avgRounds: average(reviewed.map((r) => r.review_round)),
+      finishedAt: [1, 2, 3].map((n) => reviewed.filter((r) => r.review_round === n).length) as [number, number, number],
+    };
+  };
   // Deal numbers leave out Returned and Cancelled requests (owner, Oct 21).
   const isDeal = (r: Req) => r.is_deal && r.status !== "rejected" && r.status !== "cancelled";
   const totalsFor = (s: string, e: string): PeriodTotals => {
@@ -187,6 +247,8 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
     const deals = filed.filter(isDeal);
     const inactiveDeals = filed.filter((r) => r.is_deal && !isDeal(r));
     return {
+      ...deadlineStats(requests, within),
+      ...reviewStats(done),
       feedbackProcess: average(fb.map((f) => f.process_rating)),
       feedbackOutput: average(fb.map((f) => f.output_rating)),
       completedOutside: done.filter((r) => !r.team?.is_marketing).length,
@@ -196,7 +258,9 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
       accepted: filed.filter(everAccepted).length,
       completed: done.length,
       openAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e))).length,
-      openAcceptedAtEnd: requests.filter((r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e)) && statusAt(r.id, e) !== "new_request").length,
+      openAcceptedAtEnd: requests.filter(
+        (r) => r.created_at < e && OPEN_AT_END.has(statusAt(r.id, e)) && statusAt(r.id, e) !== "new_request",
+      ).length,
       // Of this period's requests (owner, Oct 24: its own tile).
       waitingAtEnd: filed.filter((r) => statusAt(r.id, e) === "new_request").length,
       onHoldAccepted: filed.filter((r) => everAccepted(r) && statusAt(r.id, e) === "on_hold").length,
@@ -285,7 +349,9 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
         completed: done.length,
         avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
         feedbackRating: overall(counted.filter((f) => credited(one(f.request)).includes(d.id))),
-        completedByMonth: months.map((m) => done.filter((r) => manilaDay(r.date_completed!).startsWith(m.month)).length),
+        completedByMonth: months.map(
+          (m) => done.filter((r) => manilaDay(r.date_completed!).startsWith(m.month)).length,
+        ),
         completedByType: Object.fromEntries(
           [...new Set(done.map((r) => r.request_type?.name ?? "—"))].map((type) => [
             type,
@@ -304,7 +370,9 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
   // Returned at the end of the period. Feedback = feedback on those same
   // completed requests, whenever it was submitted, Marketing team excluded.
   const closed = new Set(["completed", "cancelled", "rejected"]);
-  const periodTypes = [...new Map(doneInPeriod.map((r) => [r.request_type?.name ?? "—", r.request_type?.sort_order ?? 99]))]
+  const periodTypes = [
+    ...new Map(doneInPeriod.map((r) => [r.request_type?.name ?? "—", r.request_type?.sort_order ?? 99])),
+  ]
     .sort((x, y) => x[1] - y[1])
     .map(([name]) => name);
   const designerPeriod: DesignerPeriodRow[] = (designers.data ?? [])
@@ -321,9 +389,8 @@ export async function loadAnalytics(supabase: Supabase, from: string, to: string
         active: d.active,
         byType,
         total: done.length,
-        openAtEnd: requests.filter(
-          (r) => onIt(r, d.id) && r.created_at < end && !closed.has(statusAt(r.id, end)),
-        ).length,
+        openAtEnd: requests.filter((r) => onIt(r, d.id) && r.created_at < end && !closed.has(statusAt(r.id, end)))
+          .length,
         avgTurnaround: average(done.map((r) => workingDays(r.created_at, r.date_completed!))),
         feedbackRating: p === null || o === null ? null : (p + o) / 2,
         feedbackCount: rated.length,

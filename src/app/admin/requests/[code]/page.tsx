@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   DateNeededEditor,
+  FirstDraftDueEditor,
   DesignersEditor,
   GeneralInfoEditor,
   LinkEditor,
@@ -143,6 +144,8 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       accepted={request.designer_response === "accepted"}
                       designTeamOnly={adminOnly(viewer)}
                       awaitingMe={awaitingMe}
+                      reviewRound={request.review_round}
+                      isManager={user.isManager}
                     />
                   }
                 />
@@ -171,12 +174,30 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                   }
                 />
                 <Item
-                  label="Date Needed"
+                  label="First Draft Deadline"
+                  value={
+                    closed ? (
+                      formatDate(request.first_draft_due)
+                    ) : (
+                      <FirstDraftDueEditor
+                        requestId={request.id}
+                        value={request.first_draft_due}
+                        dateNeeded={request.date_needed}
+                      />
+                    )
+                  }
+                />
+                <Item
+                  label="Final Deadline"
                   value={
                     closed ? (
                       formatDate(request.date_needed)
                     ) : (
-                      <DateNeededEditor requestId={request.id} value={request.date_needed} />
+                      <DateNeededEditor
+                        requestId={request.id}
+                        value={request.date_needed}
+                        firstDraftDue={request.first_draft_due}
+                      />
                     )
                   }
                 />
@@ -216,6 +237,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                     requesterName: request.requester_name,
                     teamId: request.team_id,
                     dateNeeded: request.date_needed,
+                    firstDraftDue: request.first_draft_due ?? "",
                     approverName: request.final_approver_name,
                     approverEmail: request.final_approver_email,
                     isDeal: request.is_deal,
@@ -258,7 +280,8 @@ const FIELD_NAMES: Record<string, string> = {
   link_to_output: "Link to Output",
   link_to_output_2: "Link to Output 2",
   link_to_output_3: "Link to Output 3",
-  date_needed: "Date Needed",
+  date_needed: "Final Deadline",
+  first_draft_due: "First Draft Deadline",
   output_needed: "Output Needed",
 };
 
@@ -297,7 +320,7 @@ const sentence = (e: LogEntry) =>
 function showValue(action: string, value: string | null) {
   if (!value) return "—";
   if (action === "status") return statusLabel(value);
-  if (action === "date_needed") return formatDate(value);
+  if (action === "date_needed" || action === "first_draft_due") return formatDate(value);
   return value;
 }
 

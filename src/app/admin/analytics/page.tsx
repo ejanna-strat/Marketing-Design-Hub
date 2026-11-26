@@ -8,6 +8,7 @@ import {
   DownloadIcon,
   LayoutDashboardIcon,
   type LucideIcon,
+  TimerIcon,
   UsersIcon,
 } from "lucide-react";
 import { MonthBars } from "@/components/charts/MonthBars";
@@ -23,12 +24,14 @@ import { CATEGORY_COLORS } from "@/components/charts/palette";
 import { formatDate, todayInManila } from "@/lib/dates";
 import { requireStaff } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
-import { STATUSES } from "@/lib/statuses";
+import { OPEN_WORK_STATUSES, STATUSES } from "@/lib/statuses";
 import { archivedReport, archivedYears } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
 import { MonthBreakdown } from "./MonthBreakdown";
 import { PeriodControls } from "./PeriodControls";
 import { MetricRows } from "@/components/MetricRows";
+import { turnaroundRow } from "@/components/turnaroundRow";
+import { ReviewCards } from "./ReviewSection";
 import { WhereTheyStand, WhoAsked } from "./OverviewParts";
 import { SectionViews } from "./Views";
 
@@ -261,15 +264,11 @@ export default async function AnalyticsPage({
                   tone: "orange",
                   href: `/admin/pipeline?view=on_hold&${range}`,
                 },
-                {
-                  label: "Average turnaround",
-                  value: t.avgTurnaround === null ? "—" : `${t.avgTurnaround.toFixed(1)} days`,
-                  note: "Working days, request to completed",
-                  tone: "violet",
-                  href: "#brand",
-                },
               ],
             },
+            // Turnaround to the 1st draft and to completed, and deadlines met
+            // (owner, Nov 26); the tiles jump to Turnaround and Reviews.
+            turnaroundRow(t, t.avgTurnaround, "#reviews"),
           ]}
         />
         {/* Order (owner, Oct 26): what stands out, where the requests stand
@@ -579,6 +578,15 @@ export default async function AnalyticsPage({
             </WhoAsked>
           </div>
         )}
+      </section>
+
+      <section id="reviews" className="scroll-mt-32 space-y-4">
+        <SectionHeader
+          icon={TimerIcon}
+          title="Turnaround and Reviews"
+          description="How long the review rounds take, and who they wait on"
+        />
+        <ReviewCards t={t} months={a.months} mom={mom} />
       </section>
 
       <section id="designers" className="scroll-mt-32 space-y-4">
@@ -1131,7 +1139,7 @@ function KeyTakeaways({ title, lines }: { title: string; lines: string[] }) {
 // (owner's mock-up, Oct 23; Returned and Cancelled left out, Oct 24).
 function standGroups(a: Analytics) {
   const n = (st: string) => a.byStatus.get(st) ?? 0;
-  const open = ["designer_assigned", "in_progress", "for_review", "for_revision"];
+  const open: string[] = [...OPEN_WORK_STATUSES];
   const openParts = open
     .filter((st) => n(st) > 0)
     .map((st) => (STATUSES.find((x) => x.value === st)?.label ?? st).replace(" (not yet started)", "").toLowerCase());
@@ -1477,6 +1485,7 @@ function designerInsights(a: Analytics, t: PeriodTotals): string[] {
 const JUMPS = [
   { id: "overview", label: "Overview" },
   { id: "brand", label: "Brand Team" },
+  { id: "reviews", label: "Turnaround" },
   { id: "designers", label: "Designers" },
   { id: "deals", label: "Deals" },
   { id: "inactive", label: "Inactive" },
