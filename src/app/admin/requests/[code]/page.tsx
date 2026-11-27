@@ -145,7 +145,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
                       designTeamOnly={adminOnly(viewer)}
                       awaitingMe={awaitingMe}
                       reviewRound={request.review_round}
-                      isManager={user.isManager}
+                      canCorrectRound={user.isManager || myRow(team, user.designerId)?.response === "accepted"}
                     />
                   }
                 />

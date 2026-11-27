@@ -156,7 +156,9 @@ export function PipelineTable({
                   accepted={r.designer_response === "accepted"}
                   designTeamOnly={adminOnly(viewer)}
                   reviewRound={r.review_round}
-                  isManager={viewer.isManager}
+                  canCorrectRound={
+                    viewer.isManager || myRow(r.request_designers, viewer.designerId)?.response === "accepted"
+                  }
                   awaitingMe={
                     !viewer.isManager && myRow(r.request_designers, viewer.designerId)?.response === "pending"
                   }
