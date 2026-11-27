@@ -104,14 +104,15 @@ export const LINK_REQUIRED = new Set<string>([...REVIEW_STATUSES, "for_revision"
 
 // Why a review round can't be picked yet (owner, Nov 26): rounds go in
 // order, V3 is the last (after it only Completed, On hold or Cancelled), and
-// going back to an earlier round is a correction for Super Admins and Lead
-// Designers. `round` = the request's latest review round (0–3). The database
-// checks the same (0049_first_draft_and_rounds.sql).
-export function reviewLock(status: string, round: number, isManager: boolean): string | null {
+// going back to an earlier round is a correction for Super Admins, Lead
+// Designers and the request's own designers (owner, Nov 27). `round` = the
+// request's latest review round (0–3). The database checks the same
+// (0049_first_draft_and_rounds.sql, 0050_designers_correct_rounds.sql).
+export function reviewLock(status: string, round: number, canCorrect: boolean): string | null {
   const stage = reviewStage(status);
   if (stage !== null) {
     if (stage > round + 1) return stage === 2 ? "send the 1st draft first" : "send V2 first";
-    if (stage < round && !isManager) return "already past this round";
+    if (stage < round && !canCorrect) return "already past this round";
     return null;
   }
   if (round >= 3 && (status === "in_progress" || status === "for_revision")) return "V3 is the last round";
