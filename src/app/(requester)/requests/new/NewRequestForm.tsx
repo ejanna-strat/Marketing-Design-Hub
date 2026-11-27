@@ -282,8 +282,9 @@ export function NewRequestForm({
               required
               help={
                 <>
-                  Select the date when you need the final design output delivered. For guidance on turnaround times,
-                  please refer to our <SlaLink />.
+                  Final Delivery Deadline is the set date by which designers must submit the completed output. The
+                  requester must provide any final feedback or revision requests before this deadline; otherwise, the
+                  request will be marked as complete. For guidance on turnaround times, please refer to our <SlaLink />.
                 </>
               }
               error={errors.date_needed?.message}
