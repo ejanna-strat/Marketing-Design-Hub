@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: Nov 27, 2026 · version 0.84.2_
+_Last updated: Nov 27, 2026 · version 0.85.0_
 
 ## Done
 - Phase 0: Next.js + TypeScript + Tailwind + shadcn/ui starter app; `dev` and `staging` branches (branch flow in CLAUDE.md §14).
@@ -82,6 +82,7 @@ _Last updated: Nov 27, 2026 · version 0.84.2_
 - v0.50.1 (owner, Oct 24): Dashboard Total requests, Accepted and Completed tiles open the pipeline for this year.
 - v0.51.0 (owner, Oct 26): Analytics Overview order: Request flow, What stands out, Where active requests stand | Who asked, then one Feedback card (overall, Process, Output and response rate in a row; on Month on Month, Show feedback insights and Show feedback by month side by side, opening inside the card; link to the Feedback page).
 - v0.52.0 (owner, Oct 26): Analytics feedback: the Feedback card is clickable (opens the Feedback page); on Month on Month the "Feedback by month" comparison table is back in its own card right under it, shown without a click, with Show feedback insights below the table.
+- v0.85.0 (owner, Nov 27): a request's own designers (who accepted it) can also move it back to an earlier review round to fix a mistake, not only Lead Designers and Super Admins (migration 0050).
 - v0.84.2 (owner, Nov 27): shorter Final Deadline description on the request form.
 - v0.84.1 (owner, Nov 27): new description under **Final Deadline** on the request form (designers deliver the completed output by this date; final feedback or revisions must come before it, otherwise the request is marked complete), SLA link kept.
 - v0.84.0 (owner, Nov 26): **Three review rounds**: "For requester's review" is now **For review – 1st draft**, plus **For review – V2** and **For review – V3** (in order, with For revision in between; V3 is the last round: after it only Completed, On hold or Cancelled; going back a round is a Lead Designer / Super Admin correction). Pendings' For Review tab holds all three; the requester gets the review email for each round. **First Draft Deadline** on the form (required, on or before the Final Deadline); **Date Needed is now shown as Final Deadline** (keeps the SLA link). Both deadlines on the request pages, Pipeline and Track My Request, and in the team emails. **Dashboard and Analytics**: a Turnaround row (to 1st draft, to completed, 1st draft on time, Final Deadline met); Analytics' new **Turnaround and Reviews** section: 1st draft → completed, waiting on the requester vs with the designer, review rounds per request (by month on Month on Month). Migrations 0048–0049.

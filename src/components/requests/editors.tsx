@@ -100,7 +100,7 @@ export function StatusSelect({
   designTeamOnly = false,
   awaitingMe = false,
   reviewRound = 0,
-  isManager = false,
+  canCorrectRound = false,
 }: {
   requestId: string;
   value: string;
@@ -115,10 +115,11 @@ export function StatusSelect({
   // The viewer is a designer on the request who hasn't accepted yet: no
   // status changes until they do (owner, Nov 12).
   awaitingMe?: boolean;
-  // The request's latest review round (0–3) and whether the viewer may
-  // correct it back (owner, Nov 26).
+  // The request's latest review round (0–3) and whether the viewer may move
+  // it back a round: Super Admins, Lead Designers and the request's own
+  // designers (owner, Nov 27).
   reviewRound?: number;
-  isManager?: boolean;
+  canCorrectRound?: boolean;
 }) {
   const { save, pending } = useSave(requestId);
   const [current, setCurrent] = useState(value);
@@ -174,7 +175,8 @@ export function StatusSelect({
             const reason =
               s.value === current
                 ? null
-                : (lockReason(s.value, hasDesigner, hasLink, accepted) ?? reviewLock(s.value, reviewRound, isManager));
+                : (lockReason(s.value, hasDesigner, hasLink, accepted) ??
+                  reviewLock(s.value, reviewRound, canCorrectRound));
             return (
               <SelectItem key={s.value} value={s.value} disabled={!!reason}>
                 {s.label}
